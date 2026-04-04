@@ -20,18 +20,14 @@ if [[ "${1:-}" == "--check" ]]; then
     CHECK_MODE=1
 fi
 
-log() {
-    printf '[docs] %s\n' "$*"
-}
-
 generate_typedoc() {
-    log "Generating TypeDoc API reference..."
+    nn_log "Generating TypeDoc API reference..."
     cd "${REPO_ROOT}"
     npx typedoc 2>&1 | tail -3
 }
 
 generate_command_reference() {
-    log "Generating command reference..."
+    nn_log "Generating command reference..."
 
     local output="${DOCS_DIR}/commands.md"
     mkdir -p "${DOCS_DIR}"
@@ -66,11 +62,11 @@ generate_command_reference() {
         done
     } > "${output}"
 
-    log "  Written: ${output}"
+    nn_log "  Written: ${output}"
 }
 
 generate_checks_reference() {
-    log "Generating doctor checks reference..."
+    nn_log "Generating doctor checks reference..."
 
     local output="${DOCS_DIR}/checks.md"
     mkdir -p "${DOCS_DIR}"
@@ -102,11 +98,11 @@ except:
 
     } > "${output}"
 
-    log "  Written: ${output}"
+    nn_log "  Written: ${output}"
 }
 
 check_drift() {
-    log "Checking for documentation drift..."
+    nn_log "Checking for documentation drift..."
     cd "${REPO_ROOT}"
 
     local drift=0
@@ -114,23 +110,23 @@ check_drift() {
     # Check TypeDoc
     npx typedoc 2>/dev/null
     if ! git diff --quiet docs/api/ 2>/dev/null; then
-        log "ERROR: TypeDoc output has drifted"
+        nn_log "ERROR: TypeDoc output has drifted"
         drift=1
     fi
 
     # Check command reference
     generate_command_reference
     if ! git diff --quiet docs/commands.md 2>/dev/null; then
-        log "ERROR: Command reference has drifted"
+        nn_log "ERROR: Command reference has drifted"
         drift=1
     fi
 
     if [[ "${drift}" -eq 1 ]]; then
-        log "Run 'bash scripts/generate-docs.sh' and commit the changes"
+        nn_log "Run 'bash scripts/generate-docs.sh' and commit the changes"
         exit 1
     fi
 
-    log "All documentation is up to date"
+    nn_log "All documentation is up to date"
 }
 
 main() {
@@ -140,7 +136,7 @@ main() {
         generate_typedoc
         generate_command_reference
         generate_checks_reference
-        log "Documentation generation complete"
+        nn_log "Documentation generation complete"
     fi
 }
 

@@ -41,12 +41,6 @@ EOF
     exit 0
 }
 
-log() {
-    local timestamp
-    timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
-    printf '[%s] %s\n' "${timestamp}" "$*"
-}
-
 # Channel routing map: filter_id -> window_index
 # 0=Social, 1=Combat, 2=Spam, 3=Alerts
 build_channel_map() {
@@ -173,7 +167,7 @@ apply_layout() {
             if [[ "${DRY_RUN}" -eq 0 ]]; then
                 sed -i "s/^NumWindows=.*/NumWindows=4/" "${ui_file}"
             fi
-            log "  NumWindows: ${current} → 4"
+            nn_log "  NumWindows: ${current} → 4"
             changed=$((changed + 1))
         fi
     fi
@@ -221,12 +215,12 @@ main() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --prefix)
-                if [[ $# -lt 2 ]]; then log "ERROR: --prefix requires a value"; exit 1; fi
+                if [[ $# -lt 2 ]]; then nn_log "ERROR: --prefix requires a value"; exit 1; fi
                 PREFIX="$2"; shift 2 ;;
             --dry-run) DRY_RUN=1; shift ;;
             --force) FORCE=1; shift ;;
             -h|--help) usage ;;
-            *) log "ERROR: Unknown option: $1"; exit 1 ;;
+            *) nn_log "ERROR: Unknown option: $1"; exit 1 ;;
         esac
     done
 
@@ -243,31 +237,31 @@ main() {
     done < <(find "${eq_dir}" -maxdepth 1 -name "UI_*_*.ini" -print0 2>/dev/null)
 
     if [[ ${#ui_files[@]} -eq 0 ]]; then
-        log "ERROR: No UI_charname_server.ini files found in ${eq_dir}"
-        log "Log in to a character first to generate UI files."
+        nn_log "ERROR: No UI_charname_server.ini files found in ${eq_dir}"
+        nn_log "Log in to a character first to generate UI files."
         exit 1
     fi
 
     for ui_file in "${ui_files[@]}"; do
         local basename
         basename="$(basename "${ui_file}")"
-        log "Applying 4-window layout to ${basename}..."
+        nn_log "Applying 4-window layout to ${basename}..."
 
         if [[ "${DRY_RUN}" -eq 1 ]]; then
-            log "  [DRY-RUN] Would set: 4 windows (Social, Combat, Spam, Alerts)"
+            nn_log "  [DRY-RUN] Would set: 4 windows (Social, Combat, Spam, Alerts)"
             local count
             count="$(apply_layout "${ui_file}")"
-            log "  Would change ${count} channel routings."
+            nn_log "  Would change ${count} channel routings."
         else
             local count
             count="$(apply_layout "${ui_file}")"
-            log "  Updated ${count} channel routings."
+            nn_log "  Updated ${count} channel routings."
         fi
     done
 
-    log ""
-    log "Layout applied. In-game: /loadskin to reload UI."
-    log "See docs/chat-layout.md for window descriptions."
+    nn_log ""
+    nn_log "Layout applied. In-game: /loadskin to reload UI."
+    nn_log "See docs/chat-layout.md for window descriptions."
 }
 
 main "$@"

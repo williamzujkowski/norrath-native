@@ -21,7 +21,6 @@ EQ_DIR=""
 USE_WAYLAND=0
 DRY_RUN=0
 [[ "${NN_DISPLAY}" == "wayland" ]] && USE_WAYLAND=1
-WINE_CMD=""
 PIDS=()
 
 usage() {
@@ -51,12 +50,6 @@ EOF
     exit 0
 }
 
-log() {
-    local timestamp
-    timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
-    printf '[%s] %s\n' "${timestamp}" "$*"
-}
-
 parse_args() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -66,7 +59,7 @@ parse_args() {
                 ;;
             --instances)
                 if [[ $# -lt 2 ]]; then
-                    log "ERROR: --instances requires a value"
+                    nn_log "ERROR: --instances requires a value"
                     exit 1
                 fi
                 INSTANCES="$2"
@@ -74,7 +67,7 @@ parse_args() {
                 ;;
             --stagger-delay)
                 if [[ $# -lt 2 ]]; then
-                    log "ERROR: --stagger-delay requires a value"
+                    nn_log "ERROR: --stagger-delay requires a value"
                     exit 1
                 fi
                 STAGGER_DELAY="$2"
@@ -82,7 +75,7 @@ parse_args() {
                 ;;
             --prefix)
                 if [[ $# -lt 2 ]]; then
-                    log "ERROR: --prefix requires a value"
+                    nn_log "ERROR: --prefix requires a value"
                     exit 1
                 fi
                 PREFIX="$2"
@@ -90,7 +83,7 @@ parse_args() {
                 ;;
             --eq-dir)
                 if [[ $# -lt 2 ]]; then
-                    log "ERROR: --eq-dir requires a value"
+                    nn_log "ERROR: --eq-dir requires a value"
                     exit 1
                 fi
                 EQ_DIR="$2"
@@ -108,32 +101,24 @@ parse_args() {
                 usage
                 ;;
             *)
-                log "ERROR: Unknown option: $1"
+                nn_log "ERROR: Unknown option: $1"
                 usage
                 ;;
         esac
     done
 }
 
-detect_wine() {
-    if command -v wine64 &>/dev/null; then
-        WINE_CMD="wine64"
-    elif command -v wine &>/dev/null; then
-        WINE_CMD="wine"
-    else
-        log "ERROR: Wine not found. Run: make prereqs"
+validate_environment() {
+    nn_log "Validating environment..."
+    if [[ -z "${NN_WINE_CMD}" ]]; then
+        nn_log "ERROR: Wine not found. Run: make prereqs"
         exit 1
     fi
-    log "Wine command: ${WINE_CMD}"
-}
-
-validate_environment() {
-    log "Validating environment..."
-    detect_wine
+    nn_log "Wine command: ${NN_WINE_CMD}"
 
     if [[ ! -d "${PREFIX}" ]]; then
-        log "ERROR: WINEPREFIX does not exist: ${PREFIX}"
-        log "Run deploy_eq_env.sh first to create it."
+        nn_log "ERROR: WINEPREFIX does not exist: ${PREFIX}"
+        nn_log "Run deploy_eq_env.sh first to create it."
         exit 1
     fi
 
@@ -142,18 +127,18 @@ validate_environment() {
     fi
 
     if [[ ! -d "${EQ_DIR}" ]]; then
-        log "ERROR: EverQuest directory not found: ${EQ_DIR}"
-        log "Specify it with --eq-dir or install EQ into the prefix."
+        nn_log "ERROR: EverQuest directory not found: ${EQ_DIR}"
+        nn_log "Specify it with --eq-dir or install EQ into the prefix."
         exit 1
     fi
 
     if [[ ! -f "${EQ_DIR}/${EQ_EXECUTABLE}" ]]; then
-        log "ERROR: ${EQ_EXECUTABLE} not found in ${EQ_DIR}"
+        nn_log "ERROR: ${EQ_EXECUTABLE} not found in ${EQ_DIR}"
         exit 1
     fi
 
-    log "WINEPREFIX: ${PREFIX}"
-    log "EQ directory: ${EQ_DIR}"
+    nn_log "WINEPREFIX: ${PREFIX}"
+    nn_log "EQ directory: ${EQ_DIR}"
 }
 
 autodetect_eq_dir() {
@@ -172,29 +157,29 @@ autodetect_eq_dir() {
         fi
     done
 
-    log "ERROR: Could not auto-detect EverQuest directory in ${drive_c}"
-    log "Searched:"
+    nn_log "ERROR: Could not auto-detect EverQuest directory in ${drive_c}"
+    nn_log "Searched:"
     for candidate in "${candidates[@]}"; do
-        log "  ${candidate}"
+        nn_log "  ${candidate}"
     done
     exit 1
 }
 
 configure_display_backend() {
     if [[ "${USE_WAYLAND}" -eq 1 ]] || [[ "${NORRATH_WAYLAND:-0}" == "1" ]]; then
-        log "Configuring Wayland display backend..."
+        nn_log "Configuring Wayland display backend..."
         export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}"
         export GDK_BACKEND=wayland
         export SDL_VIDEODRIVER=wayland
         export MOZ_ENABLE_WAYLAND=1
     else
-        log "Using X11 display backend."
+        nn_log "Using X11 display backend."
         export GDK_BACKEND="${GDK_BACKEND:-x11}"
     fi
 }
 
 graceful_shutdown() {
-    log "Received shutdown signal, stopping all Wine processes..."
+    nn_log "Received shutdown signal, stopping all Wine processes..."
 
     # Use wineserver -k to cleanly shut down all Wine processes in the prefix
     WINEPREFIX="${PREFIX}" wineserver -k 2>/dev/null || true
@@ -207,7 +192,7 @@ graceful_shutdown() {
 
     # Force kill if still running
     if WINEPREFIX="${PREFIX}" wineserver -k0 2>/dev/null; then
-        log "Wine processes did not exit in time, forcing..."
+        nn_log "Wine processes did not exit in time, forcing..."
         WINEPREFIX="${PREFIX}" wineserver -k9 2>/dev/null || true
     fi
 
@@ -216,7 +201,7 @@ graceful_shutdown() {
         wait "${pid}" 2>/dev/null || true
     done
 
-    log "All instances stopped."
+    nn_log "All instances stopped."
     exit 0
 }
 
@@ -235,7 +220,7 @@ launch_instances() {
         exit 0
     fi
 
-    log "Launching ${INSTANCES} instance(s) with ${STAGGER_DELAY}s stagger delay..."
+    nn_log "Launching ${INSTANCES} instance(s) with ${STAGGER_DELAY}s stagger delay..."
 
     trap graceful_shutdown SIGINT SIGTERM
 
@@ -243,23 +228,23 @@ launch_instances() {
     for (( i=1; i<=INSTANCES; i++ )); do
         local instance_log="${LOG_DIR}/eq-instance-${i}.log"
 
-        log "Starting instance ${i}/${INSTANCES}..."
+        nn_log "Starting instance ${i}/${INSTANCES}..."
 
-        WINEPREFIX="${PREFIX}" "${WINE_CMD}" explorer "/desktop=Default,${NN_RESOLUTION}" \
+        WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" explorer "/desktop=Default,${NN_RESOLUTION}" \
             "${EQ_DIR}/${EQ_EXECUTABLE}" --disable-gpu \
             >> "${instance_log}" 2>&1 &
 
         local pid=$!
         PIDS+=("${pid}")
-        log "Instance ${i} launched (PID ${pid}), logging to ${instance_log}"
+        nn_log "Instance ${i} launched (PID ${pid}), logging to ${instance_log}"
 
         if [[ "${i}" -lt "${INSTANCES}" ]]; then
-            log "Waiting ${STAGGER_DELAY}s before next instance..."
+            nn_log "Waiting ${STAGGER_DELAY}s before next instance..."
             sleep "${STAGGER_DELAY}"
         fi
     done
 
-    log "All ${INSTANCES} instance(s) launched. PIDs: ${PIDS[*]}"
+    nn_log "All ${INSTANCES} instance(s) launched. PIDs: ${PIDS[*]}"
 }
 
 ensure_log_dir() {
@@ -271,19 +256,19 @@ ensure_log_dir() {
 main() {
     parse_args "$@"
     ensure_log_dir
-    log "=== ${SCRIPT_NAME} started ==="
+    nn_log "=== ${SCRIPT_NAME} started ==="
 
     validate_environment
     configure_display_backend
     launch_instances
 
-    log "Waiting for all instances to exit (Ctrl+C for graceful shutdown)..."
+    nn_log "Waiting for all instances to exit (Ctrl+C for graceful shutdown)..."
 
     # Wine explorer forks and the parent exits immediately.
     # Wait for wineserver to exit (it stays alive while any Wine processes run).
     WINEPREFIX="${PREFIX}" wineserver --wait 2>/dev/null || wait
 
-    log "=== ${SCRIPT_NAME} finished ==="
+    nn_log "=== ${SCRIPT_NAME} finished ==="
 }
 
 main "$@"

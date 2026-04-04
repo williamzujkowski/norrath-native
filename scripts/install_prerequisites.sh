@@ -8,7 +8,6 @@ set -euo pipefail
 SCRIPT_NAME="$(basename "$0")"
 readonly SCRIPT_NAME
 readonly LOG_DIR="${HOME}/.local/share/norrath-native"
-readonly LOG_FILE="${LOG_DIR}/install.log"
 readonly MIN_WINE_VERSION="9.0"
 
 # Required packages for 64-bit Wine + Vulkan on Ubuntu 24.04
@@ -59,27 +58,18 @@ Requires: Ubuntu 24.04 LTS, sudo access
 EOF
 }
 
-log() {
-    local msg
-    msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
-    echo "$msg"
-    if [[ -d "${LOG_DIR}" ]]; then
-        echo "$msg" >> "${LOG_FILE}"
-    fi
-}
-
 run() {
     if [[ "${DRY_RUN}" -eq 1 ]]; then
-        log "[DRY-RUN] $*"
+        nn_log "[DRY-RUN] $*"
     else
-        log "Running: $*"
+        nn_log "Running: $*"
         "$@"
     fi
 }
 
 check_ubuntu() {
     if [[ ! -f /etc/os-release ]]; then
-        log "ERROR: Cannot detect OS. This script requires Ubuntu 24.04 LTS."
+        nn_log "ERROR: Cannot detect OS. This script requires Ubuntu 24.04 LTS."
         exit 1
     fi
 
@@ -87,8 +77,8 @@ check_ubuntu() {
     version_id=$(grep '^VERSION_ID=' /etc/os-release | cut -d'"' -f2)
 
     if [[ "${version_id}" != "24.04" ]]; then
-        log "WARNING: Detected Ubuntu ${version_id}, but this script targets 24.04 LTS."
-        log "Proceeding anyway — packages may differ on other versions."
+        nn_log "WARNING: Detected Ubuntu ${version_id}, but this script targets 24.04 LTS."
+        nn_log "Proceeding anyway — packages may differ on other versions."
     fi
 }
 
@@ -98,17 +88,17 @@ check_sudo() {
     fi
 
     if ! sudo -n true 2>/dev/null; then
-        log "This script requires sudo access to install system packages."
-        log "You may be prompted for your password."
+        nn_log "This script requires sudo access to install system packages."
+        nn_log "You may be prompted for your password."
     fi
 }
 
 # ─── Installation Steps ──────────────────────────────────────────────────────
 
 enable_i386() {
-    log "Enabling 32-bit (i386) architecture..."
+    nn_log "Enabling 32-bit (i386) architecture..."
     if dpkg --print-foreign-architectures 2>/dev/null | grep -q "i386"; then
-        log "  i386 architecture already enabled, skipping"
+        nn_log "  i386 architecture already enabled, skipping"
     else
         run sudo dpkg --add-architecture i386
         run sudo apt-get update -qq
@@ -121,32 +111,32 @@ install_packages() {
 
     for pkg in "${packages[@]}"; do
         if dpkg -l "${pkg}" 2>/dev/null | grep -q "^ii"; then
-            log "  Already installed: ${pkg}"
+            nn_log "  Already installed: ${pkg}"
         else
             to_install+=("${pkg}")
         fi
     done
 
     if [[ ${#to_install[@]} -eq 0 ]]; then
-        log "  All packages already installed"
+        nn_log "  All packages already installed"
         return 0
     fi
 
-    log "  Installing: ${to_install[*]}"
+    nn_log "  Installing: ${to_install[*]}"
     run sudo apt-get install -y "${to_install[@]}"
 }
 
 verify_wine() {
-    log "Verifying Wine installation..."
+    nn_log "Verifying Wine installation..."
 
     if ! command -v wine64 &>/dev/null; then
-        log "ERROR: wine64 not found after installation"
+        nn_log "ERROR: wine64 not found after installation"
         return 1
     fi
 
     local wine_version
     wine_version=$(wine64 --version 2>/dev/null | sed 's/wine-//')
-    log "  Wine version: ${wine_version}"
+    nn_log "  Wine version: ${wine_version}"
 
     # Simple version floor check (compare major.minor)
     local major minor
@@ -157,18 +147,18 @@ verify_wine() {
     min_minor=$(echo "${MIN_WINE_VERSION}" | cut -d'.' -f2)
 
     if [[ "${major}" -lt "${min_major}" ]] || { [[ "${major}" -eq "${min_major}" ]] && [[ "${minor}" -lt "${min_minor}" ]]; }; then
-        log "WARNING: Wine ${wine_version} is below minimum ${MIN_WINE_VERSION}"
-        log "Consider installing from the WineHQ repository for a newer version."
+        nn_log "WARNING: Wine ${wine_version} is below minimum ${MIN_WINE_VERSION}"
+        nn_log "Consider installing from the WineHQ repository for a newer version."
     else
-        log "  Wine version meets minimum requirement (>= ${MIN_WINE_VERSION})"
+        nn_log "  Wine version meets minimum requirement (>= ${MIN_WINE_VERSION})"
     fi
 }
 
 verify_vulkan() {
-    log "Verifying Vulkan support..."
+    nn_log "Verifying Vulkan support..."
 
     if ! command -v vulkaninfo &>/dev/null; then
-        log "ERROR: vulkaninfo not found after installation"
+        nn_log "ERROR: vulkaninfo not found after installation"
         return 1
     fi
 
@@ -176,12 +166,12 @@ verify_vulkan() {
     device_name=$(vulkaninfo --summary 2>/dev/null | grep "deviceName" | head -1 | sed 's/.*= //' || true)
 
     if [[ -z "${device_name}" ]]; then
-        log "WARNING: No Vulkan device detected. Your GPU may not support Vulkan."
-        log "  Intel: sudo apt install mesa-vulkan-drivers"
-        log "  NVIDIA: Install proprietary drivers with Vulkan support"
-        log "  AMD: sudo apt install mesa-vulkan-drivers"
+        nn_log "WARNING: No Vulkan device detected. Your GPU may not support Vulkan."
+        nn_log "  Intel: sudo apt install mesa-vulkan-drivers"
+        nn_log "  NVIDIA: Install proprietary drivers with Vulkan support"
+        nn_log "  AMD: sudo apt install mesa-vulkan-drivers"
     else
-        log "  Vulkan device: ${device_name}"
+        nn_log "  Vulkan device: ${device_name}"
     fi
 }
 
@@ -193,51 +183,51 @@ main() {
             --dry-run)     DRY_RUN=1; shift ;;
             --skip-optional) SKIP_OPTIONAL=1; shift ;;
             -h|--help)     usage; exit 0 ;;
-            *)             log "Unknown option: $1"; usage; exit 1 ;;
+            *)             nn_log "Unknown option: $1"; usage; exit 1 ;;
         esac
     done
 
     mkdir -p "${LOG_DIR}"
-    log "=== install_prerequisites.sh started ==="
-    log "Dry-run: ${DRY_RUN}, Skip-optional: ${SKIP_OPTIONAL}"
+    nn_log "=== install_prerequisites.sh started ==="
+    nn_log "Dry-run: ${DRY_RUN}, Skip-optional: ${SKIP_OPTIONAL}"
 
     check_ubuntu
     check_sudo
 
-    log ""
-    log "Step 1/5: Enable 32-bit architecture"
+    nn_log ""
+    nn_log "Step 1/5: Enable 32-bit architecture"
     enable_i386
 
-    log ""
-    log "Step 2/5: Update package lists"
+    nn_log ""
+    nn_log "Step 2/5: Update package lists"
     run sudo apt-get update -qq
 
-    log ""
-    log "Step 3/5: Install required packages"
+    nn_log ""
+    nn_log "Step 3/5: Install required packages"
     install_packages "${REQUIRED_PACKAGES[@]}"
 
     if [[ "${SKIP_OPTIONAL}" -eq 0 ]]; then
-        log ""
-        log "Step 4/5: Install optional packages"
+        nn_log ""
+        nn_log "Step 4/5: Install optional packages"
         install_packages "${OPTIONAL_PACKAGES[@]}"
     else
-        log ""
-        log "Step 4/5: Skipping optional packages (--skip-optional)"
+        nn_log ""
+        nn_log "Step 4/5: Skipping optional packages (--skip-optional)"
     fi
 
     if [[ "${DRY_RUN}" -eq 0 ]]; then
-        log ""
-        log "Step 5/5: Verify installation"
+        nn_log ""
+        nn_log "Step 5/5: Verify installation"
         verify_wine
         verify_vulkan
     else
-        log ""
-        log "Step 5/5: Skipping verification (dry-run mode)"
+        nn_log ""
+        nn_log "Step 5/5: Skipping verification (dry-run mode)"
     fi
 
-    log ""
-    log "=== Prerequisites installation complete ==="
-    log "Next step: make deploy"
+    nn_log ""
+    nn_log "=== Prerequisites installation complete ==="
+    nn_log "Next step: make deploy"
 }
 
 main "$@"

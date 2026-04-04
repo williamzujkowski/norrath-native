@@ -50,12 +50,6 @@ EOF
     exit 0
 }
 
-log() {
-    local timestamp
-    timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
-    printf '[%s] %s\n' "${timestamp}" "$*"
-}
-
 ensure_profiles_dir() {
     mkdir -p "${PROFILES_DIR}"
 }
@@ -64,7 +58,7 @@ ensure_profiles_dir() {
 cmd_save() {
     local name="${1:-}"
     if [[ -z "${name}" ]]; then
-        log "ERROR: Profile name required. Usage: $(basename "$0") save NAME"
+        nn_log "ERROR: Profile name required. Usage: $(basename "$0") save NAME"
         exit 1
     fi
 
@@ -104,21 +98,21 @@ cmd_save() {
 }
 PEOF
 
-    log "Profile '${name}' saved (${count} files) to ${profile_dir}"
-    log "  Monitor: ${monitor_res}, Wine: ${wine_res}"
+    nn_log "Profile '${name}' saved (${count} files) to ${profile_dir}"
+    nn_log "  Monitor: ${monitor_res}, Wine: ${wine_res}"
 }
 
 # Load a profile, applying to all characters
 cmd_load() {
     local name="${1:-}"
     if [[ -z "${name}" ]]; then
-        log "ERROR: Profile name required. Usage: $(basename "$0") load NAME"
+        nn_log "ERROR: Profile name required. Usage: $(basename "$0") load NAME"
         exit 1
     fi
 
     # Check built-in profiles first
     if [[ -f "${SCRIPT_DIR}/profiles/${name}.sh" ]]; then
-        log "Loading built-in profile: ${name}"
+        nn_log "Loading built-in profile: ${name}"
         # shellcheck disable=SC1090
         source "${SCRIPT_DIR}/profiles/${name}.sh"
         return 0
@@ -126,8 +120,8 @@ cmd_load() {
 
     local profile_dir="${PROFILES_DIR}/${name}"
     if [[ ! -d "${profile_dir}" ]]; then
-        log "ERROR: Profile '${name}' not found."
-        log "Available profiles:"
+        nn_log "ERROR: Profile '${name}' not found."
+        nn_log "Available profiles:"
         cmd_list
         exit 1
     fi
@@ -147,10 +141,10 @@ cmd_load() {
         basename="$(basename "${saved_file}")"
         if [[ -f "${eq_dir}/${basename}" ]]; then
             cp "${saved_file}" "${eq_dir}/${basename}"
-            log "  Restored: ${basename}"
+            nn_log "  Restored: ${basename}"
             count=$((count + 1))
         else
-            log "  Skipped: ${basename} (character not found in current prefix)"
+            nn_log "  Skipped: ${basename} (character not found in current prefix)"
         fi
     done
 
@@ -165,7 +159,7 @@ cmd_load() {
             sed -i "s/^Height=.*/Height=${saved_height}/" "${eq_dir}/eqclient.ini"
             sed -i "s/^WindowedWidth=.*/WindowedWidth=${saved_width}/" "${eq_dir}/eqclient.ini"
             sed -i "s/^WindowedHeight=.*/WindowedHeight=${saved_height}/" "${eq_dir}/eqclient.ini"
-            log "  Restored VideoMode: ${saved_width}x${saved_height}"
+            nn_log "  Restored VideoMode: ${saved_width}x${saved_height}"
         fi
         count=$((count + 1))
     fi
@@ -175,11 +169,11 @@ cmd_load() {
         local saved_at monitor
         saved_at="$(grep '"saved_at"' "${profile_dir}/profile.json" | grep -oP '"\d{4}-[^"]+' | tr -d '"' || echo 'unknown')"
         monitor="$(grep '"monitor_resolution"' "${profile_dir}/profile.json" | grep -oP '\d+x\d+' || echo 'unknown')"
-        log "  Saved: ${saved_at}, Monitor: ${monitor}"
+        nn_log "  Saved: ${saved_at}, Monitor: ${monitor}"
     fi
 
-    log "Profile '${name}' loaded (${count} files)."
-    log "In-game: /loadskin Default 1  (the 1 preserves window positions)"
+    nn_log "Profile '${name}' loaded (${count} files)."
+    nn_log "In-game: /loadskin Default 1  (the 1 preserves window positions)"
 }
 
 # List available profiles
@@ -187,12 +181,12 @@ cmd_list() {
     ensure_profiles_dir
 
     # Built-in profiles
-    log "Built-in profiles:"
-    log "  ultrawide-solo    21:9 single client, centered viewport with sidebars"
-    log "  ultrawide-multi   21:9 multibox, compact windows"
-    log "  standard-solo     16:9 single client, full screen"
-    log "  standard-multi    16:9 multibox, 2x2 grid friendly"
-    log ""
+    nn_log "Built-in profiles:"
+    nn_log "  ultrawide-solo    21:9 single client, centered viewport with sidebars"
+    nn_log "  ultrawide-multi   21:9 multibox, compact windows"
+    nn_log "  standard-solo     16:9 single client, full screen"
+    nn_log "  standard-multi    16:9 multibox, 2x2 grid friendly"
+    nn_log ""
 
     # User-saved profiles
     local count=0
@@ -209,16 +203,16 @@ cmd_list() {
                 saved="$(grep '"saved_at"' "${profile_dir}/profile.json" | grep -oP '\d{4}-\d{2}-\d{2}' || echo '?')"
                 info=" (${monitor}, saved ${saved})"
             fi
-            log "  ${name}${info}"
+            nn_log "  ${name}${info}"
             count=$((count + 1))
         done
     fi
 
     if [[ "${count}" -eq 0 ]]; then
-        log "User profiles:"
-        log "  (none — save one with: $(basename "$0") save NAME)"
+        nn_log "User profiles:"
+        nn_log "  (none — save one with: $(basename "$0") save NAME)"
     else
-        log "  ${count} user profile(s) total"
+        nn_log "  ${count} user profile(s) total"
     fi
 }
 
@@ -226,18 +220,18 @@ cmd_list() {
 cmd_delete() {
     local name="${1:-}"
     if [[ -z "${name}" ]]; then
-        log "ERROR: Profile name required."
+        nn_log "ERROR: Profile name required."
         exit 1
     fi
 
     local profile_dir="${PROFILES_DIR}/${name}"
     if [[ ! -d "${profile_dir}" ]]; then
-        log "ERROR: Profile '${name}' not found."
+        nn_log "ERROR: Profile '${name}' not found."
         exit 1
     fi
 
     rm -rf "${profile_dir}"
-    log "Profile '${name}' deleted."
+    nn_log "Profile '${name}' deleted."
 }
 
 # Main dispatch
@@ -248,7 +242,7 @@ case "${1:-help}" in
     delete) cmd_delete "${2:-}" ;;
     -h|--help) usage ;;
     *)
-        log "Unknown command: ${1:-}"
+        nn_log "Unknown command: ${1:-}"
         usage
         ;;
 esac

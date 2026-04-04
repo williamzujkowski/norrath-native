@@ -35,7 +35,6 @@ DOTNET8_URL="https://dotnet.microsoft.com/en-us/download/dotnet/8.0"
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
-log()  { printf '[install_parser] %s\n' "$*"; }
 info() { printf '\033[36m[install_parser]\033[0m %s\n' "$*"; }
 ok()   { printf '\033[32m[install_parser] ✓\033[0m %s\n' "$*"; }
 warn() { printf '\033[33m[install_parser] ⚠\033[0m %s\n' "$*" >&2; }
@@ -263,13 +262,13 @@ fi
 
 ok "Extracted ${file_count} files to ${PARSER_DEST}"
 ok "EQLogParser installed successfully."
-log ""
-log "To launch EQLogParser:"
-log "  WINEPREFIX=\"${PREFIX}\" wine \"${PARSER_EXE}\""
-log ""
-log "NOTE: .NET 8.0 Desktop Runtime must be installed separately."
-log "If not yet installed, see instructions:"
-log "  bash scripts/install_parser.sh --help"
-log ""
-log "Piper TTS: Enable in EQLogParser → Settings → Triggers → Use Piper TTS"
-log "(Windows TTS is unavailable under Wine)"
+nn_log ""
+nn_log "To launch EQLogParser:"
+nn_log "  WINEPREFIX=\"${PREFIX}\" wine \"${PARSER_EXE}\""
+nn_log ""
+nn_log "NOTE: .NET 8.0 Desktop Runtime must be installed separately."
+nn_log "If not yet installed, see instructions:"
+nn_log "  bash scripts/install_parser.sh --help"
+nn_log ""
+nn_log "Piper TTS: Enable in EQLogParser → Settings → Triggers → Use Piper TTS"
+nn_log "(Windows TTS is unavailable under Wine)"

@@ -43,12 +43,6 @@ EOF
     exit 0
 }
 
-log() {
-    local timestamp
-    timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
-    printf '[%s] %s\n' "${timestamp}" "$*"
-}
-
 # Color scheme: "ID R G B" per line
 # ID maps to User_N in [TextColors] section (1-indexed)
 read_color_scheme() {
@@ -181,44 +175,44 @@ main() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --prefix)
-                if [[ $# -lt 2 ]]; then log "ERROR: --prefix requires a value"; exit 1; fi
+                if [[ $# -lt 2 ]]; then nn_log "ERROR: --prefix requires a value"; exit 1; fi
                 PREFIX="$2"; shift 2 ;;
             --dry-run) DRY_RUN=1; shift ;;
             -h|--help) usage ;;
-            *) log "ERROR: Unknown option: $1"; exit 1 ;;
+            *) nn_log "ERROR: Unknown option: $1"; exit 1 ;;
         esac
     done
 
     local ini_file="${PREFIX}/drive_c/EverQuest/eqclient.ini"
 
     if [[ ! -f "${ini_file}" ]]; then
-        log "ERROR: eqclient.ini not found at ${ini_file}"
-        log "Run 'make deploy' first."
+        nn_log "ERROR: eqclient.ini not found at ${ini_file}"
+        nn_log "Run 'make deploy' first."
         exit 1
     fi
 
     if [[ "${DRY_RUN}" -eq 1 ]]; then
-        log "Preview: optimized color scheme for ${ini_file}"
-        log ""
-        log "Key changes:"
-        log "  Tell:     white → bright pink (#ff80ff)"
-        log "  Guild:    red → bright green (#00e600)"
-        log "  Group:    blue → soft blue (#82b4ff)"
-        log "  Raid:     white → orange (#ffa500)"
-        log "  Shout:    dark green → salmon (#ff6464)"
-        log "  Others:   bright → dimmed gray (#6e8296)"
-        log "  Healing:  mixed → mint/blue family"
-        log "  Low HP:   dark red → BRIGHT RED (#ff0000)"
-        log ""
+        nn_log "Preview: optimized color scheme for ${ini_file}"
+        nn_log ""
+        nn_log "Key changes:"
+        nn_log "  Tell:     white → bright pink (#ff80ff)"
+        nn_log "  Guild:    red → bright green (#00e600)"
+        nn_log "  Group:    blue → soft blue (#82b4ff)"
+        nn_log "  Raid:     white → orange (#ffa500)"
+        nn_log "  Shout:    dark green → salmon (#ff6464)"
+        nn_log "  Others:   bright → dimmed gray (#6e8296)"
+        nn_log "  Healing:  mixed → mint/blue family"
+        nn_log "  Low HP:   dark red → BRIGHT RED (#ff0000)"
+        nn_log ""
         local count
         count="$(apply_colors "${ini_file}")"
-        log "Would change ${count} color values."
+        nn_log "Would change ${count} color values."
     else
-        log "Applying optimized color scheme to ${ini_file}..."
+        nn_log "Applying optimized color scheme to ${ini_file}..."
         local count
         count="$(apply_colors "${ini_file}")"
-        log "Updated ${count} color values."
-        log "Reload UI in-game with /loadskin to see changes."
+        nn_log "Updated ${count} color values."
+        nn_log "Reload UI in-game with /loadskin to see changes."
     fi
 }
 

@@ -21,7 +21,6 @@ DRY_RUN=0
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
-log()  { printf '[install_maps] %s\n' "$*"; }
 info() { printf '\033[36m[install_maps]\033[0m %s\n' "$*"; }
 ok()   { printf '\033[32m[install_maps] ✓\033[0m %s\n' "$*"; }
 warn() { printf '\033[33m[install_maps] ⚠\033[0m %s\n' "$*" >&2; }
@@ -175,6 +174,6 @@ fi
 
 ok "Extracted ${txt_count} map files to ${MAPS_DEST}"
 ok "Brewall maps installed successfully."
-log ""
-log "EverQuest map path (in-game): maps/Brewall"
-log "Configure your map overlay to load from this directory."
+nn_log ""
+nn_log "EverQuest map path (in-game): maps/Brewall"
+nn_log "Configure your map overlay to load from this directory."

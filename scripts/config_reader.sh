@@ -7,6 +7,30 @@
 #
 # Usage: source scripts/config_reader.sh
 
+# ─── Shared Utilities ─────────────────────────────────────────────────────────
+# These functions are used by multiple scripts. DRY: defined once here.
+
+# Timestamped log output
+nn_log() {
+    local timestamp
+    timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
+    printf '[%s] %s\n' "${timestamp}" "$*"
+}
+
+# Detect Wine binary (wine64 or wine)
+nn_detect_wine() {
+    if command -v wine64 &>/dev/null; then
+        NN_WINE_CMD="wine64"
+    elif command -v wine &>/dev/null; then
+        NN_WINE_CMD="wine"
+    else
+        NN_WINE_CMD=""
+    fi
+}
+
+# Initialize Wine command on source
+nn_detect_wine
+
 # ─── EQ Running Guard ─────────────────────────────────────────────────────────
 # Call this before modifying UI_*.ini or eqclient.ini files.
 # EQ holds these in memory and overwrites on camp/zone, so changes made

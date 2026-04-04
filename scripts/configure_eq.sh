@@ -36,24 +36,18 @@ EOF
     exit 0
 }
 
-log() {
-    local timestamp
-    timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
-    printf '[%s] %s\n' "${timestamp}" "$*"
-}
-
 parse_args() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --prefix)
-                if [[ $# -lt 2 ]]; then log "ERROR: --prefix requires a value"; exit 1; fi
+                if [[ $# -lt 2 ]]; then nn_log "ERROR: --prefix requires a value"; exit 1; fi
                 NN_PREFIX="$2"; shift 2 ;;
             --profile)
-                if [[ $# -lt 2 ]]; then log "ERROR: --profile requires a value"; exit 1; fi
+                if [[ $# -lt 2 ]]; then nn_log "ERROR: --profile requires a value"; exit 1; fi
                 NN_PROFILE="$2"; _nn_apply_profile; shift 2 ;;
             --dry-run) DRY_RUN=1; shift ;;
             -h|--help) usage ;;
-            *) log "ERROR: Unknown option: $1"; exit 1 ;;
+            *) nn_log "ERROR: Unknown option: $1"; exit 1 ;;
         esac
     done
 }
@@ -119,16 +113,16 @@ apply_settings_to_section() {
             current="$(grep "^${key}=" "${ini_file}" | head -1 | cut -d= -f2-)"
             if [[ "${current}" != "${value}" ]]; then
                 if [[ "${DRY_RUN}" -eq 1 ]]; then
-                    log "  [DRY-RUN] Would update: ${key}=${value} (was: ${current})"
+                    nn_log "  [DRY-RUN] Would update: ${key}=${value} (was: ${current})"
                 else
                     sed -i "s/^${key}=.*/${key}=${value}/" "${ini_file}"
-                    log "  Updated: ${key}=${value} (was: ${current})"
+                    nn_log "  Updated: ${key}=${value} (was: ${current})"
                 fi
                 updated=$((updated + 1))
             fi
         else
             if [[ "${DRY_RUN}" -eq 1 ]]; then
-                log "  [DRY-RUN] Would add: ${key}=${value}"
+                nn_log "  [DRY-RUN] Would add: ${key}=${value}"
             else
                 # Add under the appropriate section
                 if grep -q "^\[${section_name}\]" "${ini_file}" 2>/dev/null; then
@@ -136,7 +130,7 @@ apply_settings_to_section() {
                 else
                     echo "${key}=${value}" >> "${ini_file}"
                 fi
-                log "  Added: ${key}=${value}"
+                nn_log "  Added: ${key}=${value}"
             fi
             updated=$((updated + 1))
         fi
@@ -153,8 +147,8 @@ main() {
     local ini_file="${eq_dir}/eqclient.ini"
 
     if [[ ! -d "${eq_dir}" ]]; then
-        log "ERROR: EverQuest directory not found at ${eq_dir}"
-        log "Run 'make deploy' first."
+        nn_log "ERROR: EverQuest directory not found at ${eq_dir}"
+        nn_log "Run 'make deploy' first."
         exit 1
     fi
 
@@ -162,29 +156,29 @@ main() {
         nn_require_eq_stopped --warn
     fi
 
-    log "Applying settings (profile: ${NN_PROFILE}) to ${ini_file}"
+    nn_log "Applying settings (profile: ${NN_PROFILE}) to ${ini_file}"
 
     if [[ ! -f "${ini_file}" ]]; then
         if [[ "${DRY_RUN}" -eq 1 ]]; then
-            log "[DRY-RUN] Would create ${ini_file}"
+            nn_log "[DRY-RUN] Would create ${ini_file}"
         else
-            log "Creating ${ini_file}..."
+            nn_log "Creating ${ini_file}..."
             echo "[Defaults]" > "${ini_file}"
         fi
     fi
 
     local total=0
 
-    log "Managed settings ([Defaults] section):"
+    nn_log "Managed settings ([Defaults] section):"
     apply_settings_to_section "${ini_file}" MANAGED_SETTINGS "Defaults" || total=$((total + $?))
 
-    log "Performance settings ([Options] section):"
+    nn_log "Performance settings ([Options] section):"
     apply_settings_to_section "${ini_file}" OPTIONS_SETTINGS "Options" || total=$((total + $?))
 
     if [[ "${total}" -eq 0 ]]; then
-        log "All settings already correct (no changes needed)."
+        nn_log "All settings already correct (no changes needed)."
     else
-        log "Applied ${total} change(s)."
+        nn_log "Applied ${total} change(s)."
     fi
 }
 

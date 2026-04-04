@@ -50,10 +50,6 @@ EOF
     exit 0
 }
 
-log() {
-    printf '[%s] %s\n' "$(date '+%H:%M:%S')" "$*"
-}
-
 # Calculate pixel value from percentage and total
 calc() {
     local pct="$1" total="$2"
@@ -74,7 +70,7 @@ apply_tiling() {
     local desktop_w desktop_h
     read -r desktop_w desktop_h <<< "$(get_desktop_size)"
 
-    log "Wine desktop: ${desktop_w}x${desktop_h}"
+    nn_log "Wine desktop: ${desktop_w}x${desktop_h}"
 
     # Find EQ windows
     local -a windows=()
@@ -117,9 +113,9 @@ apply_tiling() {
             if [[ "${DRY_RUN}" -eq 0 ]]; then
                 DISPLAY=:0 wmctrl -i -r "${wid}" -e "0,${px},${py},${pw},${ph}" 2>/dev/null || true
             fi
-            log "  Window ${i}: ${px},${py} ${pw}x${ph}"
+            nn_log "  Window ${i}: ${px},${py} ${pw}x${ph}"
         else
-            log "  Window ${i}: ${px},${py} ${pw}x${ph} (no window to tile)"
+            nn_log "  Window ${i}: ${px},${py} ${pw}x${ph} (no window to tile)"
         fi
         i=$((i + 1))
     done
@@ -138,13 +134,13 @@ apply_ui_positions() {
     local res_tag
     res_tag="$(grep -oP '\d+x\d+' "${ui_file}" 2>/dev/null | head -1)"
     if [[ -z "${res_tag}" ]]; then
-        log "  ${basename}: no resolution tag found, skipping UI positions"
+        nn_log "  ${basename}: no resolution tag found, skipping UI positions"
         return 0
     fi
     local tag_w="${res_tag%%x*}"
     local tag_h="${res_tag##*x}"
 
-    log "  ${basename} (${role}, ${res_tag}):"
+    nn_log "  ${basename} (${role}, ${res_tag}):"
 
     # Map template variables to EQ UI sections
     local prefix_var
@@ -200,7 +196,7 @@ apply_ui_positions() {
             done
         fi
 
-        log "    ${eq_section}: ${px},${py} ${pw}x${ph}"
+        nn_log "    ${eq_section}: ${px},${py} ${pw}x${ph}"
         changed=$((changed + 1))
     done
 
@@ -208,8 +204,8 @@ apply_ui_positions() {
 }
 
 cmd_list() {
-    log "Available layout templates:"
-    log ""
+    nn_log "Available layout templates:"
+    nn_log ""
     for conf in "${LAYOUTS_DIR}"/*.conf; do
         [[ -f "${conf}" ]] || continue
         local name
@@ -218,22 +214,22 @@ cmd_list() {
         source "${conf}"
         printf '  %-25s %s\n' "${name}" "${LAYOUT_DESC:-}"
     done
-    log ""
-    log "Apply with: $(basename "$0") apply TEMPLATE_NAME"
-    log "Preview with: $(basename "$0") show TEMPLATE_NAME"
+    nn_log ""
+    nn_log "Apply with: $(basename "$0") apply TEMPLATE_NAME"
+    nn_log "Preview with: $(basename "$0") show TEMPLATE_NAME"
 }
 
 cmd_show() {
     local template="${1:-}"
     if [[ -z "${template}" ]]; then
-        log "ERROR: Template name required."
+        nn_log "ERROR: Template name required."
         cmd_list
         exit 1
     fi
 
     local conf="${LAYOUTS_DIR}/${template}.conf"
     if [[ ! -f "${conf}" ]]; then
-        log "ERROR: Template '${template}' not found at ${conf}"
+        nn_log "ERROR: Template '${template}' not found at ${conf}"
         cmd_list
         exit 1
     fi
@@ -244,12 +240,12 @@ cmd_show() {
     local desktop_w desktop_h
     read -r desktop_w desktop_h <<< "$(get_desktop_size)"
 
-    log "Template: ${LAYOUT_NAME:-${template}}"
-    log "Description: ${LAYOUT_DESC:-}"
-    log "Instances: ${LAYOUT_INSTANCES:-1}"
-    log "Desktop: ${desktop_w}x${desktop_h}"
-    log ""
-    log "Wine window tiling:"
+    nn_log "Template: ${LAYOUT_NAME:-${template}}"
+    nn_log "Description: ${LAYOUT_DESC:-}"
+    nn_log "Instances: ${LAYOUT_INSTANCES:-1}"
+    nn_log "Desktop: ${desktop_w}x${desktop_h}"
+    nn_log ""
+    nn_log "Wine window tiling:"
 
     local i=1
     while true; do
@@ -262,12 +258,12 @@ cmd_show() {
         py="$(calc "${ty}" "${desktop_h}")"
         pw="$(calc "${tw}" "${desktop_w}")"
         ph="$(calc "${th}" "${desktop_h}")"
-        log "  Window ${i}: (${tx}%,${ty}%) → ${px},${py} ${pw}x${ph}"
+        nn_log "  Window ${i}: (${tx}%,${ty}%) → ${px},${py} ${pw}x${ph}"
         i=$((i + 1))
     done
 
-    log ""
-    log "EQ UI positions (main role, relative to EQ window):"
+    nn_log ""
+    nn_log "EQ UI positions (main role, relative to EQ window):"
     for var_name in MAIN_CHAT MAIN_TARGET MAIN_PLAYER MAIN_GROUP MAIN_HOTBAR MAIN_BUFFS; do
         local vx="${var_name}_X" vy="${var_name}_Y" vw="${var_name}_W" vh="${var_name}_H"
         local tx="${!vx:-}" ty="${!vy:-}" tw="${!vw:-}" th="${!vh:-}"
@@ -285,13 +281,13 @@ cmd_apply() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --character)
-                if [[ $# -lt 2 ]]; then log "ERROR: --character requires a value"; exit 1; fi
+                if [[ $# -lt 2 ]]; then nn_log "ERROR: --character requires a value"; exit 1; fi
                 target_char="$2"; shift 2 ;;
             --role)
-                if [[ $# -lt 2 ]]; then log "ERROR: --role requires main or box"; exit 1; fi
+                if [[ $# -lt 2 ]]; then nn_log "ERROR: --role requires main or box"; exit 1; fi
                 target_role="$2"; shift 2 ;;
             --prefix)
-                if [[ $# -lt 2 ]]; then log "ERROR: --prefix requires a value"; exit 1; fi
+                if [[ $# -lt 2 ]]; then nn_log "ERROR: --prefix requires a value"; exit 1; fi
                 PREFIX="$2"; shift 2 ;;
             --dry-run) DRY_RUN=1; shift ;;
             --force) FORCE=1; shift ;;
@@ -300,14 +296,14 @@ cmd_apply() {
     done
 
     if [[ -z "${template}" ]]; then
-        log "ERROR: Template name required."
+        nn_log "ERROR: Template name required."
         cmd_list
         exit 1
     fi
 
     local conf="${LAYOUTS_DIR}/${template}.conf"
     if [[ ! -f "${conf}" ]]; then
-        log "ERROR: Template '${template}' not found."
+        nn_log "ERROR: Template '${template}' not found."
         cmd_list
         exit 1
     fi
@@ -315,20 +311,20 @@ cmd_apply() {
     # shellcheck disable=SC1090
     source "${conf}"
 
-    log "Applying template: ${LAYOUT_NAME:-${template}}"
+    nn_log "Applying template: ${LAYOUT_NAME:-${template}}"
 
     if [[ "${FORCE:-0}" -eq 0 ]] && [[ "${DRY_RUN}" -eq 0 ]]; then
         nn_require_eq_stopped || exit 1
     fi
 
     # Step 1: Tile Wine windows
-    log ""
-    log "Step 1: Wine window tiling"
+    nn_log ""
+    nn_log "Step 1: Wine window tiling"
     apply_tiling "${conf}"
 
     # Step 2: Apply EQ UI positions to character INIs
-    log ""
-    log "Step 2: EQ internal UI positions"
+    nn_log ""
+    nn_log "Step 2: EQ internal UI positions"
 
     local eq_dir="${PREFIX}/drive_c/EverQuest"
     local char_idx=0
@@ -360,8 +356,8 @@ cmd_apply() {
 
     # Step 3: Viewport
     if [[ "${VIEWPORT_MODE:-none}" == "auto" ]]; then
-        log ""
-        log "Step 3: Viewport"
+        nn_log ""
+        nn_log "Step 3: Viewport"
         local monitor_w monitor_h
         monitor_w="$(DISPLAY=:0 xrandr 2>/dev/null | grep ' connected primary' | grep -oP '\d+' | head -1 || echo '1920')"
         monitor_h="$(DISPLAY=:0 xrandr 2>/dev/null | grep ' connected primary' | grep -oP '\d+' | head -2 | tail -1 || echo '1080')"
@@ -372,15 +368,15 @@ cmd_apply() {
         if awk "BEGIN {exit !(${ratio} > 1.78)}" 2>/dev/null; then
             local vp_w=$(( monitor_h * 16 / 9 ))
             local vp_offset=$(( (monitor_w - vp_w) / 2 ))
-            log "  Ultrawide detected. In-game command:"
-            log "  /viewport ${vp_offset} 0 ${vp_w} ${monitor_h}"
+            nn_log "  Ultrawide detected. In-game command:"
+            nn_log "  /viewport ${vp_offset} 0 ${vp_w} ${monitor_h}"
         else
-            log "  16:9 monitor — no viewport adjustment needed."
+            nn_log "  16:9 monitor — no viewport adjustment needed."
         fi
     fi
 
-    log ""
-    log "Layout applied. In-game: /loadskin Default 1"
+    nn_log ""
+    nn_log "Layout applied. In-game: /loadskin Default 1"
 }
 
 # Main dispatch
@@ -390,7 +386,7 @@ case "${1:-help}" in
     list)   cmd_list ;;
     -h|--help) usage ;;
     *)
-        log "Unknown command: ${1:-}"
+        nn_log "Unknown command: ${1:-}"
         usage
         ;;
 esac

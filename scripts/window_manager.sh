@@ -35,10 +35,6 @@ EOF
     exit 0
 }
 
-log() {
-    printf '[%s] %s\n' "$(date '+%H:%M:%S')" "$*"
-}
-
 # Find all EverQuest windows (Wine virtual desktops running EQ)
 find_eq_windows() {
     local -a windows=()
@@ -56,7 +52,7 @@ find_eq_windows() {
 }
 
 cmd_list() {
-    log "Detecting EverQuest windows..."
+    nn_log "Detecting EverQuest windows..."
     local count=0
     while IFS= read -r wid; do
         local name geom
@@ -67,9 +63,9 @@ cmd_list() {
     done < <(find_eq_windows)
 
     if [[ "${count}" -eq 0 ]]; then
-        log "No EverQuest windows found. Launch first: make launch-multi"
+        nn_log "No EverQuest windows found. Launch first: make launch-multi"
     else
-        log "Found ${count} EQ window(s)."
+        nn_log "Found ${count} EQ window(s)."
     fi
 }
 
@@ -81,7 +77,7 @@ cmd_tile() {
 
     local count=${#windows[@]}
     if [[ "${count}" -eq 0 ]]; then
-        log "No EverQuest windows found."
+        nn_log "No EverQuest windows found."
         exit 1
     fi
 
@@ -90,18 +86,18 @@ cmd_tile() {
     screen_w="$(DISPLAY=:0 xdotool getdisplaygeometry 2>/dev/null | cut -d' ' -f1)"
     screen_h="$(DISPLAY=:0 xdotool getdisplaygeometry 2>/dev/null | cut -d' ' -f2)"
 
-    log "Tiling ${count} window(s) on ${screen_w}x${screen_h} display..."
+    nn_log "Tiling ${count} window(s) on ${screen_w}x${screen_h} display..."
 
     if [[ "${count}" -eq 1 ]]; then
         # Single window: maximize
         DISPLAY=:0 wmctrl -i -r "${windows[0]}" -e "0,0,0,${screen_w},${screen_h}" 2>/dev/null
-        log "  Window maximized."
+        nn_log "  Window maximized."
     elif [[ "${count}" -eq 2 ]]; then
         # Two windows: side by side
         local half_w=$((screen_w / 2))
         DISPLAY=:0 wmctrl -i -r "${windows[0]}" -e "0,0,0,${half_w},${screen_h}" 2>/dev/null
         DISPLAY=:0 wmctrl -i -r "${windows[1]}" -e "0,${half_w},0,${half_w},${screen_h}" 2>/dev/null
-        log "  2 windows: side-by-side."
+        nn_log "  2 windows: side-by-side."
     elif [[ "${count}" -le 4 ]]; then
         # 3-4 windows: 2x2 grid
         local half_w=$((screen_w / 2))
@@ -114,7 +110,7 @@ cmd_tile() {
             y="$(echo "${positions[${i}]}" | cut -d, -f2)"
             DISPLAY=:0 wmctrl -i -r "${windows[${i}]}" -e "0,${x},${y},${half_w},${half_h}" 2>/dev/null
         done
-        log "  ${count} windows: 2x2 grid."
+        nn_log "  ${count} windows: 2x2 grid."
     else
         # 5-6 windows: 3x2 grid
         local third_w=$((screen_w / 3))
@@ -127,10 +123,10 @@ cmd_tile() {
             local y=$((row * half_h))
             DISPLAY=:0 wmctrl -i -r "${windows[${i}]}" -e "0,${x},${y},${third_w},${half_h}" 2>/dev/null
         done
-        log "  ${count} windows: 3x2 grid."
+        nn_log "  ${count} windows: 3x2 grid."
     fi
 
-    log "Done. Use 'make focus-next' to cycle between windows."
+    nn_log "Done. Use 'make focus-next' to cycle between windows."
 }
 
 cmd_pip() {
@@ -141,7 +137,7 @@ cmd_pip() {
 
     local count=${#windows[@]}
     if [[ "${count}" -lt 2 ]]; then
-        log "PiP mode needs 2+ windows."
+        nn_log "PiP mode needs 2+ windows."
         exit 1
     fi
 
@@ -162,7 +158,7 @@ cmd_pip() {
         DISPLAY=:0 wmctrl -i -r "${windows[${i}]}" -e "0,${main_w},${y},${pip_w},${pip_h}" 2>/dev/null
     done
 
-    log "PiP: main window + ${count} side panels."
+    nn_log "PiP: main window + ${count} side panels."
 }
 
 cmd_focus() {
@@ -173,7 +169,7 @@ cmd_focus() {
 
     local count=${#windows[@]}
     if [[ "${count}" -eq 0 ]]; then
-        log "No EQ windows found."
+        nn_log "No EQ windows found."
         exit 1
     fi
 
@@ -196,7 +192,7 @@ cmd_focus() {
 
     local name
     name="$(DISPLAY=:0 xdotool getwindowname "${next_wid}" 2>/dev/null || echo 'EQ')"
-    log "Focus → ${name} (window $((next_idx + 1))/${count})"
+    nn_log "Focus → ${name} (window $((next_idx + 1))/${count})"
 }
 
 # Parse command
@@ -207,7 +203,7 @@ case "${COMMAND}" in
     pip)      cmd_pip ;;
     -h|--help) usage ;;
     *)
-        log "Unknown command: ${COMMAND}"
+        nn_log "Unknown command: ${COMMAND}"
         usage
         ;;
 esac
