@@ -1,5 +1,8 @@
 /**
- * DXVK release resolver.
+ * DXVK release resolver — reference implementation.
+ * The actual DXVK resolution in production is done by deploy_eq_env.sh
+ * via the GitHub API. This module serves as a typed reference and
+ * is tested to validate the resolution logic.
  *
  * Queries the GitHub Releases API for doitsujin/dxvk and returns metadata
  * for the latest stable release that meets the minimum version floor.

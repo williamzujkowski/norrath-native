@@ -22,6 +22,7 @@ PREFIX="${NN_PREFIX}"
 RESOLUTION="${NN_RESOLUTION}"
 WINE_CMD=""
 CLEANUP_DIRS=()
+DXVK_TARBALL_URL=""
 
 usage() {
     cat <<EOF
@@ -185,9 +186,11 @@ download_and_install_dxvk() {
     api_output="$(wget -qO- "${DXVK_API_URL}" 2>&1)" || true
 
     local tarball_url
+    # Portable grep (no -P/Perl required): extract the full URL from the JSON field
     tarball_url="$(printf '%s' "${api_output}" \
-        | grep -oP '"browser_download_url"\s*:\s*"\K[^"]+\.tar\.gz' \
-        | head -n 1)" || true
+        | grep -o '"browser_download_url"[^"]*"[^"]*\.tar\.gz"' \
+        | head -1 \
+        | grep -o 'https://[^"]*')" || true
 
     if [[ -z "${tarball_url}" ]]; then
         if printf '%s' "${api_output}" | grep -qi "rate limit\|API rate"; then
@@ -200,6 +203,7 @@ download_and_install_dxvk() {
         exit 1
     fi
 
+    DXVK_TARBALL_URL="${tarball_url}"
     log "DXVK tarball URL: ${tarball_url}"
 
     local tmpdir
@@ -315,6 +319,46 @@ configure_eq_settings() {
     bash "${configure_script}" "${args[@]}"
 }
 
+write_state_manifest() {
+    if [[ "${DRY_RUN}" -eq 1 ]]; then
+        log "[DRY-RUN] Would write state manifest to ${LOG_DIR}/state.json"
+        return 0
+    fi
+
+    local wine_version
+    wine_version="$("${WINE_CMD}" --version 2>/dev/null | sed 's/wine-//')" || wine_version="unknown"
+
+    # Extract DXVK version from the tarball filename embedded in the URL
+    local dxvk_version
+    dxvk_version="$(printf '%s' "${DXVK_TARBALL_URL:-}" \
+        | grep -o 'dxvk-[0-9][^/]*\.tar\.gz' \
+        | sed 's/dxvk-//;s/\.tar\.gz//')" || true
+    if [[ -z "${dxvk_version}" ]]; then
+        dxvk_version="unknown"
+    fi
+
+    local eq_installed="false"
+    if [[ -f "${PREFIX}/drive_c/EverQuest/LaunchPad.exe" ]]; then
+        eq_installed="true"
+    fi
+
+    local deployed_at
+    deployed_at="$(date -Iseconds)"
+
+    cat > "${LOG_DIR}/state.json" <<EOF
+{
+  "deployed_at": "${deployed_at}",
+  "wine_version": "${wine_version}",
+  "dxvk_version": "${dxvk_version}",
+  "prefix_path": "${PREFIX}",
+  "resolution": "${RESOLUTION}",
+  "eq_installed": ${eq_installed},
+  "config_profile": "${NN_PROFILE:-default}"
+}
+EOF
+    log "State manifest written to ${LOG_DIR}/state.json"
+}
+
 cleanup() {
     for dir in "${CLEANUP_DIRS[@]}"; do
         rm -rf "${dir}"
@@ -335,6 +379,7 @@ main() {
     enable_virtual_desktop
     install_everquest
     configure_eq_settings
+    write_state_manifest
 
     log "=== ${SCRIPT_NAME} completed ==="
     log "Run 'make doctor' to verify installation, 'make launch' to play."

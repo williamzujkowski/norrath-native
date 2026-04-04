@@ -12,13 +12,16 @@
     "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "docs": "typedoc",
+    "docs:check": "bash scripts/generate-docs.sh --check"
   },
   "devDependencies": {
     "@types/node": "22",
     "@typescript-eslint/eslint-plugin": "^8.32.1",
     "@typescript-eslint/parser": "^8.32.1",
     "eslint": "^9.27.0",
+    "typedoc": "^0.28.18",
     "typescript": "^5.8.3",
     "vitest": "^3.2.1"
   },

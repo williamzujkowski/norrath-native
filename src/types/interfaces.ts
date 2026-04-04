@@ -118,6 +118,7 @@ export const REQUIRED_APT_PACKAGES: readonly string[] = [
 // launch.  User-managed keys outside this set are never touched.
 // ---------------------------------------------------------------------------
 
+/** Reference only — canonical settings are in scripts/configure_eq.sh */
 export const MANAGED_INI_SETTINGS: Readonly<Record<string, string>> = {
   WindowedMode: 'TRUE',
   UpdateInBackground: '1',

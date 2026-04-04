@@ -1,4 +1,4 @@
-.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage deploy deploy-dry configure configure-dry doctor launch launch-multi backup-session restore-session clean purge help
+.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry doctor support-bundle launch launch-multi backup-session restore-session clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -21,6 +21,12 @@ test:               ## Run Vitest test suite
 test-coverage:      ## Run tests with coverage report
 	pnpm test run --coverage
 
+docs:               ## Generate API docs, command reference, and check reference
+	bash scripts/generate-docs.sh
+
+docs-check:         ## Verify generated docs are up to date (CI mode)
+	bash scripts/generate-docs.sh --check
+
 deploy:             ## Full deployment (prefix + DXVK + EQ install + config)
 	bash scripts/deploy_eq_env.sh
 
@@ -35,6 +41,15 @@ configure-dry:      ## Preview INI changes without writing
 
 doctor:             ## Health check — validate entire installation
 	bash scripts/doctor.sh
+
+support-bundle:     ## Generate a support bundle for troubleshooting
+	@mkdir -p /tmp/norrath-native-support
+	@bash scripts/doctor.sh --json > /tmp/norrath-native-support/doctor.json 2>&1
+	@cp ~/.local/share/norrath-native/*.log /tmp/norrath-native-support/ 2>/dev/null || true
+	@cp ~/.local/share/norrath-native/state.json /tmp/norrath-native-support/ 2>/dev/null || true
+	@tar -czf norrath-native-support.tar.gz -C /tmp norrath-native-support
+	@rm -rf /tmp/norrath-native-support
+	@echo "Support bundle: norrath-native-support.tar.gz"
 
 launch:             ## Launch a single EverQuest instance
 	bash scripts/start_eq.sh
