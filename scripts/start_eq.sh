@@ -240,7 +240,7 @@ launch_instances() {
 
         log "Starting instance ${i}/${INSTANCES}..."
 
-        WINEPREFIX="${PREFIX}" "${WINE_CMD}" explorer /desktop=Default,${NN_RESOLUTION} \
+        WINEPREFIX="${PREFIX}" "${WINE_CMD}" explorer "/desktop=Default,${NN_RESOLUTION}" \
             "${EQ_DIR}/${EQ_EXECUTABLE}" --disable-gpu \
             >> "${instance_log}" 2>&1 &
 
