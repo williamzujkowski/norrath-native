@@ -27,11 +27,15 @@ Usage: $(basename "$0") <command> [OPTIONS]
 
 Manage display resolution for EverQuest under Wine.
 
+IMPORTANT: EQ only supports 16:9 aspect ratio without distortion.
+On ultrawide monitors (21:9), the Wine desktop uses your full screen
+for tiling space, but EQ's game rendering is clamped to 16:9 to
+prevent floating particle effects and fish-eye distortion.
+
 Commands:
-  detect             Show detected primary monitor resolution
-  apply              Set Wine + EQ to detected resolution (or --resolution WxH)
-  apply --resolution WxH   Set a specific resolution
-  apply --fullscreen       Match primary monitor exactly
+  detect             Show detected monitor and recommended EQ resolution
+  apply              Auto-configure (smart: ultrawide-aware)
+  apply --resolution WxH   Set a specific EQ resolution
 
 Options:
   --prefix PATH      Override WINEPREFIX
@@ -39,8 +43,8 @@ Options:
   -h, --help         Show this help
 
 Examples:
-  $(basename "$0") detect                    # Show monitor size
-  $(basename "$0") apply                     # Auto-fill monitor
+  $(basename "$0") detect
+  $(basename "$0") apply
   $(basename "$0") apply --resolution 2560x1440
 EOF
     exit 0
@@ -68,6 +72,38 @@ detect_resolution() {
     fi
 
     printf '%s' "${res}"
+}
+
+# Clamp resolution to 16:9 aspect ratio (EQ's max supported)
+# On ultrawide, this returns the largest 16:9 that fits in the height
+# e.g., 3440x1440 → 2560x1440 (game), but Wine desktop stays 3440x1440 (tiling)
+clamp_to_16x9() {
+    local res="$1"
+    local width="${res%%x*}"
+    local height="${res##*x}"
+
+    # Check aspect ratio: 16:9 = 1.777...
+    local ratio
+    ratio="$(echo "${width} ${height}" | awk '{printf "%.2f", $1/$2}')"
+
+    if awk "BEGIN {exit !(${ratio} > 1.78)}" 2>/dev/null; then
+        # Wider than 16:9 — clamp width to 16:9 at this height
+        local clamped_w=$(( height * 16 / 9 ))
+        printf '%dx%d' "${clamped_w}" "${height}"
+    else
+        # 16:9 or narrower — use as-is
+        printf '%s' "${res}"
+    fi
+}
+
+# Check if a resolution is ultrawide (wider than 16:9)
+is_ultrawide() {
+    local res="$1"
+    local width="${res%%x*}"
+    local height="${res##*x}"
+    local ratio
+    ratio="$(echo "${width} ${height}" | awk '{printf "%.2f", $1/$2}')"
+    awk "BEGIN {exit !(${ratio} > 1.78)}" 2>/dev/null
 }
 
 # Get current Wine virtual desktop resolution
@@ -216,16 +252,24 @@ cmd_detect() {
     detected="$(detect_resolution)"
     local current
     current="$(get_current_resolution)"
+    local eq_res
+    eq_res="$(clamp_to_16x9 "${detected}")"
 
     printf '\n'
-    printf '  Monitor:  %s\n' "${detected}"
-    printf '  Wine:     %s\n' "${current:-not set}"
+    printf '  Monitor:      %s\n' "${detected}"
+    printf '  Wine desktop: %s\n' "${current:-not set}"
+    printf '  EQ game res:  %s\n' "${eq_res}"
 
-    if [[ "${detected}" != "${current}" ]]; then
-        printf '\n  Wine resolution does not match your monitor.\n'
-        printf '  Run: make resolution   (to auto-match)\n'
+    if is_ultrawide "${detected}"; then
+        printf '\n  Ultrawide detected. Wine desktop will use full %s for tiling.\n' "${detected}"
+        printf '  EQ game rendering clamped to %s (16:9) to prevent distortion.\n' "${eq_res}"
+        printf '  Use /viewport in-game for centered rendering with UI sidebars.\n'
+    fi
+
+    if [[ "${current}" != "${detected}" ]]; then
+        printf '\n  Run: make resolution   (to auto-configure)\n'
     else
-        printf '\n  Resolution matches your monitor.\n'
+        printf '\n  Resolution is configured correctly.\n'
     fi
     printf '\n'
 }
@@ -250,22 +294,45 @@ cmd_apply() {
     done
 
     # Default: auto-detect
+    local monitor_res
+    monitor_res="$(detect_resolution)"
+
     if [[ -z "${target_res}" ]]; then
-        target_res="$(detect_resolution)"
+        target_res="${monitor_res}"
     fi
 
     local current
     current="$(get_current_resolution)"
 
-    log "Resolution change: ${current:-unknown} → ${target_res}"
+    # Wine desktop: full monitor size (for tiling space)
+    local wine_res="${monitor_res}"
+    # EQ game rendering: clamped to 16:9 (prevents distortion)
+    local eq_res
+    eq_res="$(clamp_to_16x9 "${target_res}")"
 
-    set_wine_resolution "${target_res}"
-    set_eq_resolution "${target_res}"
-    scale_ui_positions "${target_res}"
-    update_config_resolution "${target_res}"
+    log "Monitor: ${monitor_res}"
+    log "Wine desktop: ${current:-unknown} → ${wine_res} (full monitor for tiling)"
+    log "EQ game res:  → ${eq_res} (16:9 clamped)"
+
+    set_wine_resolution "${wine_res}"
+    set_eq_resolution "${eq_res}"
+    scale_ui_positions "${eq_res}"
+    update_config_resolution "${wine_res}"
+
+    if is_ultrawide "${monitor_res}"; then
+        local uw_width="${monitor_res%%x*}"
+        local eq_width="${eq_res%%x*}"
+        local eq_height="${eq_res##*x}"
+        local offset=$(( (uw_width - eq_width) / 2 ))
+        log ""
+        log "ULTRAWIDE: Use this viewport command in-game to center the view:"
+        log "  /viewport ${offset} 0 ${eq_width} ${eq_height}"
+        log ""
+        log "This gives you ${eq_res} centered game rendering with"
+        log "${offset}px sidebars on each side for UI elements."
+    fi
 
     log ""
-    log "Resolution set to ${target_res}."
     log "Restart EQ for changes to take effect."
 }
 
