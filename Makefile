@@ -1,7 +1,10 @@
-.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates resolution resolution-detect profile-save profile-load profile-list setup-all tile pip focus-next windows doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
+.PHONY: install build prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates resolution resolution-detect profile-save profile-load profile-list setup-all tile pip focus-next windows doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
+
+build:              ## Compile TypeScript to dist/
+	pnpm build
 
 prereqs:            ## Install system prerequisites (Wine, Vulkan, etc.)
 	bash scripts/install_prerequisites.sh

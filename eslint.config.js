@@ -7,7 +7,7 @@ export default [
     languageOptions: {
       parser: tsparser,
       parserOptions: {
-        projectService: true,
+        project: './tsconfig.check.json',
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -27,7 +27,7 @@ export default [
     languageOptions: {
       parser: tsparser,
       parserOptions: {
-        projectService: true,
+        project: './tsconfig.check.json',
         tsconfigRootDir: import.meta.dirname,
       },
     },

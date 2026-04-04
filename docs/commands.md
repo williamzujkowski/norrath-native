@@ -100,50 +100,7 @@ See docs/chat-layout.md for the full design rationale.
 ```
 Usage: configure_eq.sh [OPTIONS]
 
-Apply EQ client settings from norrath-native.yaml.
-
-Options:
-  --prefix PATH   Override WINEPREFIX (default from config: /home/william/.wine-eq)
-  --profile NAME  Override profile (high|balanced|low|minimal)
-  --dry-run       Show what would change without writing
-  -h, --help      Show this help
-
-Profiles:
-  high      Full quality, single client (default)
-  balanced  Good quality for 2-3 clients
-  low       Reduced quality for background boxes
-  minimal   Stick figures, minimum resources for AFK boxes
-```
-
-## deploy_eq_env
-
-```
-Usage: deploy_eq_env.sh [OPTIONS]
-
-Provision a Wine prefix with DXVK for running EverQuest under Wine.
-
-Options:
-  --dry-run           Print every action without touching the filesystem
-  --prefix PATH       Set WINEPREFIX (default: ~/.wine-eq)
-  --resolution WxH    Virtual desktop resolution (default: 1920x1080)
-  -h, --help          Show this help message
-
-Examples:
-  deploy_eq_env.sh
-  deploy_eq_env.sh --dry-run
-  deploy_eq_env.sh --prefix ~/my-wine --resolution 2560x1440
-```
-
-## doctor
-
-```
-Usage: doctor.sh [OPTIONS]
-
-Run a health check on the norrath-native installation.
-
-Options:
-  --prefix PATH   Override WINEPREFIX to check (default from config: /home/william/.wine-eq)
-  --json        [docs]   Written: /home/william/git/norrath-native/scripts/../docs/commands.md
+Apply EQ[docs]   Written: /home/william/git/norrath-native/scripts/../docs/commands.md
 [docs] Generating doctor checks reference...
 [docs]   Written: /home/william/git/norrath-native/scripts/../docs/checks.md
 [docs] Documentation generation complete
@@ -224,34 +181,6 @@ Options:
 Requires: Ubuntu 24.04 LTS, sudo access
 ```
 
-## resolution_manager
-
-```
-Usage: resolution_manager.sh <command> [OPTIONS]
-
-Manage display resolution for EverQuest under Wine.
-
-IMPORTANT: EQ only supports 16:9 aspect ratio without distortion.
-On ultrawide monitors (21:9), the Wine desktop uses your full screen
-for tiling space, but EQ's game rendering is clamped to 16:9 to
-prevent floating particle effects and fish-eye distortion.
-
-Commands:
-  detect             Show detected monitor and recommended EQ resolution
-  apply              Auto-configure (smart: ultrawide-aware)
-  apply --resolution WxH   Set a specific EQ resolution
-
-Options:
-  --prefix PATH      Override WINEPREFIX
-  --dry-run          Preview changes without writing
-  -h, --help         Show this help
-
-Examples:
-  resolution_manager.sh detect
-  resolution_manager.sh apply
-  resolution_manager.sh apply --resolution 2560x1440
-```
-
 ## start_eq
 
 ```
@@ -266,6 +195,60 @@ Options:
   --prefix PATH          WINEPREFIX path (default: ~/.wine-eq)
   --eq-dir PATH          EverQuest install directory (default: auto-detect)
   --wayland              Use Wayland display backend instead of X11
+  --dry-run              Print what would be launched without starting Wine
+  -h, --help             Show this help message
+
+Environment:
+  NORRATH_WAYLAND=1      Alternative way to enable Wayland backend
+
+Examples:
+  start_eq.sh                    # Launch 1 instance (raid focus)
+  start_eq.sh --multi            # Launch multibox instances from config
+  start_eq.sh --instances 4      # Launch exactly 4 instances
+```
+
+   EverQuest install directory (default: auto-detect)
+  --wayland              Use Wayland display backend instead of X11
+  --dry-run              Print what would be launched without starting Wine
+  -h, --help             Show this help message
+
+Environment:
+  NORRATH_WAYLAND=1      Alternative way to enable Wayland backend
+
+Examples:
+  start_eq.sh                    # Launch 1 instance (raid focus)
+  start_eq.sh --multi            # Launch multibox instances from config
+  start_eq.sh --instances 4      # Launch exactly 4 instances
+```
+
+id focus)
+  start_eq.sh --multi            # Launch multibox instances from config
+  start_eq.sh --instances 4      # Launch exactly 4 instances
+```
+
+h (default: ~/.wine-eq)
+  --eq-dir PATH          EverQuest install directory (default: auto-detect)
+  --wayland              Use Wayland display backend instead of X11
+  --dry-run              Print what would be launched without starting Wine
+  -h, --help             Show this help message
+
+Environment:
+  NORRATH_WAYLAND=1      Alternative way to enable Wayland backend
+
+Examples:
+  start_eq.sh                    # Launch 1 instance (raid focus)
+  start_eq.sh --multi            # Launch multibox instances from config
+  start_eq.sh --instances 4      # Launch exactly 4 instances
+```
+
+ow all detected EQ windows
+  pip        Picture-in-picture: main window large, others small
+  -h, --help Show this help
+
+Replaces ISBoxer window management on Linux using native X11 tools.
+```
+
+ instead of X11
   --dry-run              Print what would be launched without starting Wine
   -h, --help             Show this help message
 
@@ -293,6 +276,15 @@ Commands:
   -h, --help Show this help
 
 Replaces ISBoxer window management on Linux using native X11 tools.
+```
+
+     Picture-in-picture: main window large, others small
+  -h, --help Show this help
+
+Replaces ISBoxer window management on Linux using native X11 tools.
+```
+
+ tools.
 ```
 
 n              Print what would be launched without starting Wine

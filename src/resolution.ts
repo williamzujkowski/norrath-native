@@ -69,66 +69,46 @@ export function percentToPixel(
   return Math.floor((percent * totalPixels) / 100);
 }
 
+interface Tile {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** Build a grid of N tiles across cols columns */
+function buildGrid(
+  count: number,
+  cols: number,
+  screenWidth: number,
+  screenHeight: number
+): Tile[] {
+  const rows = Math.ceil(count / cols);
+  const tileW = Math.floor(screenWidth / cols);
+  const tileH = Math.floor(screenHeight / rows);
+  const tiles: Tile[] = [];
+  for (let i = 0; i < count; i++) {
+    tiles.push({
+      x: (i % cols) * tileW,
+      y: Math.floor(i / cols) * tileH,
+      width: tileW,
+      height: tileH,
+    });
+  }
+  return tiles;
+}
+
 /** Calculate tile positions for N windows on a screen */
 export function calculateTilePositions(
   count: number,
   screenWidth: number,
   screenHeight: number
-): Array<{
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}> {
+): Tile[] {
   if (count <= 0) return [];
-
   if (count === 1) {
-    return [
-      { x: 0, y: 0, width: screenWidth, height: screenHeight },
-    ];
+    return [{ x: 0, y: 0, width: screenWidth, height: screenHeight }];
   }
-
-  if (count === 2) {
-    const halfW = Math.floor(screenWidth / 2);
-    return [
-      { x: 0, y: 0, width: halfW, height: screenHeight },
-      { x: halfW, y: 0, width: halfW, height: screenHeight },
-    ];
-  }
-
-  // 3-4: 2x2 grid
-  if (count <= 4) {
-    const halfW = Math.floor(screenWidth / 2);
-    const halfH = Math.floor(screenHeight / 2);
-    const positions = [
-      { x: 0, y: 0 },
-      { x: halfW, y: 0 },
-      { x: 0, y: halfH },
-      { x: halfW, y: halfH },
-    ];
-    return positions.slice(0, count).map((p) => ({
-      ...p,
-      width: halfW,
-      height: halfH,
-    }));
-  }
-
-  // 5-6: 3x2 grid
-  const thirdW = Math.floor(screenWidth / 3);
-  const halfH = Math.floor(screenHeight / 2);
-  const result: Array<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  }> = [];
-  for (let i = 0; i < count && i < 6; i++) {
-    result.push({
-      x: (i % 3) * thirdW,
-      y: Math.floor(i / 3) * halfH,
-      width: thirdW,
-      height: halfH,
-    });
-  }
-  return result;
+  if (count === 2) return buildGrid(2, 2, screenWidth, screenHeight);
+  if (count <= 4) return buildGrid(count, 2, screenWidth, screenHeight);
+  return buildGrid(count, 3, screenWidth, screenHeight);
 }
