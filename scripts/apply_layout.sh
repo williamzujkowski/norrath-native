@@ -229,6 +229,14 @@ main() {
 
     local eq_dir="${PREFIX}/drive_c/EverQuest"
 
+    # Warn if EQ is running — changes will be overwritten on camp/zone
+    if WINEPREFIX="${PREFIX}" wineserver -k0 2>/dev/null; then
+        log "WARNING: EverQuest appears to be running."
+        log "  Layout changes will be OVERWRITTEN when you camp or zone."
+        log "  For best results: camp all characters first, then re-run this."
+        log ""
+    fi
+
     # Find all UI INI files (one per character)
     local -a ui_files=()
     while IFS= read -r -d '' f; do

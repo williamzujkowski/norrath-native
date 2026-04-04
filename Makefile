@@ -52,11 +52,15 @@ support-bundle:     ## Generate a support bundle for troubleshooting
 	@echo "Support bundle: norrath-native-support.tar.gz"
 
 setup-all:          ## Apply ALL customizations to ALL characters (config + colors + layout)
-	@echo "Applying settings to all characters..."
+	@echo "=== Applying settings to all characters ==="
+	@echo "Note: colors are safe while running (/loadskin to reload)."
+	@echo "      layout changes require camping first to stick."
+	@echo ""
 	bash scripts/configure_eq.sh
 	bash scripts/apply_colors.sh
 	bash scripts/apply_layout.sh
-	@echo "Done. All characters configured."
+	@echo ""
+	@echo "Done. In-game: /loadskin Default to reload UI."
 
 launch:             ## Launch a single EverQuest instance
 	bash scripts/start_eq.sh
