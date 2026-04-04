@@ -176,33 +176,26 @@ configure_display_backend() {
 }
 
 graceful_shutdown() {
-    log "Received shutdown signal, stopping instances..."
+    log "Received shutdown signal, stopping all Wine processes..."
 
-    local i
-    for (( i=${#PIDS[@]}-1; i>=0; i-- )); do
-        local pid="${PIDS[i]}"
-        if kill -0 "${pid}" 2>/dev/null; then
-            log "Sending SIGTERM to instance $((i+1)) (PID ${pid})..."
-            kill "${pid}" 2>/dev/null || true
-        fi
+    # Use wineserver -k to cleanly shut down all Wine processes in the prefix
+    WINEPREFIX="${PREFIX}" wineserver -k 2>/dev/null || true
+
+    # Wait up to 10 seconds for wineserver to exit
+    local deadline=$((SECONDS + 10))
+    while WINEPREFIX="${PREFIX}" wineserver -k0 2>/dev/null && [[ ${SECONDS} -lt ${deadline} ]]; do
+        sleep 0.5
     done
 
-    # Wait up to 5 seconds for graceful exit, then SIGKILL
-    local deadline=$((SECONDS + 5))
-    for (( i=${#PIDS[@]}-1; i>=0; i-- )); do
-        local pid="${PIDS[i]}"
-        while kill -0 "${pid}" 2>/dev/null && [[ ${SECONDS} -lt ${deadline} ]]; do
-            sleep 0.5
-        done
-        if kill -0 "${pid}" 2>/dev/null; then
-            log "Instance $((i+1)) (PID ${pid}) did not exit in time, sending SIGKILL..."
-            kill -9 "${pid}" 2>/dev/null || true
-        fi
-    done
+    # Force kill if still running
+    if WINEPREFIX="${PREFIX}" wineserver -k0 2>/dev/null; then
+        log "Wine processes did not exit in time, forcing..."
+        WINEPREFIX="${PREFIX}" wineserver -k9 2>/dev/null || true
+    fi
 
-    # Final wait to reap all children
-    for (( i=${#PIDS[@]}-1; i>=0; i-- )); do
-        wait "${PIDS[i]}" 2>/dev/null || true
+    # Reap background PIDs
+    for pid in "${PIDS[@]}"; do
+        wait "${pid}" 2>/dev/null || true
     done
 
     log "All instances stopped."
@@ -253,7 +246,11 @@ main() {
     launch_instances
 
     log "Waiting for all instances to exit (Ctrl+C for graceful shutdown)..."
-    wait
+
+    # Wine explorer forks and the parent exits immediately.
+    # Wait for wineserver to exit (it stays alive while any Wine processes run).
+    WINEPREFIX="${PREFIX}" wineserver --wait 2>/dev/null || wait
+
     log "=== ${SCRIPT_NAME} finished ==="
 }
 
