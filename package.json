@@ -4,7 +4,7 @@
   "description": "Deterministic, idempotent deployment toolkit to run EverQuest natively on Ubuntu 24.04 LTS via Wine and DXVK",
   "type": "module",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "packageManager": "pnpm@9.15.4",
   "scripts": {
