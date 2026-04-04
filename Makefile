@@ -1,4 +1,4 @@
-.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry doctor support-bundle launch launch-multi backup-session restore-session maps clean purge help
+.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -81,6 +81,11 @@ FILE ?=
 
 maps:               ## Install Brewall's map pack (FILE=path/to/downloaded.zip)
 	@if [ -z "$(FILE)" ]; then bash scripts/install_maps.sh --help; else bash scripts/install_maps.sh --file "$(FILE)"; fi
+
+PARSER_FILE ?=
+
+parser:             ## Install EQLogParser DPS meter + trigger system (PARSER_FILE=path/to/downloaded.zip)
+	@if [ -z "$(PARSER_FILE)" ]; then bash scripts/install_parser.sh; else bash scripts/install_parser.sh --file "$(PARSER_FILE)"; fi
 
 clean:              ## Remove build artifacts and coverage
 	rm -rf dist/ coverage/

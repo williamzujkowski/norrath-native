@@ -264,6 +264,16 @@ check_everquest() {
         warn "EQ_MAPS" "Brewall maps not installed" \
             "download from https://www.eqmaps.info/eq-map-files/ then run: make maps FILE=<path>"
     fi
+
+    # Check for EQLogParser (optional — info only)
+    local parser_exe="${PREFIX}/drive_c/Program Files/EQLogParser/EQLogParser.exe"
+    if [[ -f "${parser_exe}" ]]; then
+        pass "EQ_PARSER" "EQLogParser installed"
+    else
+        # info-level: EQLogParser is optional, not required to play
+        warn "EQ_PARSER" "EQLogParser not installed (optional DPS meter + trigger system)" \
+            "run: make parser  (see instructions for .NET 8 prerequisite)"
+    fi
 }
 
 check_state() {

@@ -21,6 +21,7 @@ launch-multi       Launch instances per config (default: from norrath-native.yam
 launch             Launch a single EverQuest instance
 lint               Run ESLint with project rules
 maps               Install Brewall's map pack (FILE=path/to/downloaded.zip)
+parser             Install EQLogParser DPS meter + trigger system (PARSER_FILE=path/to/downloaded.zip)
 prereqs-dry        Preview prerequisite installation without changes
 prereqs            Install system prerequisites (Wine, Vulkan, etc.)
 purge              Remove Wine prefix and all EQ data (DESTRUCTIVE)
