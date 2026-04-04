@@ -1,6 +1,16 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "entryPoints": ["src/config-injector.ts", "src/dxvk-resolver.ts", "src/types/interfaces.ts"],
+  "entryPoints": [
+    "src/cli.ts",
+    "src/config.ts",
+    "src/config-injector.ts",
+    "src/colors.ts",
+    "src/layout.ts",
+    "src/resolution.ts",
+    "src/doctor.ts",
+    "src/dxvk-resolver.ts",
+    "src/types/interfaces.ts"
+  ],
   "out": "docs/api",
   "readme": "none",
   "name": "norrath-native API",

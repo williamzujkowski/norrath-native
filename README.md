@@ -1,5 +1,10 @@
 # Norrath-Native
 
+[![CI](https://github.com/williamzujkowski/norrath-native/actions/workflows/ci.yml/badge.svg)](https://github.com/williamzujkowski/norrath-native/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org/)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/williamzujkowski/norrath-native/badge)](https://securityscorecards.dev/viewer/?uri=github.com/williamzujkowski/norrath-native)
+
 A deterministic, idempotent deployment toolkit to run EverQuest natively on Ubuntu 24.04 LTS via Wine and DXVK. One command to deploy, one command to launch.
 
 EverQuest's recent upgrade to DirectX 11 introduced several pain points on Linux: aggressive focus stealing, a broken launcher (black box rendering), and CPU thrashing when multiboxing. Norrath-Native solves all three with an Infrastructure-as-Code approach that creates an isolated Wine prefix with DXVK, a virtual desktop, and tuned client settings.

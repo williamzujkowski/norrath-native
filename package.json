@@ -26,5 +26,21 @@
     "typescript": "^5.8.3",
     "vitest": "^3.2.1"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/williamzujkowski/norrath-native.git"
+  },
+  "homepage": "https://github.com/williamzujkowski/norrath-native#readme",
+  "bugs": "https://github.com/williamzujkowski/norrath-native/issues",
+  "author": "William Zujkowski",
+  "keywords": [
+    "everquest",
+    "wine",
+    "dxvk",
+    "linux",
+    "gaming",
+    "multiboxing",
+    "ubuntu"
+  ],
   "license": "MIT"
 }
