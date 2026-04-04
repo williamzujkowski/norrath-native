@@ -21,6 +21,8 @@ help               Show this help
 install            Install pnpm dependencies
 launch-multi       Launch instances per config (default: from norrath-native.yaml)
 launch             Launch a single EverQuest instance
+layout-preview     Preview chat layout changes without applying
+layout             Apply recommended 4-window chat layout (Social/Combat/Spam/Alerts)
 lint               Run ESLint with project rules
 maps               Install Brewall's map pack (FILE=path/to/downloaded.zip)
 parser             Install EQLogParser DPS meter + trigger system (PARSER_FILE=path/to/downloaded.zip)
@@ -56,6 +58,27 @@ Options:
   --prefix PATH   Override WINEPREFIX
   --dry-run       Preview changes without writing
   -h, --help      Show this help
+```
+
+## apply_layout
+
+```
+Usage: apply_layout.sh [OPTIONS]
+
+Apply the recommended 4-window chat layout to EverQuest.
+
+Windows:
+  0 "Social"  — Tells, guild, group, raid, say, emote, OOC
+  1 "Combat"  — Your damage, heals, incoming, crits, pet
+  2 "Spam"    — Others' combat, NPC, system (dimmed)
+  3 "Alerts"  — Death, loot, XP, tasks, achievements
+
+Options:
+  --prefix PATH   Override WINEPREFIX
+  --dry-run       Preview changes without writing
+  -h, --help      Show this help
+
+See docs/chat-layout.md for the full design rationale.
 ```
 
 ## configure_eq

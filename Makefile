@@ -1,4 +1,4 @@
-.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
+.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -82,6 +82,12 @@ colors:             ## Apply optimized chat color scheme for raid readability
 
 colors-preview:     ## Preview color scheme changes without applying
 	bash scripts/apply_colors.sh --dry-run
+
+layout:             ## Apply recommended 4-window chat layout (Social/Combat/Spam/Alerts)
+	bash scripts/apply_layout.sh
+
+layout-preview:     ## Preview chat layout changes without applying
+	bash scripts/apply_layout.sh --dry-run
 
 FILE ?=
 
