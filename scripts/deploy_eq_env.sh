@@ -33,7 +33,7 @@ Options:
   --dry-run           Print every action without touching the filesystem
   --prefix PATH       Set WINEPREFIX (default: ~/.wine-eq)
   --resolution WxH    Virtual desktop resolution (default: 1920x1080)
-  --help              Show this help message
+  -h, --help          Show this help message
 
 Examples:
   ${SCRIPT_NAME}
@@ -81,7 +81,7 @@ parse_args() {
                 RESOLUTION="$2"
                 shift 2
                 ;;
-            --help)
+            -h|--help)
                 usage
                 ;;
             *)

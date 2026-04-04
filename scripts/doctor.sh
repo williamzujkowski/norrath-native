@@ -4,7 +4,11 @@ set -euo pipefail
 # doctor.sh — Health check for norrath-native installation
 # Validates that all components are properly configured and ready to launch.
 
-PREFIX="${HOME}/.wine-eq"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=config_reader.sh
+source "${SCRIPT_DIR}/config_reader.sh"
+
+PREFIX="${NN_PREFIX}"
 PASS_COUNT=0
 WARN_COUNT=0
 FAIL_COUNT=0
@@ -220,10 +224,39 @@ check_logs() {
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [OPTIONS]
+
+Run a health check on the norrath-native installation.
+
+Options:
+  --prefix PATH   Override WINEPREFIX to check (default from config: ${PREFIX})
+  -h, --help      Show this help message
+EOF
+    exit 0
+}
+
 main() {
-    if [[ "${1:-}" == "--prefix" ]] && [[ -n "${2:-}" ]]; then
-        PREFIX="$2"
-    fi
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --prefix)
+                if [[ $# -lt 2 ]]; then
+                    printf 'ERROR: --prefix requires a value\n' >&2
+                    exit 1
+                fi
+                PREFIX="$2"
+                shift 2
+                ;;
+            -h|--help)
+                usage
+                ;;
+            *)
+                printf 'ERROR: Unknown option: %s\n' "$1" >&2
+                usage
+                ;;
+        esac
+    done
 
     printf '\n\033[1m=== Norrath-Native Health Check ===\033[0m\n'
     printf 'Prefix: %s\n' "${PREFIX}"

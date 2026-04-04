@@ -19,6 +19,7 @@ STAGGER_DELAY="${NN_STAGGER_DELAY}"
 PREFIX="${NN_PREFIX}"
 EQ_DIR=""
 USE_WAYLAND=0
+DRY_RUN=0
 [[ "${NN_DISPLAY}" == "wayland" ]] && USE_WAYLAND=1
 WINE_CMD=""
 PIDS=()
@@ -35,7 +36,8 @@ Options:
   --prefix PATH          WINEPREFIX path (default: ~/.wine-eq)
   --eq-dir PATH          EverQuest install directory (default: auto-detect in prefix)
   --wayland              Use Wayland display backend instead of X11
-  --help                 Show this help message
+  --dry-run              Print what would be launched without starting Wine
+  -h, --help             Show this help message
 
 Environment:
   NORRATH_WAYLAND=1      Alternative way to enable Wayland backend
@@ -93,7 +95,11 @@ parse_args() {
                 USE_WAYLAND=1
                 shift
                 ;;
-            --help)
+            --dry-run)
+                DRY_RUN=1
+                shift
+                ;;
+            -h|--help)
                 usage
                 ;;
             *)
@@ -210,6 +216,20 @@ graceful_shutdown() {
 }
 
 launch_instances() {
+    if [[ "${DRY_RUN}" -eq 1 ]]; then
+        local display_backend="x11"
+        [[ "${USE_WAYLAND}" -eq 1 ]] && display_backend="wayland"
+        printf '[DRY-RUN] Would launch with:\n'
+        printf '  WINEPREFIX: %s\n' "${PREFIX}"
+        printf '  Resolution: %s\n' "${NN_RESOLUTION}"
+        printf '  Instances: %s\n' "${INSTANCES}"
+        printf '  Stagger delay: %ss\n' "${STAGGER_DELAY}"
+        printf '  Display: %s\n' "${display_backend}"
+        printf '  EQ directory: %s\n' "${EQ_DIR}"
+        printf '  Executable: %s --disable-gpu\n' "${EQ_EXECUTABLE}"
+        exit 0
+    fi
+
     log "Launching ${INSTANCES} instance(s) with ${STAGGER_DELAY}s stagger delay..."
 
     trap graceful_shutdown SIGINT SIGTERM
@@ -220,7 +240,7 @@ launch_instances() {
 
         log "Starting instance ${i}/${INSTANCES}..."
 
-        WINEPREFIX="${PREFIX}" "${WINE_CMD}" explorer /desktop=Default,1920x1080 \
+        WINEPREFIX="${PREFIX}" "${WINE_CMD}" explorer /desktop=Default,${NN_RESOLUTION} \
             "${EQ_DIR}/${EQ_EXECUTABLE}" --disable-gpu \
             >> "${instance_log}" 2>&1 &
 

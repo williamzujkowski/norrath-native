@@ -25,7 +25,7 @@ Options:
   --prefix PATH   Override WINEPREFIX (default from config: ${NN_PREFIX})
   --profile NAME  Override profile (high|balanced|low|minimal)
   --dry-run       Show what would change without writing
-  --help          Show this help
+  -h, --help      Show this help
 
 Profiles:
   high      Full quality, single client (default)
@@ -52,7 +52,7 @@ parse_args() {
                 if [[ $# -lt 2 ]]; then log "ERROR: --profile requires a value"; exit 1; fi
                 NN_PROFILE="$2"; _nn_apply_profile; shift 2 ;;
             --dry-run) DRY_RUN=1; shift ;;
-            --help) usage ;;
+            -h|--help) usage ;;
             *) log "ERROR: Unknown option: $1"; exit 1 ;;
         esac
     done
