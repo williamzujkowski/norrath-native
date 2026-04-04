@@ -1,4 +1,4 @@
-.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview setup-all tile pip focus-next windows doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
+.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview resolution resolution-detect setup-all tile pip focus-next windows doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -39,6 +39,12 @@ configure:          ## Apply optimized eqclient.ini settings
 configure-dry:      ## Preview INI changes without writing
 	bash scripts/configure_eq.sh --dry-run
 
+resolution:         ## Set Wine + EQ resolution to match your monitor (auto-detect)
+	bash scripts/resolution_manager.sh apply
+
+resolution-detect:  ## Show detected monitor resolution vs current Wine resolution
+	bash scripts/resolution_manager.sh detect
+
 doctor:             ## Health check — validate entire installation
 	bash scripts/doctor.sh
 
@@ -51,16 +57,17 @@ support-bundle:     ## Generate a support bundle for troubleshooting
 	@rm -rf /tmp/norrath-native-support
 	@echo "Support bundle: norrath-native-support.tar.gz"
 
-setup-all:          ## Apply ALL customizations to ALL characters (config + colors + layout)
+setup-all:          ## Apply ALL customizations to ALL characters (config + colors + layout + resolution)
 	@echo "=== Applying settings to all characters ==="
 	@echo "Note: colors are safe while running (/loadskin to reload)."
-	@echo "      layout changes require camping first to stick."
+	@echo "      layout + resolution changes require camping first."
 	@echo ""
+	bash scripts/resolution_manager.sh apply
 	bash scripts/configure_eq.sh
 	bash scripts/apply_colors.sh
 	bash scripts/apply_layout.sh
 	@echo ""
-	@echo "Done. In-game: /loadskin Default to reload UI."
+	@echo "Done. Restart EQ or /loadskin Default to reload UI."
 
 launch:             ## Launch a single EverQuest instance
 	bash scripts/start_eq.sh

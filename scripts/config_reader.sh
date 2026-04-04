@@ -9,7 +9,14 @@
 
 # Defaults
 NN_PREFIX="${HOME}/.wine-eq"
-NN_RESOLUTION="1920x1080"
+# Auto-detect primary monitor resolution, fall back to 1920x1080
+NN_RESOLUTION="$(DISPLAY=:0 xrandr 2>/dev/null | grep ' connected primary' | grep -oP '\d+x\d+' | head -1 || true)"
+if [[ -z "${NN_RESOLUTION}" ]]; then
+    NN_RESOLUTION="$(DISPLAY=:0 xrandr 2>/dev/null | grep ' connected' | grep -oP '\d+x\d+' | head -1 || true)"
+fi
+if [[ -z "${NN_RESOLUTION}" ]]; then
+    NN_RESOLUTION="1920x1080"
+fi
 NN_DISPLAY="x11"
 NN_INSTANCES=1
 NN_MULTIBOX_INSTANCES=3

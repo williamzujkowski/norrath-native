@@ -116,11 +116,17 @@ check_wine_prefix() {
         fail "PREFIX_ARCH" "Prefix is not win64 architecture" "run: make deploy"
     fi
 
-    # Virtual desktop
+    # Virtual desktop + resolution match
     if grep -q '"Default"=".*x.*"' "${PREFIX}/user.reg" 2>/dev/null; then
-        local res
-        res="$(grep '"Default"=".*x.*"' "${PREFIX}/user.reg" | head -1 | sed 's/.*"\(.*x.*\)"/\1/')"
-        pass "PREFIX_VDESKTOP" "Virtual desktop: ${res}"
+        local wine_res
+        wine_res="$(grep '"Default"=".*x.*"' "${PREFIX}/user.reg" | head -1 | sed 's/.*"\(.*x.*\)"/\1/')"
+        local monitor_res
+        monitor_res="$(DISPLAY=:0 xrandr 2>/dev/null | grep ' connected primary' | grep -oP '\d+x\d+' | head -1 || true)"
+        if [[ -n "${monitor_res}" ]] && [[ "${wine_res}" != "${monitor_res}" ]]; then
+            warn "PREFIX_VDESKTOP" "Virtual desktop ${wine_res} does not match monitor ${monitor_res}" "run: make resolution"
+        else
+            pass "PREFIX_VDESKTOP" "Virtual desktop: ${wine_res}"
+        fi
     else
         warn "PREFIX_VDESKTOP" "Virtual desktop not configured" "run: make deploy"
     fi
