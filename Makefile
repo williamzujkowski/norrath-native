@@ -1,4 +1,4 @@
-.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage deploy deploy-dry configure configure-dry doctor login login-copy launch launch-multi backup-session restore-session clean purge help
+.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage deploy deploy-dry configure configure-dry doctor login login-copy remember-me launch launch-multi backup-session restore-session clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -44,6 +44,9 @@ login-copy:         ## Copy password to clipboard for right-click paste in launc
 		|| pass gaming/daybreak/password 2>/dev/null | tr -d '\n' | xclip -selection clipboard 2>/dev/null \
 		|| (echo "ERROR: Install wl-clipboard or xclip"; exit 1)
 	@echo "Password copied to clipboard. Right-click the password field in EQ and select Paste."
+
+remember-me:        ## Enable auto-login (Remember Me) in the launcher
+	bash scripts/set_remember_me.sh
 
 launch:             ## Launch a single EverQuest instance
 	bash scripts/start_eq.sh
