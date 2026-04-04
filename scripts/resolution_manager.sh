@@ -314,6 +314,10 @@ cmd_apply() {
     log "Wine desktop: ${current:-unknown} → ${wine_res} (full monitor for tiling)"
     log "EQ game res:  → ${eq_res} (16:9 clamped)"
 
+    if [[ "${DRY_RUN}" -eq 0 ]]; then
+        nn_require_eq_stopped --warn
+    fi
+
     set_wine_resolution "${wine_res}"
     set_eq_resolution "${eq_res}"
     scale_ui_positions "${eq_res}"

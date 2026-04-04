@@ -89,6 +89,7 @@ Windows:
 Options:
   --prefix PATH   Override WINEPREFIX
   --dry-run       Preview changes without writing
+  --force         Apply even if EQ is running (changes may be lost)
   -h, --help      Show this help
 
 See docs/chat-layout.md for the full design rationale.

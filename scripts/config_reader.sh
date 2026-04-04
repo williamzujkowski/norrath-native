@@ -7,6 +7,45 @@
 #
 # Usage: source scripts/config_reader.sh
 
+# ─── EQ Running Guard ─────────────────────────────────────────────────────────
+# Call this before modifying UI_*.ini or eqclient.ini files.
+# EQ holds these in memory and overwrites on camp/zone, so changes made
+# while the game is running will be lost.
+#
+# Usage: nn_require_eq_stopped        (exits if running)
+#        nn_require_eq_stopped --warn  (warns but continues)
+
+nn_is_eq_running() {
+    # Check if any Wine processes are running in this prefix
+    WINEPREFIX="${NN_PREFIX:-${HOME}/.wine-eq}" wineserver -k0 2>/dev/null
+}
+
+nn_require_eq_stopped() {
+    local mode="${1:-exit}"
+
+    if nn_is_eq_running; then
+        printf '\033[33m[WARNING]\033[0m EverQuest appears to be running.\n' >&2
+        printf '  Changes to UI layout and INI files will be OVERWRITTEN\n' >&2
+        printf '  when you camp, zone, or exit the game.\n' >&2
+        printf '\n' >&2
+        printf '  To apply changes that stick:\n' >&2
+        printf '    1. Camp all characters to character select\n' >&2
+        printf '    2. Run this command again\n' >&2
+        printf '    3. Re-enter the game\n' >&2
+        printf '\n' >&2
+
+        if [[ "${mode}" == "--warn" ]]; then
+            printf '  Continuing anyway (changes may be lost)...\n\n' >&2
+            return 0
+        else
+            printf '  To force: re-run with --force\n' >&2
+            return 1
+        fi
+    fi
+
+    return 0
+}
+
 # Defaults
 NN_PREFIX="${HOME}/.wine-eq"
 # Auto-detect primary monitor resolution, fall back to 1920x1080

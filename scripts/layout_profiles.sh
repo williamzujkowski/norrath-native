@@ -134,10 +134,8 @@ cmd_load() {
 
     local eq_dir="${PREFIX}/drive_c/EverQuest"
 
-    # Warn if EQ is running
-    if WINEPREFIX="${PREFIX}" wineserver -k0 2>/dev/null; then
-        log "WARNING: EQ is running. Camp all characters first."
-        log "  Layout changes will be overwritten when you zone/camp."
+    if nn_is_eq_running; then
+        nn_require_eq_stopped || exit 1
     fi
 
     local count=0

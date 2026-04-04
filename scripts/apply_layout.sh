@@ -15,6 +15,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/config_reader.sh"
 
 DRY_RUN=0
+FORCE=0
 PREFIX="${NN_PREFIX}"
 
 usage() {
@@ -32,6 +33,7 @@ Windows:
 Options:
   --prefix PATH   Override WINEPREFIX
   --dry-run       Preview changes without writing
+  --force         Apply even if EQ is running (changes may be lost)
   -h, --help      Show this help
 
 See docs/chat-layout.md for the full design rationale.
@@ -222,6 +224,7 @@ main() {
                 if [[ $# -lt 2 ]]; then log "ERROR: --prefix requires a value"; exit 1; fi
                 PREFIX="$2"; shift 2 ;;
             --dry-run) DRY_RUN=1; shift ;;
+            --force) FORCE=1; shift ;;
             -h|--help) usage ;;
             *) log "ERROR: Unknown option: $1"; exit 1 ;;
         esac
@@ -229,12 +232,8 @@ main() {
 
     local eq_dir="${PREFIX}/drive_c/EverQuest"
 
-    # Warn if EQ is running — changes will be overwritten on camp/zone
-    if WINEPREFIX="${PREFIX}" wineserver -k0 2>/dev/null; then
-        log "WARNING: EverQuest appears to be running."
-        log "  Layout changes will be OVERWRITTEN when you camp or zone."
-        log "  For best results: camp all characters first, then re-run this."
-        log ""
+    if [[ "${FORCE}" -eq 0 ]]; then
+        nn_require_eq_stopped || exit 1
     fi
 
     # Find all UI INI files (one per character)

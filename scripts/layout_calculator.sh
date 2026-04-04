@@ -34,6 +34,7 @@ Commands:
 Options:
   --prefix PATH     Override WINEPREFIX
   --dry-run         Preview without writing
+  --force           Apply even if EQ is running (changes may be lost)
   --character NAME  Apply only to specific character (e.g., Rootkit_povar)
   --role main|box   Override role assignment for --character
   -h, --help        Show this help
@@ -69,7 +70,7 @@ get_desktop_size() {
 
 # Apply Wine window tiling from template
 apply_tiling() {
-    local template_file="$1"
+    # $1 = template file path (template vars already sourced into env)
     local desktop_w desktop_h
     read -r desktop_w desktop_h <<< "$(get_desktop_size)"
 
@@ -278,7 +279,7 @@ cmd_show() {
 
 cmd_apply() {
     local template="${1:-}"
-    local target_char="" target_role=""
+    local target_char="" target_role="" FORCE=0
 
     shift || true
     while [[ $# -gt 0 ]]; do
@@ -293,6 +294,7 @@ cmd_apply() {
                 if [[ $# -lt 2 ]]; then log "ERROR: --prefix requires a value"; exit 1; fi
                 PREFIX="$2"; shift 2 ;;
             --dry-run) DRY_RUN=1; shift ;;
+            --force) FORCE=1; shift ;;
             *) shift ;;
         esac
     done
@@ -314,6 +316,10 @@ cmd_apply() {
     source "${conf}"
 
     log "Applying template: ${LAYOUT_NAME:-${template}}"
+
+    if [[ "${FORCE:-0}" -eq 0 ]] && [[ "${DRY_RUN}" -eq 0 ]]; then
+        nn_require_eq_stopped || exit 1
+    fi
 
     # Step 1: Tile Wine windows
     log ""

@@ -158,6 +158,10 @@ main() {
         exit 1
     fi
 
+    if [[ "${DRY_RUN}" -eq 0 ]]; then
+        nn_require_eq_stopped --warn
+    fi
+
     log "Applying settings (profile: ${NN_PROFILE}) to ${ini_file}"
 
     if [[ ! -f "${ini_file}" ]]; then
