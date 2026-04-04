@@ -1,7 +1,13 @@
-.PHONY: install typecheck lint test test-coverage deploy deploy-dry launch launch-multi clean help
+.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage deploy deploy-dry launch launch-multi clean help
 
 install:            ## Install pnpm dependencies
 	pnpm install
+
+prereqs:            ## Install system prerequisites (Wine, Vulkan, etc.)
+	bash scripts/install_prerequisites.sh
+
+prereqs-dry:        ## Preview prerequisite installation without changes
+	bash scripts/install_prerequisites.sh --dry-run
 
 typecheck:          ## Run TypeScript strict type checking
 	pnpm typecheck

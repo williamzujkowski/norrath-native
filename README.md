@@ -21,15 +21,17 @@ Your GPU must support Vulkan. Verify with `vulkaninfo | grep deviceName`.
 ```bash
 git clone https://github.com/williamzujkowski/norrath-native.git
 cd norrath-native
-make install
+make prereqs       # Installs Wine, Vulkan drivers, and system dependencies (needs sudo)
+make install       # Installs Node.js/pnpm dependencies
 make deploy        # Creates Wine prefix, installs DXVK, configures virtual desktop
 make launch        # Launches EverQuest
 ```
 
-For a dry run that shows what the deploy script will do without touching your system:
+Preview what each step will do without making changes:
 
 ```bash
-make deploy-dry
+make prereqs-dry   # Show what system packages would be installed
+make deploy-dry    # Show what Wine prefix changes would be made
 ```
 
 ## Architecture Decisions
