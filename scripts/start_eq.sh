@@ -13,6 +13,7 @@ STAGGER_DELAY=5
 PREFIX="${HOME}/.wine-eq"
 EQ_DIR=""
 USE_WAYLAND=0
+WINE_CMD=""
 PIDS=()
 
 usage() {
@@ -80,8 +81,21 @@ parse_args() {
     done
 }
 
+detect_wine() {
+    if command -v wine64 &>/dev/null; then
+        WINE_CMD="wine64"
+    elif command -v wine &>/dev/null; then
+        WINE_CMD="wine"
+    else
+        log "ERROR: Wine not found. Run: make prereqs"
+        exit 1
+    fi
+    log "Wine command: ${WINE_CMD}"
+}
+
 validate_environment() {
     log "Validating environment..."
+    detect_wine
 
     if [[ ! -d "${PREFIX}" ]]; then
         log "ERROR: WINEPREFIX does not exist: ${PREFIX}"
@@ -180,7 +194,7 @@ launch_instances() {
 
         log "Starting instance ${i}/${INSTANCES}..."
 
-        WINEPREFIX="${PREFIX}" wine64 "${EQ_DIR}/${EQ_EXECUTABLE}" --disable-gpu \
+        WINEPREFIX="${PREFIX}" ${WINE_CMD} "${EQ_DIR}/${EQ_EXECUTABLE}" --disable-gpu \
             >> "${instance_log}" 2>&1 &
 
         local pid=$!

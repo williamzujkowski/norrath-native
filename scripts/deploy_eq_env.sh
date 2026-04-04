@@ -14,6 +14,7 @@ readonly DXVK_OVERRIDE_DLLS=("d3d11" "dxgi")
 DRY_RUN=0
 PREFIX="${HOME}/.wine-eq"
 RESOLUTION="1920x1080"
+WINE_CMD=""
 
 usage() {
     cat <<EOF
@@ -82,11 +83,26 @@ ensure_log_dir() {
     fi
 }
 
+detect_wine() {
+    if command -v wine64 &>/dev/null; then
+        WINE_CMD="wine64"
+    elif command -v wine &>/dev/null; then
+        WINE_CMD="wine"
+    else
+        WINE_CMD=""
+    fi
+}
+
 validate_dependencies() {
     log "Validating dependencies..."
     local missing=()
 
-    for cmd in wine64 vulkaninfo wget tar; do
+    detect_wine
+    if [[ -z "${WINE_CMD}" ]]; then
+        missing+=("wine64/wine")
+    fi
+
+    for cmd in vulkaninfo wget tar; do
         if ! command -v "${cmd}" &>/dev/null; then
             missing+=("${cmd}")
         fi
@@ -94,14 +110,12 @@ validate_dependencies() {
 
     if [[ ${#missing[@]} -gt 0 ]]; then
         log "ERROR: Missing required dependencies: ${missing[*]}"
-        log "Install them with:"
-        log "  sudo apt install wine64 vulkan-tools wget tar    # Debian/Ubuntu"
-        log "  sudo dnf install wine vulkan-tools wget tar      # Fedora"
-        log "  sudo pacman -S wine vulkan-tools wget tar        # Arch"
+        log "Install them with: make prereqs"
+        log "  Or manually: sudo apt install wine64 vulkan-tools wget tar"
         exit 1
     fi
 
-    log "All dependencies found."
+    log "All dependencies found (wine: ${WINE_CMD})."
 }
 
 create_wineprefix() {
@@ -114,6 +128,39 @@ create_wineprefix() {
 
     run env WINEPREFIX="${PREFIX}" WINEARCH=win64 wineboot --init
     log "WINEPREFIX created."
+}
+
+install_dxvk_dlls() {
+    local src_dir="$1"
+    local dst_dir="$2"
+    local label="$3"
+
+    if [[ ! -d "${src_dir}" ]]; then
+        log "WARNING: DXVK source dir ${src_dir} not found, skipping ${label}."
+        return 0
+    fi
+
+    for dll in "${DXVK_DLLS[@]}"; do
+        local src="${src_dir}/${dll}"
+        local dst="${dst_dir}/${dll}"
+
+        if [[ ! -f "${src}" ]]; then
+            continue
+        fi
+
+        if [[ -f "${dst}" ]]; then
+            local src_size dst_size
+            src_size="$(stat -c '%s' "${src}")"
+            dst_size="$(stat -c '%s' "${dst}")"
+            if [[ "${src_size}" -eq "${dst_size}" ]]; then
+                log "${dll} already in ${label}, skipping."
+                continue
+            fi
+        fi
+
+        log "Installing ${dll} to ${label}..."
+        cp "${src}" "${dst}"
+    done
 }
 
 download_and_install_dxvk() {
@@ -133,7 +180,8 @@ download_and_install_dxvk() {
 
     local tmpdir
     tmpdir="$(mktemp -d)"
-    trap 'rm -rf "${tmpdir}"' RETURN
+    # shellcheck disable=SC2064
+    trap "rm -rf '${tmpdir}'" RETURN
 
     local tarball="${tmpdir}/dxvk.tar.gz"
     run wget -q -O "${tarball}" "${tarball_url}"
@@ -153,40 +201,19 @@ download_and_install_dxvk() {
         exit 1
     fi
 
-    local sys32="${PREFIX}/drive_c/windows/system32"
-    local src_dir="${dxvk_dir}/x64"
+    # Install x64 DLLs to system32 and x32 DLLs to syswow64
+    # Both are needed: EQ game is 64-bit, but LaunchPad.exe/CEF is 32-bit
+    install_dxvk_dlls "${dxvk_dir}/x64" "${PREFIX}/drive_c/windows/system32" "system32 (x64)"
+    install_dxvk_dlls "${dxvk_dir}/x32" "${PREFIX}/drive_c/windows/syswow64" "syswow64 (x32)"
 
-    for dll in "${DXVK_DLLS[@]}"; do
-        local src="${src_dir}/${dll}"
-        local dst="${sys32}/${dll}"
-
-        if [[ ! -f "${src}" ]]; then
-            log "WARNING: ${dll} not found in DXVK release, skipping."
-            continue
-        fi
-
-        if [[ -f "${dst}" ]]; then
-            local src_size dst_size
-            src_size="$(stat -c '%s' "${src}")"
-            dst_size="$(stat -c '%s' "${dst}")"
-            if [[ "${src_size}" -eq "${dst_size}" ]]; then
-                log "${dll} already installed with matching size, skipping."
-                continue
-            fi
-        fi
-
-        log "Installing ${dll} to system32..."
-        cp "${src}" "${dst}"
-    done
-
-    log "DXVK DLLs installed."
+    log "DXVK DLLs installed (x64 + x32)."
 }
 
 configure_dxvk_overrides() {
     log "Configuring DXVK DLL overrides..."
 
     for dll in "${DXVK_OVERRIDE_DLLS[@]}"; do
-        run env WINEPREFIX="${PREFIX}" wine64 reg add \
+        run env WINEPREFIX="${PREFIX}" ${WINE_CMD} reg add \
             'HKEY_CURRENT_USER\Software\Wine\DllOverrides' \
             /v "${dll}" /d native /f
     done
@@ -202,14 +229,49 @@ enable_virtual_desktop() {
     height="${RESOLUTION##*x}"
 
     local desktop_key='HKEY_CURRENT_USER\Software\Wine\Explorer\Desktops'
-    run env WINEPREFIX="${PREFIX}" wine64 reg add "${desktop_key}" \
+    run env WINEPREFIX="${PREFIX}" ${WINE_CMD} reg add "${desktop_key}" \
         /v Default /d "${width}x${height}" /f
 
     local explorer_key='HKEY_CURRENT_USER\Software\Wine\Explorer'
-    run env WINEPREFIX="${PREFIX}" wine64 reg add "${explorer_key}" \
+    run env WINEPREFIX="${PREFIX}" ${WINE_CMD} reg add "${explorer_key}" \
         /v Desktop /d Default /f
 
     log "Virtual desktop enabled (${RESOLUTION})."
+}
+
+install_everquest() {
+    local eq_dir="${PREFIX}/drive_c/EverQuest"
+    local eq_setup_url="https://launch.daybreakgames.com/installer/EQ_setup.exe"
+    local eq_setup="/tmp/EQ_setup.exe"
+
+    if [[ -f "${eq_dir}/LaunchPad.exe" ]]; then
+        log "EverQuest already installed at ${eq_dir}, skipping."
+        return 0
+    fi
+
+    log "Installing EverQuest..."
+
+    if [[ ! -f "${eq_setup}" ]]; then
+        log "Downloading EQ installer..."
+        run wget -q -O "${eq_setup}" "${eq_setup_url}"
+    else
+        log "EQ installer already downloaded, reusing."
+    fi
+
+    if [[ "${DRY_RUN}" -eq 1 ]]; then
+        log "[DRY-RUN] Would run EQ_setup.exe /S /D=C:\\EverQuest"
+        return 0
+    fi
+
+    log "Running silent install (this may take a moment)..."
+    run env WINEPREFIX="${PREFIX}" ${WINE_CMD} "${eq_setup}" /S /D='C:\EverQuest'
+    sleep 5
+
+    if [[ -f "${eq_dir}/LaunchPad.exe" ]]; then
+        log "EverQuest installed successfully at ${eq_dir}"
+    else
+        log "WARNING: LaunchPad.exe not found after install. Check manually."
+    fi
 }
 
 main() {
@@ -223,6 +285,7 @@ main() {
     download_and_install_dxvk
     configure_dxvk_overrides
     enable_virtual_desktop
+    install_everquest
 
     log "=== ${SCRIPT_NAME} completed ==="
 }

@@ -103,6 +103,8 @@ export const REQUIRED_APT_PACKAGES: readonly string[] = [
   // Vulkan / Mesa 32-bit multiarch (required for 32-bit DXVK DLLs)
   'mesa-vulkan-drivers:i386',
   'libvulkan1:i386',
+  // Wine authentication support (prevents ntlm_auth warnings)
+  'winbind',
   // Download and extraction utilities
   'wget',
   'tar',

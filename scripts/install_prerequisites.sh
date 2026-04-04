@@ -24,6 +24,7 @@ readonly -a REQUIRED_PACKAGES=(
     vulkan-tools
     # Wine dependencies
     cabextract
+    winbind
     # Download tools
     wget
     tar
