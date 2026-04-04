@@ -1,4 +1,4 @@
-.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage deploy deploy-dry configure configure-dry doctor login login-copy launch launch-multi clean purge help
+.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage deploy deploy-dry configure configure-dry doctor login login-copy launch launch-multi backup-session restore-session clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -50,6 +50,26 @@ launch:             ## Launch a single EverQuest instance
 
 launch-multi:       ## Launch 3 EverQuest instances (multibox)
 	bash scripts/start_eq.sh --instances 3
+
+backup-session:     ## Back up launcher session (login cookies, DPAPI key)
+	@mkdir -p ~/.local/share/norrath-native/backup
+	@cp ~/.wine-eq/drive_c/EverQuest/LaunchPad.libs/LaunchPad.Cache/Cookies \
+		~/.local/share/norrath-native/backup/Cookies 2>/dev/null \
+		&& cp ~/.wine-eq/drive_c/EverQuest/LaunchPad.libs/LaunchPad.Cache/LocalPrefs.json \
+		~/.local/share/norrath-native/backup/LocalPrefs.json 2>/dev/null \
+		&& echo "Session backed up to ~/.local/share/norrath-native/backup/" \
+		|| echo "No session to back up (log in first)"
+
+restore-session:    ## Restore launcher session from backup
+	@if [ -f ~/.local/share/norrath-native/backup/Cookies ]; then \
+		cp ~/.local/share/norrath-native/backup/Cookies \
+			~/.wine-eq/drive_c/EverQuest/LaunchPad.libs/LaunchPad.Cache/Cookies \
+		&& cp ~/.local/share/norrath-native/backup/LocalPrefs.json \
+			~/.wine-eq/drive_c/EverQuest/LaunchPad.libs/LaunchPad.Cache/LocalPrefs.json \
+		&& echo "Session restored. Next launch should auto-login."; \
+	else \
+		echo "No backup found. Run make backup-session first."; \
+	fi
 
 clean:              ## Remove build artifacts and coverage
 	rm -rf dist/ coverage/
