@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [2.0.0] - 2026-04-04
+
+### Added
+
+- **State manifest** — deploy records wine_version, dxvk_version, timestamps to state.json
+- **Doctor JSON output** — `make doctor --json` for machine-readable diagnostics
+- **23 structured health checks** with stable IDs (SYS_WINE, DXVK_*, EQ_*, etc.)
+- **Support bundle** — `make support-bundle` generates tarball with doctor + logs
+- **35 new tests** for dxvk-resolver.ts (total: 49 tests)
+- **TypeDoc** API reference generation at docs/api/
+- **Auto-generated docs** — command reference, check reference from source
+- **Project-level config** — norrath-native.yaml with 4 performance profiles
+- **Dry-run on launch** — `make launch --dry-run` previews without starting Wine
+
+### Fixed
+
+- Resolution drift: launch now uses configured resolution (was hardcoded 1920x1080)
+- Doctor reads prefix from config (was hardcoded ~/.wine-eq)
+- Consistent -h/--help across all scripts
+- Portable DXVK URL parsing (removed Perl regex dependency)
+- Atomic downloads prevent corruption on interrupt
+- SIGKILL escalation on shutdown timeout
+- Case-sensitive LaunchPad.exe filename
+
+### Changed
+
+- MANAGED_INI_SETTINGS in TS marked as reference (canonical source: configure_eq.sh)
+- dxvk-resolver.ts documented as reference implementation
+- ESLint rules relaxed for test files (long describe blocks)
+- CI adds TypeDoc build verification
+
 
 ## [1.2.0] - 2026-04-04
 
