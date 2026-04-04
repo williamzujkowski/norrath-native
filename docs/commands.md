@@ -30,6 +30,9 @@ parser             Install EQLogParser DPS meter + trigger system (PARSER_FILE=p
 pip                Picture-in-picture: main window large, others stacked right
 prereqs-dry        Preview prerequisite installation without changes
 prereqs            Install system prerequisites (Wine, Vulkan, etc.)
+profile-list       List available UI layout profiles
+profile-load       Load a saved UI layout profile (PROFILE=name)
+profile-save       Save current UI layout as a named profile (PROFILE=name)
 purge              Remove Wine prefix and all EQ data (DESTRUCTIVE)
 resolution-detect  Show detected monitor resolution vs current Wine resolution
 resolution         Set Wine + EQ resolution to match your monitor (auto-detect)

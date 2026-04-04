@@ -1,4 +1,4 @@
-.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview resolution resolution-detect setup-all tile pip focus-next windows doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
+.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview resolution resolution-detect profile-save profile-load profile-list setup-all tile pip focus-next windows doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -44,6 +44,19 @@ resolution:         ## Set Wine + EQ resolution to match your monitor (auto-dete
 
 resolution-detect:  ## Show detected monitor resolution vs current Wine resolution
 	bash scripts/resolution_manager.sh detect
+
+PROFILE ?=
+
+profile-save:       ## Save current UI layout as a named profile (PROFILE=name)
+	@if [ -z "$(PROFILE)" ]; then echo "Usage: make profile-save PROFILE=my-layout"; exit 1; fi
+	bash scripts/layout_profiles.sh save "$(PROFILE)"
+
+profile-load:       ## Load a saved UI layout profile (PROFILE=name)
+	@if [ -z "$(PROFILE)" ]; then bash scripts/layout_profiles.sh list; exit 1; fi
+	bash scripts/layout_profiles.sh load "$(PROFILE)"
+
+profile-list:       ## List available UI layout profiles
+	bash scripts/layout_profiles.sh list
 
 doctor:             ## Health check — validate entire installation
 	bash scripts/doctor.sh
