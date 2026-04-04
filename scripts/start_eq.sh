@@ -8,11 +8,18 @@ readonly SCRIPT_NAME="start_eq.sh"
 readonly LOG_DIR="${HOME}/.local/share/norrath-native"
 readonly EQ_EXECUTABLE="LaunchPad.exe"
 
-INSTANCES=1
-STAGGER_DELAY=5
-PREFIX="${HOME}/.wine-eq"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source config reader for defaults
+# shellcheck source=config_reader.sh
+source "${SCRIPT_DIR}/config_reader.sh"
+
+INSTANCES="${NN_INSTANCES}"
+STAGGER_DELAY="${NN_STAGGER_DELAY}"
+PREFIX="${NN_PREFIX}"
 EQ_DIR=""
 USE_WAYLAND=0
+[[ "${NN_DISPLAY}" == "wayland" ]] && USE_WAYLAND=1
 WINE_CMD=""
 PIDS=()
 

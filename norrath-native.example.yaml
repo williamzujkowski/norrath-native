@@ -1,0 +1,79 @@
+# norrath-native.yaml — User Configuration
+#
+# Copy this file to norrath-native.yaml and customize.
+# All settings have sensible defaults — you only need to change what you want.
+#
+# To apply changes: make configure
+# To preview:       make configure-dry
+
+# ─── Wine Environment ────────────────────────────────────────────────────────
+
+# Wine prefix location (where all EQ data lives)
+prefix: ~/.wine-eq
+
+# Virtual desktop resolution (traps EQ in a managed window)
+# Common values: 1920x1080, 2560x1440, 3840x2160
+resolution: 1920x1080
+
+# Display backend: x11 (stable, recommended) or wayland (experimental)
+display: x11
+
+# ─── Multiboxing ──────────────────────────────────────────────────────────────
+
+# Number of EQ instances to launch with 'make launch'
+# Set to 1 for single-client, 2-6 for multiboxing
+instances: 1
+
+# Seconds to wait between launching each instance
+# Prevents GPU initialization races and login throttling
+stagger_delay: 5
+
+# ─── Performance Profile ──────────────────────────────────────────────────────
+#
+# Choose a preset, or customize individual settings below.
+#
+#   high    — Full quality, single client (default)
+#   balanced — Good quality, suitable for 2-3 clients
+#   low     — Reduced quality, for background multibox clients (4-6)
+#   minimal — Stick figures, minimum CPU/GPU, for AFK clients
+#
+profile: high
+
+# ─── EQ Client Settings ──────────────────────────────────────────────────────
+#
+# These are applied to eqclient.ini. Settings here override the profile preset.
+# Only uncomment and change settings you want to customize.
+#
+
+# FPS Limits
+# max_fps: 60            # Foreground FPS cap (1-150, lower = less GPU heat)
+# max_bg_fps: 30         # Background FPS cap (1-60, lower = more CPU for other clients)
+
+# View Distance & Detail
+# clip_plane: 15         # Draw distance (1-30, lower = better performance)
+# lod_bias: 10           # Level of detail bias (1-10)
+
+# Graphics Toggles
+# post_effects: false    # Screen effects (bloom, etc.) — disable saves ~10% GPU
+# multi_pass_lighting: false  # Extra lighting — disable saves ~5% GPU
+# vertex_shaders: true   # Offloads rendering to GPU (keep enabled)
+
+# Particle Effects (0.0 to 1.0, lower = fewer particles = better performance)
+# spell_particles: 1.0   # Spell effect density
+# environment_particles: 1.0  # Rain, snow, ambient effects
+# actor_particles: 1.0   # Character effect density
+
+# Sound
+# sound: true            # Master sound toggle
+# music_volume: 10       # Music volume (0-10)
+# sound_volume: 10       # Effects volume (0-10)
+
+# UI & Gameplay
+# show_names: 4          # Name display (0=off, 1=mine, 2=targeted, 3=group, 4=all)
+# chat_font_size: 3      # Chat font size (1-5)
+# track_players: true    # Show player tracking window
+
+# Window Behavior
+# allow_resize: true     # Allow window resizing
+# maximized: true        # Start maximized in virtual desktop
+# always_on_top: false   # Keep window on top (usually not wanted)

@@ -39,8 +39,8 @@ doctor:             ## Health check — validate entire installation
 launch:             ## Launch a single EverQuest instance
 	bash scripts/start_eq.sh
 
-launch-multi:       ## Launch 3 EverQuest instances (multibox)
-	bash scripts/start_eq.sh --instances 3
+launch-multi:       ## Launch instances per config (default: from norrath-native.yaml)
+	bash scripts/start_eq.sh
 
 backup-session:     ## Back up launcher login session for disaster recovery
 	@mkdir -p ~/.local/share/norrath-native/backup

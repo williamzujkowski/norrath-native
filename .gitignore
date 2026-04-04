@@ -4,3 +4,4 @@ coverage/
 *.prefix/
 *.log
 .wine*/
+norrath-native.yaml

@@ -11,9 +11,15 @@ readonly DXVK_API_URL="https://api.github.com/repos/doitsujin/dxvk/releases/late
 readonly DXVK_DLLS=("d3d11.dll" "dxgi.dll" "d3d10core.dll" "d3d9.dll")
 readonly DXVK_OVERRIDE_DLLS=("d3d11" "dxgi")
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source config reader for defaults
+# shellcheck source=config_reader.sh
+source "${SCRIPT_DIR}/config_reader.sh"
+
 DRY_RUN=0
-PREFIX="${HOME}/.wine-eq"
-RESOLUTION="1920x1080"
+PREFIX="${NN_PREFIX}"
+RESOLUTION="${NN_RESOLUTION}"
 WINE_CMD=""
 CLEANUP_DIRS=()
 
