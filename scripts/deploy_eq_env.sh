@@ -307,9 +307,35 @@ install_everquest() {
 
     if [[ -f "${eq_dir}/LaunchPad.exe" ]]; then
         nn_log "EverQuest installed successfully at ${eq_dir}"
+        fix_desktop_shortcut
     else
         nn_log "WARNING: LaunchPad.exe not found after install. Check manually."
     fi
+}
+
+fix_desktop_shortcut() {
+    nn_log "Fixing desktop shortcut (adding --disable-gpu)..."
+    local desktop_dir="${PREFIX}/drive_c/users/${USER}/Desktop"
+
+    if [[ "${DRY_RUN}" -eq 1 ]]; then
+        nn_log "  [DRY-RUN] Would fix desktop shortcut"
+        return 0
+    fi
+
+    # Fix any .desktop files that launch LaunchPad.exe without --disable-gpu
+    for desktop_file in "${desktop_dir}"/*.desktop "${desktop_dir}"/.desktop; do
+        [[ -f "${desktop_file}" ]] || continue
+        if grep -q "LaunchPad.exe" "${desktop_file}" 2>/dev/null; then
+            if ! grep -q "\-\-disable-gpu" "${desktop_file}" 2>/dev/null; then
+                sed -i 's/LaunchPad\.exe.*/LaunchPad.exe --disable-gpu/' "${desktop_file}"
+                nn_log "  Fixed: $(basename "${desktop_file}")"
+            fi
+            # Also fix the Name if it's empty
+            if grep -q "^Name=$" "${desktop_file}" 2>/dev/null; then
+                sed -i 's/^Name=$/Name=EverQuest/' "${desktop_file}"
+            fi
+        fi
+    done
 }
 
 configure_eq_settings() {
