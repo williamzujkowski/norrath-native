@@ -20,9 +20,13 @@ display: x11
 
 # ─── Multiboxing ──────────────────────────────────────────────────────────────
 
-# Number of EQ instances to launch with 'make launch'
-# Set to 1 for single-client, 2-6 for multiboxing
+# 'make launch' always launches this many instances (default: 1)
+# Use this for your primary/raid-focus client
 instances: 1
+
+# 'make launch-multi' launches this many instances (default: 3)
+# Use this when you want to multibox — switch easily without editing config
+multibox_instances: 3
 
 # Seconds to wait between launching each instance
 # Prevents GPU initialization races and login throttling

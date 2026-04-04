@@ -19,7 +19,7 @@ docs               Generate API docs, command reference, and check reference
 doctor             Health check — validate entire installation
 help               Show this help
 install            Install pnpm dependencies
-launch-multi       Launch instances per config (default: from norrath-native.yaml)
+launch-multi       Launch multibox instances (default: 3, set multibox_instances in config)
 launch             Launch a single EverQuest instance
 layout-preview     Preview chat layout changes without applying
 layout             Apply recommended 4-window chat layout (Social/Combat/Spam/Alerts)

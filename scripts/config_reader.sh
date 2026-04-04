@@ -12,6 +12,7 @@ NN_PREFIX="${HOME}/.wine-eq"
 NN_RESOLUTION="1920x1080"
 NN_DISPLAY="x11"
 NN_INSTANCES=1
+NN_MULTIBOX_INSTANCES=3
 NN_STAGGER_DELAY=5
 NN_PROFILE="high"
 
@@ -124,6 +125,7 @@ _nn_read_config() {
     _nn_set "resolution" "NN_RESOLUTION"
     _nn_set "display" "NN_DISPLAY"
     _nn_set "instances" "NN_INSTANCES"
+    _nn_set "multibox_instances" "NN_MULTIBOX_INSTANCES"
     _nn_set "stagger_delay" "NN_STAGGER_DELAY"
     _nn_set "profile" "NN_PROFILE"
 

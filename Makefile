@@ -54,8 +54,8 @@ support-bundle:     ## Generate a support bundle for troubleshooting
 launch:             ## Launch a single EverQuest instance
 	bash scripts/start_eq.sh
 
-launch-multi:       ## Launch instances per config (default: from norrath-native.yaml)
-	bash scripts/start_eq.sh
+launch-multi:       ## Launch multibox instances (default: 3, set multibox_instances in config)
+	bash scripts/start_eq.sh --multi
 
 backup-session:     ## Back up launcher login session for disaster recovery
 	@mkdir -p ~/.local/share/norrath-native/backup

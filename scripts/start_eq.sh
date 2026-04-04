@@ -31,10 +31,11 @@ Usage: ${SCRIPT_NAME} [OPTIONS]
 Launch EverQuest instances under Wine with optional multi-boxing support.
 
 Options:
-  --instances N          Number of instances to launch (default: 1)
-  --stagger-delay SECS   Delay between instance launches in seconds (default: 5)
+  --multi                Use multibox_instances from config (default: 3)
+  --instances N          Override instance count
+  --stagger-delay SECS   Delay between instance launches (default: 5)
   --prefix PATH          WINEPREFIX path (default: ~/.wine-eq)
-  --eq-dir PATH          EverQuest install directory (default: auto-detect in prefix)
+  --eq-dir PATH          EverQuest install directory (default: auto-detect)
   --wayland              Use Wayland display backend instead of X11
   --dry-run              Print what would be launched without starting Wine
   -h, --help             Show this help message
@@ -43,9 +44,9 @@ Environment:
   NORRATH_WAYLAND=1      Alternative way to enable Wayland backend
 
 Examples:
-  ${SCRIPT_NAME}
-  ${SCRIPT_NAME} --instances 3 --stagger-delay 10
-  ${SCRIPT_NAME} --wayland --prefix ~/my-wine --eq-dir ~/my-wine/drive_c/EverQuest
+  ${SCRIPT_NAME}                    # Launch 1 instance (raid focus)
+  ${SCRIPT_NAME} --multi            # Launch multibox instances from config
+  ${SCRIPT_NAME} --instances 4      # Launch exactly 4 instances
 EOF
     exit 0
 }
@@ -59,6 +60,10 @@ log() {
 parse_args() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
+            --multi)
+                INSTANCES="${NN_MULTIBOX_INSTANCES}"
+                shift
+                ;;
             --instances)
                 if [[ $# -lt 2 ]]; then
                     log "ERROR: --instances requires a value"
