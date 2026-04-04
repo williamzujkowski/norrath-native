@@ -122,6 +122,7 @@ export const REQUIRED_APT_PACKAGES: readonly string[] = [
 export const MANAGED_INI_SETTINGS: Readonly<Record<string, string>> = {
   WindowedMode: 'TRUE',
   UpdateInBackground: '1',
+  Log: 'TRUE',
   MaxBGFPS: '30',
   ClientCore0: '-1',
   ClientCore1: '-1',

@@ -70,6 +70,7 @@ build_settings() {
         [AllowResize]="${NN_ALLOW_RESIZE}"
         [Maximized]="${NN_MAXIMIZED}"
         [AlwaysOnTop]="${NN_ALWAYS_ON_TOP}"
+        [Log]="TRUE"
     )
 
     # CPU affinity (always let Linux manage)

@@ -124,6 +124,20 @@ check_wine_prefix() {
     else
         warn "PREFIX_VDESKTOP" "Virtual desktop not configured" "run: make deploy"
     fi
+
+    # Microsoft core fonts
+    if [[ -f "${PREFIX}/drive_c/windows/Fonts/arial.ttf" ]]; then
+        pass "PREFIX_COREFONTS" "Microsoft core fonts installed (arial.ttf present)"
+    else
+        warn "PREFIX_COREFONTS" "Microsoft core fonts not installed — UI text may render incorrectly" "run: make deploy"
+    fi
+
+    # Mouse capture for camera rotation
+    if grep -qi '"MouseWarpOverride"="enable"' "${PREFIX}/user.reg" 2>/dev/null; then
+        pass "PREFIX_MOUSE_CAPTURE" "Mouse capture configured (MouseWarpOverride=enable)"
+    else
+        warn "PREFIX_MOUSE_CAPTURE" "MouseWarpOverride not set — camera rotation may not work" "run: make deploy"
+    fi
 }
 
 check_dxvk() {
@@ -202,6 +216,13 @@ check_everquest() {
         else
             warn "EQ_INI" "eqclient.ini exists but missing managed settings" "run: make configure"
         fi
+
+        # Check for log file generation
+        if grep -q "^Log=TRUE" "${eq_dir}/eqclient.ini" 2>/dev/null; then
+            pass "EQ_LOGGING" "EQ log file generation enabled (Log=TRUE)"
+        else
+            warn "EQ_LOGGING" "Log=TRUE not set in eqclient.ini — log parsers won't work" "run: make configure"
+        fi
     else
         warn "EQ_INI" "eqclient.ini not yet created (will be generated on first config inject)" "run: make configure"
     fi
@@ -226,6 +247,22 @@ check_everquest() {
         else
             warn "EQ_REMEMBER_ME" "Remember Me not set" "check the box on next login"
         fi
+    fi
+
+    # Check for Brewall maps
+    local maps_dir="${eq_dir}/maps/Brewall"
+    if [[ -d "${maps_dir}" ]]; then
+        local map_count
+        map_count="$(find "${maps_dir}" -maxdepth 1 -name '*.txt' -type f 2>/dev/null | wc -l)"
+        if [[ "${map_count}" -gt 100 ]]; then
+            pass "EQ_MAPS" "Brewall maps installed (${map_count} map files)"
+        else
+            warn "EQ_MAPS" "Brewall maps directory exists but only ${map_count} .txt files found" \
+                "run: make maps FILE=~/Downloads/Brewalls-Maps.zip"
+        fi
+    else
+        warn "EQ_MAPS" "Brewall maps not installed" \
+            "download from https://www.eqmaps.info/eq-map-files/ then run: make maps FILE=<path>"
     fi
 }
 

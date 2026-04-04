@@ -240,6 +240,7 @@ describe('managed settings completeness', () => {
       expect(keys).toContain(`ClientCore${i}`);
     }
 
-    expect(keys).toHaveLength(15);
+    expect(keys).toContain('Log');
+    expect(keys).toHaveLength(16);
   });
 });

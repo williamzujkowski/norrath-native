@@ -1,4 +1,4 @@
-.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry doctor support-bundle launch launch-multi backup-session restore-session clean purge help
+.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry doctor support-bundle launch launch-multi backup-session restore-session maps clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -76,6 +76,11 @@ restore-session:    ## Restore launcher session from backup
 	else \
 		echo "No backup found. Run make backup-session first."; \
 	fi
+
+FILE ?=
+
+maps:               ## Install Brewall's map pack (FILE=path/to/downloaded.zip)
+	@if [ -z "$(FILE)" ]; then bash scripts/install_maps.sh --help; else bash scripts/install_maps.sh --file "$(FILE)"; fi
 
 clean:              ## Remove build artifacts and coverage
 	rm -rf dist/ coverage/

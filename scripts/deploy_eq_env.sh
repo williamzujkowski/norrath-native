@@ -179,6 +179,28 @@ install_dxvk_dlls() {
     done
 }
 
+install_corefonts() {
+    local fonts_dir="${PREFIX}/drive_c/windows/Fonts"
+    if [[ -f "${fonts_dir}/arial.ttf" ]]; then
+        log "Core fonts already installed, skipping."
+        return 0
+    fi
+    if ! command -v winetricks &>/dev/null; then
+        log "WARNING: winetricks not found, skipping core fonts."
+        log "  Install with: sudo apt install winetricks"
+        return 0
+    fi
+    log "Installing Microsoft core fonts (winetricks warnings are normal)..."
+    # winetricks may exit non-zero due to harmless registration warnings
+    run env WINEPREFIX="${PREFIX}" winetricks -q corefonts || true
+    if [[ -f "${fonts_dir}/arial.ttf" ]]; then
+        log "Core fonts installed successfully."
+    else
+        log "WARNING: Core font installation may have failed. Run manually:"
+        log "  WINEPREFIX=${PREFIX} winetricks -q corefonts"
+    fi
+}
+
 download_and_install_dxvk() {
     log "Downloading latest DXVK release..."
 
@@ -264,6 +286,14 @@ enable_virtual_desktop() {
         /v Desktop /d Default /f
 
     log "Virtual desktop enabled (${RESOLUTION})."
+}
+
+fix_mouse_capture() {
+    log "Configuring mouse capture for camera rotation..."
+    run env WINEPREFIX="${PREFIX}" "${WINE_CMD}" reg add \
+        'HKEY_CURRENT_USER\Software\Wine\DirectInput' \
+        /v MouseWarpOverride /d enable /f
+    log "Mouse capture configured."
 }
 
 install_everquest() {
@@ -374,9 +404,11 @@ main() {
 
     validate_dependencies
     create_wineprefix
+    install_corefonts
     download_and_install_dxvk
     configure_dxvk_overrides
     enable_virtual_desktop
+    fix_mouse_capture
     install_everquest
     configure_eq_settings
     write_state_manifest
