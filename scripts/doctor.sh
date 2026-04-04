@@ -196,14 +196,6 @@ check_everquest() {
         fi
     fi
 
-    # Check for login credentials in pass
-    if command -v pass &>/dev/null; then
-        if pass gaming/daybreak/username &>/dev/null; then
-            pass "Login credentials stored in pass"
-        else
-            warn "No login credentials in pass (optional: make login --help)"
-        fi
-    fi
 }
 
 check_logs() {

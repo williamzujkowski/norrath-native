@@ -1,4 +1,4 @@
-.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage deploy deploy-dry configure configure-dry doctor login login-copy remember-me launch launch-multi backup-session restore-session clean purge help
+.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage deploy deploy-dry configure configure-dry doctor launch launch-multi backup-session restore-session clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -36,25 +36,13 @@ configure-dry:      ## Preview INI changes without writing
 doctor:             ## Health check — validate entire installation
 	bash scripts/doctor.sh
 
-login:              ## Auto-fill login credentials from pass store
-	bash scripts/login_helper.sh
-
-login-copy:         ## Copy password to clipboard for right-click paste in launcher
-	@pass gaming/daybreak/password 2>/dev/null | tr -d '\n' | wl-copy 2>/dev/null \
-		|| pass gaming/daybreak/password 2>/dev/null | tr -d '\n' | xclip -selection clipboard 2>/dev/null \
-		|| (echo "ERROR: Install wl-clipboard or xclip"; exit 1)
-	@echo "Password copied to clipboard. Right-click the password field in EQ and select Paste."
-
-remember-me:        ## Enable auto-login (Remember Me) in the launcher
-	bash scripts/set_remember_me.sh
-
 launch:             ## Launch a single EverQuest instance
 	bash scripts/start_eq.sh
 
 launch-multi:       ## Launch 3 EverQuest instances (multibox)
 	bash scripts/start_eq.sh --instances 3
 
-backup-session:     ## Back up launcher session (login cookies, DPAPI key)
+backup-session:     ## Back up launcher login session for disaster recovery
 	@mkdir -p ~/.local/share/norrath-native/backup
 	@cp ~/.wine-eq/drive_c/EverQuest/LaunchPad.libs/LaunchPad.Cache/Cookies \
 		~/.local/share/norrath-native/backup/Cookies 2>/dev/null \

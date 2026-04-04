@@ -50,26 +50,9 @@ The first launch requires a few extra steps. Subsequent launches skip straight t
 make launch        # Opens the Daybreak Launcher in a Wine virtual desktop
 ```
 
-Log in with your Daybreak account. You can type credentials directly, or use one of these methods:
+Log in with your Daybreak account. You can type your credentials directly into the launcher, or copy/paste them — right-click the password field and select "Paste" from the context menu.
 
-**Method 1: Right-click paste (most reliable)**
-
-Copy your password from a terminal or password manager, then right-click the password field in the launcher and select "Paste" from the context menu. This works because Wine's clipboard integrates with CEF.
-
-**Method 2: Auto-fill from `pass` store**
-
-```bash
-# Store credentials (one-time)
-echo 'your_username' | pass insert -e gaming/daybreak/username
-echo 'your_password' | pass insert -e gaming/daybreak/password
-
-# Copy password to clipboard for right-click paste
-pass gaming/daybreak/password | wl-copy   # Wayland
-pass gaming/daybreak/password | xclip -sel clip  # X11
-
-# Or use the login helper (in a separate terminal)
-make login
-```
+Check **"Remember me on this computer"** to skip the login screen on future launches. This stores a session token that lasts about a year.
 
 ### 2. Accept the EULA
 
@@ -108,10 +91,11 @@ make prereqs       Install system prerequisites (Wine, Vulkan, etc.)
 make install       Install pnpm dependencies
 make deploy        Full deployment (prefix + DXVK + EQ install + config)
 make configure     Apply/update eqclient.ini settings
-make login         Auto-fill login credentials from pass store
 make doctor        Health check — validate entire installation
 make launch        Launch a single EverQuest instance
 make launch-multi  Launch 3 EverQuest instances (multibox)
+make backup-session  Back up login session for disaster recovery
+make restore-session Restore login session from backup
 make purge         Remove Wine prefix and all EQ data (DESTRUCTIVE)
 make help          Show all available commands
 ```
