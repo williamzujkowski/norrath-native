@@ -51,15 +51,18 @@ function commands(): Record<
     'config': cmdConfig,
     'config:resolve': cmdConfig,
     'config:settings': cmdConfigSettings,
+    'config:settings:ini': cmdConfigSettingsIni,
     'resolution:detect': cmdResolutionDetect,
     'resolution:clamp': cmdResolutionClamp,
     'resolution:viewport': cmdResolutionViewport,
     'resolution:tiles': cmdResolutionTiles,
     'colors:scheme': cmdColorsScheme,
     'colors:ini': cmdColorsIni,
+    'colors:data': cmdColorsData,
     'colors:validate': cmdColorsValidate,
     'layout:channels': cmdLayoutChannels,
     'layout:ini': cmdLayoutIni,
+    'layout:data': cmdLayoutData,
     'doctor': cmdDoctor,
     'doctor:json': cmdDoctorJson,
     'help': cmdHelp,
@@ -83,6 +86,18 @@ function cmdConfigSettings(): void {
   }
   const settings = generateManagedSettings(result.value);
   printJson(settings);
+}
+
+function cmdConfigSettingsIni(): void {
+  const result = resolveConfig();
+  if (!result.ok) {
+    process.stderr.write(`Error: ${result.error.message}\n`);
+    process.exit(1);
+  }
+  const settings = generateManagedSettings(result.value);
+  for (const [key, value] of Object.entries(settings)) {
+    process.stdout.write(`${key}=${value}\n`);
+  }
 }
 
 function cmdResolutionDetect(): void {
@@ -136,6 +151,12 @@ function cmdColorsIni(): void {
   }
 }
 
+function cmdColorsData(): void {
+  for (const [id, color] of Object.entries(COLOR_SCHEME)) {
+    process.stdout.write(`${id} ${String(color.r)} ${String(color.g)} ${String(color.b)}\n`);
+  }
+}
+
 function cmdColorsValidate(): void {
   const bgR = parseInt(args[1] ?? '13', 10);
   const bgG = parseInt(args[2] ?? '13', 10);
@@ -169,6 +190,12 @@ function cmdLayoutIni(): void {
   const entries = generateChannelMapEntries();
   for (const [key, value] of Object.entries(entries)) {
     process.stdout.write(`${key}=${value}\n`);
+  }
+}
+
+function cmdLayoutData(): void {
+  for (const [id, windowIndex] of Object.entries(CHANNEL_MAP)) {
+    process.stdout.write(`${id} ${String(windowIndex)}\n`);
   }
 }
 
@@ -213,24 +240,29 @@ function cmdHelp(): void {
 Commands:
   config              Resolve full configuration (JSON)
   config:settings     Generate managed INI settings (JSON)
+  config:settings:ini Generate managed INI settings (key=value lines, no JSON)
   resolution:detect W H    Detect ultrawide, clamp, viewport
   resolution:clamp W H     Clamp to 16:9
   resolution:viewport W H  Calculate viewport offsets
   resolution:tiles N W H   Calculate tile positions for N windows
   colors:scheme            Output color scheme as JSON
   colors:ini               Output INI key=value entries for TextColors
+  colors:data              Output color data as "ID R G B" lines (bash-friendly)
   colors:validate [R G B]  Validate WCAG contrast (default bg: 13,13,26)
   layout:channels          Output channel routing as JSON
   layout:ini               Output ChannelMap INI entries
+  layout:data              Output channel map as "FILTER_ID WINDOW_ID" lines (bash-friendly)
   doctor                   Run health checks (ANSI text output)
   doctor:json              Run health checks (JSON output)
   doctor --prefix PATH     Override WINEPREFIX to check
 
 Usage from bash:
   node dist/cli.js config | jq '.prefix'
-  node dist/cli.js config:settings | jq -r 'to_entries[] | "\\(.key)=\\(.value)"'
+  node dist/cli.js config:settings:ini               # key=value, no jq needed
   node dist/cli.js resolution:detect 3440 1440
+  node dist/cli.js colors:data                       # "ID R G B" per line
   node dist/cli.js colors:ini >> eqclient.ini
+  node dist/cli.js layout:data                       # "FILTER_ID WINDOW_ID" per line
   node dist/cli.js layout:ini >> UI_charname_server.ini
   node dist/cli.js doctor
   node dist/cli.js doctor:json | jq '.failed'

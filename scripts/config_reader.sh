@@ -225,3 +225,28 @@ _nn_read_config() {
 
 # Run on source
 _nn_read_config
+
+# ─── TypeScript CLI Helper ────────────────────────────────────────────────────
+# Call the compiled TypeScript CLI for all data/calculation tasks.
+# Bash scripts should use this for configuration, color data, layout data, etc.
+# Bash handles only system interaction (wine, apt, wmctrl, xdotool).
+#
+# Usage: cli_cmd <command> [args...]
+#   cli_cmd config:settings:ini
+#   cli_cmd colors:data
+#   cli_cmd layout:data
+#   cli_cmd resolution:detect 3440 1440
+#   cli_cmd doctor:json
+
+cli_cmd() {
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local cli="${script_dir}/../dist/cli.js"
+
+    if [[ ! -f "${cli}" ]]; then
+        nn_log "ERROR: TypeScript CLI not built. Run: pnpm build"
+        exit 1
+    fi
+
+    node "${cli}" "$@"
+}

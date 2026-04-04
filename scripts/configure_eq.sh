@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2034  # Variables used via nameref
 set -euo pipefail
 
 # configure_eq.sh — Apply EQ client settings from norrath-native config
@@ -52,62 +51,16 @@ parse_args() {
     done
 }
 
-# Build the managed settings map from current config
-build_settings() {
-    # Core settings (always applied)
-    # shellcheck disable=SC2034  # Used via nameref in apply_settings_to_section
-    declare -gA MANAGED_SETTINGS=(
-        [WindowedMode]="TRUE"
-        [UpdateInBackground]="1"
-        [GraphicsMemoryModeSwitch]="1"
-        [APVOptimizations]="TRUE"
-        [AllowResize]="${NN_ALLOW_RESIZE}"
-        [Maximized]="${NN_MAXIMIZED}"
-        [AlwaysOnTop]="${NN_ALWAYS_ON_TOP}"
-        [Log]="TRUE"
-    )
-
-    # CPU affinity (always let Linux manage)
-    local i
-    for (( i=0; i<12; i++ )); do
-        MANAGED_SETTINGS["ClientCore${i}"]="-1"
-    done
-
-    # Performance settings from profile/config
-    MANAGED_SETTINGS[MaxBGFPS]="${NN_MAX_BG_FPS}"
-    MANAGED_SETTINGS[PostEffects]="${NN_POST_EFFECTS}"
-    MANAGED_SETTINGS[MultiPassLighting]="${NN_MULTI_PASS_LIGHTING}"
-    MANAGED_SETTINGS[VertexShaders]="${NN_VERTEX_SHADERS}"
-    MANAGED_SETTINGS[SpellParticleOpacity]="${NN_SPELL_PARTICLES}"
-    MANAGED_SETTINGS[EnvironmentParticleOpacity]="${NN_ENV_PARTICLES}"
-    MANAGED_SETTINGS[ActorParticleOpacity]="${NN_ACTOR_PARTICLES}"
-    MANAGED_SETTINGS[Sound]="${NN_SOUND}"
-    MANAGED_SETTINGS[Music]="${NN_MUSIC_VOLUME}"
-    MANAGED_SETTINGS[SoundVolume]="${NN_SOUND_VOLUME}"
-    MANAGED_SETTINGS[ShowNamesLevel]="${NN_SHOW_NAMES}"
-    MANAGED_SETTINGS[ChatFontSize]="${NN_CHAT_FONT_SIZE}"
-    MANAGED_SETTINGS[TrackPlayers]="${NN_TRACK_PLAYERS}"
-    MANAGED_SETTINGS[ClipPlane]="${NN_CLIP_PLANE}"
-    MANAGED_SETTINGS[LODBias]="${NN_LOD_BIAS}"
-
-    # Options section settings
-    # shellcheck disable=SC2034  # Used via nameref in apply_settings_to_section
-    declare -gA OPTIONS_SETTINGS=(
-        [MaxFPS]="${NN_MAX_FPS}"
-        [MaxBGFPS]="${NN_MAX_BG_FPS}"
-        [ClipPlane]="${NN_CLIP_PLANE}"
-        [LODBias]="${NN_LOD_BIAS}"
-    )
-}
-
-apply_settings_to_section() {
+# Apply settings from the TypeScript CLI (source of truth) to the INI file.
+# The CLI outputs key=value lines via config:settings:ini.
+# This function reads those lines and applies each to the [Defaults] section.
+apply_ts_settings() {
     local ini_file="$1"
-    local -n settings_ref=$2
-    local section_name="${3:-Defaults}"
+    local section="${2:-Defaults}"
     local updated=0
 
-    for key in "${!settings_ref[@]}"; do
-        local value="${settings_ref[${key}]}"
+    while IFS='=' read -r key value; do
+        [[ -z "${key}" ]] && continue
         if grep -q "^${key}=" "${ini_file}" 2>/dev/null; then
             local current
             current="$(grep "^${key}=" "${ini_file}" | head -1 | cut -d= -f2-)"
@@ -124,9 +77,8 @@ apply_settings_to_section() {
             if [[ "${DRY_RUN}" -eq 1 ]]; then
                 nn_log "  [DRY-RUN] Would add: ${key}=${value}"
             else
-                # Add under the appropriate section
-                if grep -q "^\[${section_name}\]" "${ini_file}" 2>/dev/null; then
-                    sed -i "/^\[${section_name}\]/a ${key}=${value}" "${ini_file}"
+                if grep -q "^\[${section}\]" "${ini_file}" 2>/dev/null; then
+                    sed -i "/^\[${section}\]/a ${key}=${value}" "${ini_file}"
                 else
                     echo "${key}=${value}" >> "${ini_file}"
                 fi
@@ -134,14 +86,13 @@ apply_settings_to_section() {
             fi
             updated=$((updated + 1))
         fi
-    done
+    done < <(cli_cmd config:settings:ini)
 
     return ${updated}
 }
 
 main() {
     parse_args "$@"
-    build_settings
 
     local eq_dir="${NN_PREFIX}/drive_c/EverQuest"
     local ini_file="${eq_dir}/eqclient.ini"
@@ -170,10 +121,7 @@ main() {
     local total=0
 
     nn_log "Managed settings ([Defaults] section):"
-    apply_settings_to_section "${ini_file}" MANAGED_SETTINGS "Defaults" || total=$((total + $?))
-
-    nn_log "Performance settings ([Options] section):"
-    apply_settings_to_section "${ini_file}" OPTIONS_SETTINGS "Options" || total=$((total + $?))
+    apply_ts_settings "${ini_file}" "Defaults" || total=$((total + $?))
 
     if [[ "${total}" -eq 0 ]]; then
         nn_log "All settings already correct (no changes needed)."
