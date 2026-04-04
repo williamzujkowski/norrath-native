@@ -173,6 +173,24 @@ check_everquest() {
     else
         warn "eqclient.ini not yet created (will be generated on first config inject)"
     fi
+
+    # Check patch status — eqgame.exe is the main game binary
+    if [[ -f "${eq_dir}/eqgame.exe" ]]; then
+        local eq_size
+        eq_size="$(du -sh "${eq_dir}" 2>/dev/null | cut -f1)"
+        pass "Game patched (${eq_size} on disk)"
+    else
+        warn "Game not yet patched (run make launch, log in, and let the patcher finish)"
+    fi
+
+    # Check for login credentials in pass
+    if command -v pass &>/dev/null; then
+        if pass gaming/daybreak/username &>/dev/null; then
+            pass "Login credentials stored in pass"
+        else
+            warn "No login credentials in pass (run: make login --help)"
+        fi
+    fi
 }
 
 check_logs() {
