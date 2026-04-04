@@ -16,6 +16,7 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      - run: pnpm build
       - run: pnpm lint
       - run: pnpm run test:run
       - name: TypeDoc build check
