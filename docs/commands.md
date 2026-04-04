@@ -17,6 +17,7 @@ deploy             Full deployment (prefix + DXVK + EQ install + config)
 docs-check         Verify generated docs are up to date (CI mode)
 docs               Generate API docs, command reference, and check reference
 doctor             Health check — validate entire installation
+focus-next         Cycle keyboard focus to the next EQ window
 help               Show this help
 install            Install pnpm dependencies
 launch-multi       Launch multibox instances (default: 3, set multibox_instances in config)
@@ -26,14 +27,18 @@ layout             Apply recommended 4-window chat layout (Social/Combat/Spam/Al
 lint               Run ESLint with project rules
 maps               Install Brewall's map pack (FILE=path/to/downloaded.zip)
 parser             Install EQLogParser DPS meter + trigger system (PARSER_FILE=path/to/downloaded.zip)
+pip                Picture-in-picture: main window large, others stacked right
 prereqs-dry        Preview prerequisite installation without changes
 prereqs            Install system prerequisites (Wine, Vulkan, etc.)
 purge              Remove Wine prefix and all EQ data (DESTRUCTIVE)
 restore-session    Restore launcher session from backup
+setup-all          Apply ALL customizations to ALL characters (config + colors + layout)
 support-bundle     Generate a support bundle for troubleshooting
 test-coverage      Run tests with coverage report
 test               Run Vitest test suite
+tile               Arrange EQ windows in a grid layout (auto-detects count)
 typecheck          Run TypeScript strict type checking
+windows            List all detected EQ windows
 make: Leaving directory '/home/william/git/norrath-native'
 ```
 

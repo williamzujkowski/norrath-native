@@ -1,4 +1,4 @@
-.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
+.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview setup-all tile pip focus-next windows doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -51,11 +51,30 @@ support-bundle:     ## Generate a support bundle for troubleshooting
 	@rm -rf /tmp/norrath-native-support
 	@echo "Support bundle: norrath-native-support.tar.gz"
 
+setup-all:          ## Apply ALL customizations to ALL characters (config + colors + layout)
+	@echo "Applying settings to all characters..."
+	bash scripts/configure_eq.sh
+	bash scripts/apply_colors.sh
+	bash scripts/apply_layout.sh
+	@echo "Done. All characters configured."
+
 launch:             ## Launch a single EverQuest instance
 	bash scripts/start_eq.sh
 
 launch-multi:       ## Launch multibox instances (default: 3, set multibox_instances in config)
 	bash scripts/start_eq.sh --multi
+
+tile:               ## Arrange EQ windows in a grid layout (auto-detects count)
+	bash scripts/window_manager.sh tile
+
+pip:                ## Picture-in-picture: main window large, others stacked right
+	bash scripts/window_manager.sh pip
+
+focus-next:         ## Cycle keyboard focus to the next EQ window
+	bash scripts/window_manager.sh focus
+
+windows:            ## List all detected EQ windows
+	bash scripts/window_manager.sh list
 
 backup-session:     ## Back up launcher login session for disaster recovery
 	@mkdir -p ~/.local/share/norrath-native/backup
