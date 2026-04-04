@@ -1,4 +1,4 @@
-.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage deploy deploy-dry launch launch-multi clean help
+.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage deploy deploy-dry configure configure-dry doctor launch launch-multi clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -21,11 +21,20 @@ test:               ## Run Vitest test suite
 test-coverage:      ## Run tests with coverage report
 	pnpm test run --coverage
 
-deploy:             ## Deploy the EverQuest Wine environment
+deploy:             ## Full deployment (prefix + DXVK + EQ install + config)
 	bash scripts/deploy_eq_env.sh
 
-deploy-dry:         ## Preview deployment actions without executing
+deploy-dry:         ## Preview deployment without making changes
 	bash scripts/deploy_eq_env.sh --dry-run
+
+configure:          ## Apply optimized eqclient.ini settings
+	bash scripts/configure_eq.sh
+
+configure-dry:      ## Preview INI changes without writing
+	bash scripts/configure_eq.sh --dry-run
+
+doctor:             ## Health check — validate entire installation
+	bash scripts/doctor.sh
 
 launch:             ## Launch a single EverQuest instance
 	bash scripts/start_eq.sh
@@ -35,6 +44,10 @@ launch-multi:       ## Launch 3 EverQuest instances (multibox)
 
 clean:              ## Remove build artifacts and coverage
 	rm -rf dist/ coverage/
+
+purge:              ## Remove Wine prefix and all EQ data (DESTRUCTIVE)
+	@printf '\033[31mThis will delete ~/.wine-eq and all EQ data. Continue? [y/N] \033[0m'
+	@read -r confirm && [ "$$confirm" = "y" ] && rm -rf ~/.wine-eq ~/.local/share/norrath-native || echo "Cancelled."
 
 help:               ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \

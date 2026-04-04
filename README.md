@@ -4,27 +4,32 @@ A deterministic, idempotent deployment toolkit to run EverQuest natively on Ubun
 
 EverQuest's recent upgrade to DirectX 11 introduced several pain points on Linux: aggressive focus stealing, a broken launcher (black box rendering), and CPU thrashing when multiboxing. Norrath-Native solves all three with an Infrastructure-as-Code approach that creates an isolated Wine prefix with DXVK, a virtual desktop, and tuned client settings.
 
+![EverQuest Launcher running in Wine Virtual Desktop on Ubuntu 24.04](docs/launcher-screenshot.png)
+
+*The Daybreak Launcher rendering correctly inside a Wine Virtual Desktop on Ubuntu 24.04 with Intel Iris Xe Graphics.*
+
 ## Prerequisites
 
 | Requirement | Minimum Version | Notes |
 |---|---|---|
-| Ubuntu | 24.04 LTS | Target platform |
-| Wine | 9.0 (stable) | 64-bit prefix |
-| Vulkan drivers | mesa-vulkan-drivers | GPU must support Vulkan |
+| Ubuntu | 24.04 LTS | Target platform (Mint, Pop!_OS also work) |
+| Wine | 9.0 (stable) | 64-bit prefix, auto-detected as `wine` or `wine64` |
+| Vulkan drivers | mesa-vulkan-drivers | GPU must support Vulkan (Intel, AMD, NVIDIA) |
 | Node.js | 22.x LTS | TypeScript config tooling |
 | pnpm | 9.x | Package manager |
 
-Your GPU must support Vulkan. Verify with `vulkaninfo | grep deviceName`.
+Don't worry about installing these manually — `make prereqs` handles everything.
 
 ## Quick Start
 
 ```bash
 git clone https://github.com/williamzujkowski/norrath-native.git
 cd norrath-native
-make prereqs       # Installs Wine, Vulkan drivers, and system dependencies (needs sudo)
-make install       # Installs Node.js/pnpm dependencies
-make deploy        # Creates Wine prefix, installs DXVK, configures virtual desktop
-make launch        # Launches EverQuest
+make prereqs       # Installs Wine, Vulkan drivers, winbind, etc. (needs sudo)
+make install       # Installs Node.js/pnpm dev dependencies
+make deploy        # Creates Wine prefix, installs DXVK + EverQuest, configures everything
+make doctor        # Verify installation (should show all green)
+make launch        # Launch EverQuest
 ```
 
 Preview what each step will do without making changes:
@@ -32,28 +37,66 @@ Preview what each step will do without making changes:
 ```bash
 make prereqs-dry   # Show what system packages would be installed
 make deploy-dry    # Show what Wine prefix changes would be made
+make configure-dry # Show what INI settings would be applied
+```
+
+## What `make deploy` Does
+
+The deployment is fully automated and idempotent (safe to run multiple times):
+
+1. **Validates system dependencies** — checks for Wine, Vulkan, wget, tar
+2. **Creates a 64-bit Wine prefix** at `~/.wine-eq` (skips if exists)
+3. **Downloads DXVK** from GitHub (latest stable, currently v2.7.1)
+4. **Installs DXVK DLLs** — both x64 (system32) and x32 (syswow64) for launcher compatibility
+5. **Configures DLL overrides** — d3d11 and dxgi set to native
+6. **Enables Wine Virtual Desktop** — traps the game window (default 1920x1080)
+7. **Downloads and installs EverQuest** — silent install via Daybreak installer
+8. **Applies optimized INI settings** — WindowedMode, background FPS cap, CPU affinity
+
+## Available Commands
+
+```
+make prereqs       Install system prerequisites (Wine, Vulkan, etc.)
+make install       Install pnpm dependencies
+make deploy        Full deployment (prefix + DXVK + EQ install + config)
+make configure     Apply/update eqclient.ini settings
+make doctor        Health check — validate entire installation
+make launch        Launch a single EverQuest instance
+make launch-multi  Launch 3 EverQuest instances (multibox)
+make purge         Remove Wine prefix and all EQ data (DESTRUCTIVE)
+make help          Show all available commands
 ```
 
 ## Architecture Decisions
 
 ### Why Virtual Desktop?
 
-EverQuest aggressively steals mouse and keyboard focus, making it impossible to use your Linux desktop while the game runs. Wine's virtual desktop traps the game inside a managed window, preventing focus theft on both X11 and Wayland compositors. The resolution is configurable (default: 1920x1080).
+EverQuest aggressively steals mouse and keyboard focus, making it impossible to use your Linux desktop while the game runs. Wine's virtual desktop traps the game inside a managed window, preventing focus theft on both X11 and Wayland compositors. The resolution is configurable:
+
+```bash
+bash scripts/deploy_eq_env.sh --resolution 2560x1440
+```
 
 ### Why `--disable-gpu` on the Launcher?
 
-The Daybreak Launchpad uses an embedded Chromium browser. On Linux, this Chromium instance fails to render properly, appearing as a solid black box. The `--disable-gpu` flag forces software rendering for the launcher only (not the game itself), solving the black box issue. DXVK still handles all in-game DirectX 11 rendering via Vulkan.
+The Daybreak Launchpad uses an embedded Chromium browser (CEF). On Linux, this Chromium instance fails to render properly, appearing as a solid black box. The `--disable-gpu` flag forces software rendering for the launcher only (not the game itself). DXVK still handles all in-game DirectX 11 rendering via Vulkan.
+
+### Why Both x32 and x64 DXVK DLLs?
+
+The EverQuest game client is 64-bit, but `LaunchPad.exe` and its CEF (Chromium) library are 32-bit (PE32). Without 32-bit DXVK DLLs in `syswow64`, the launcher crashes immediately with `import_dll: Library dxgi.dll not found`.
 
 ### Why Are CPU Cores Unassigned (`ClientCore=-1`)?
 
-Setting `ClientCore0` through `ClientCore11` to `-1` tells the game to let the operating system manage CPU affinity. The Linux kernel's CFS scheduler is far better at distributing game threads across cores than EverQuest's hardcoded core pinning, which causes threads to fight when multiboxing. This is especially important on laptops where thermal throttling requires dynamic scheduling.
+Setting `ClientCore0` through `ClientCore11` to `-1` tells the game to let the operating system manage CPU affinity. The Linux kernel's CFS scheduler is far better at distributing game threads across cores than EverQuest's hardcoded core pinning, which causes threads to fight when multiboxing.
 
 ### Why X11 by Default?
 
-Wine's Wayland driver is experimental and may introduce input lag or rendering artifacts with DXVK. X11 via XWayland is the stable, tested path. If you want to try Wayland:
+Wine's Wayland driver is experimental and may introduce input lag or rendering artifacts with DXVK. X11 via XWayland is the stable, tested path. To try Wayland:
 
 ```bash
 NORRATH_WAYLAND=1 make launch
+# or
+bash scripts/start_eq.sh --wayland
 ```
 
 ### Why DXVK?
@@ -65,18 +108,18 @@ EverQuest uses DirectX 11. DXVK translates DX11 calls to Vulkan, which runs nati
 Launch multiple instances with staggered startup to avoid GPU initialization races:
 
 ```bash
-make launch-multi                          # 3 instances, 5s stagger (default)
-bash scripts/start_eq.sh --instances 4     # 4 instances
-bash scripts/start_eq.sh --instances 2 --stagger-delay 10  # 2 instances, 10s delay
+make launch-multi                                     # 3 instances, 5s stagger
+bash scripts/start_eq.sh --instances 4                # 4 instances
+bash scripts/start_eq.sh --instances 2 --stagger-delay 10  # Custom delay
 ```
 
 Each instance gets its own log file at `~/.local/share/norrath-native/eq-instance-N.log`.
 
-Press Ctrl+C to gracefully shut down all instances.
+Press Ctrl+C to gracefully shut down all instances (SIGTERM with 5-second SIGKILL escalation).
 
 ## Configuration
 
-The deployment creates an `eqclient.ini` with optimized settings for Linux multiboxing:
+The deployment applies optimized `eqclient.ini` settings for Linux multiboxing:
 
 | Setting | Value | Rationale |
 |---|---|---|
@@ -85,43 +128,60 @@ The deployment creates an `eqclient.ini` with optimized settings for Linux multi
 | `MaxBGFPS` | `30` | Reduces CPU/GPU load on background clients |
 | `ClientCore0-11` | `-1` | Lets Linux scheduler manage CPU affinity |
 
-The config injector is idempotent: it updates managed keys without touching your custom settings (UI layout, keybinds, etc.).
+The config injector is idempotent: it updates managed keys without touching your custom settings (UI layout, keybinds, macros, etc.). Re-run anytime:
+
+```bash
+make configure      # Apply/update managed settings
+make configure-dry  # Preview changes
+```
 
 ## Troubleshooting
 
-### "Missing wine64" Error
-
-Install Wine from the WineHQ repository:
+Run the health check first — it catches most issues:
 
 ```bash
-sudo dpkg --add-architecture i386
-sudo apt update
-sudo apt install wine64 wine32
+make doctor
 ```
 
 ### Launcher Shows a Black Box
 
-The deploy script applies the `--disable-gpu` flag automatically. If you still see a black box, verify the launch command includes it:
+This happens when CEF (Chromium) tries to use GPU rendering. The deploy script automatically applies `--disable-gpu`. If you still see it:
+
+1. Verify DXVK x32 DLLs are installed: `make doctor` should show green checkmarks for syswow64
+2. Try: `WINEPREFIX=~/.wine-eq wine LaunchPad.exe --disable-gpu`
+
+### "Missing wine64" or "Wine not found"
 
 ```bash
-wine64 Launchpad.exe --disable-gpu
+make prereqs  # Installs Wine and all dependencies
 ```
 
-### DXVK Version Mismatch / Vulkan Errors
+On Ubuntu 24.04, Wine installs as `wine` (not `wine64`). The scripts detect both names automatically.
 
-Verify your GPU supports Vulkan:
+### Vulkan Errors or DXVK Initialization Failed
 
 ```bash
-vulkaninfo | grep deviceName
+vulkaninfo | grep deviceName  # Should show your GPU
 ```
 
-If no device is listed, install Vulkan drivers:
+If no device is listed:
+- **Intel:** `sudo apt install mesa-vulkan-drivers`
+- **AMD:** `sudo apt install mesa-vulkan-drivers`
+- **NVIDIA:** Install proprietary drivers with Vulkan support
+
+For 32-bit support (required by launcher): `sudo apt install mesa-vulkan-drivers:i386`
+
+### NTLM Authentication Warnings
+
+Install winbind to eliminate these:
 
 ```bash
-sudo apt install mesa-vulkan-drivers libvulkan1 vulkan-tools
+sudo apt install winbind
 ```
 
-### Game Crashes on Launch
+Or just run `make prereqs` which includes it.
+
+### Game Crashes After Launcher
 
 Check the per-instance log:
 
@@ -129,24 +189,59 @@ Check the per-instance log:
 cat ~/.local/share/norrath-native/eq-instance-1.log
 ```
 
-Common causes: outdated Wine (need 9.0+), missing 32-bit Vulkan drivers (`mesa-vulkan-drivers:i386`).
+Common causes: outdated Wine (need 9.0+), missing 32-bit Vulkan drivers, insufficient GPU memory.
+
+### GitHub API Rate Limit During Deploy
+
+DXVK download uses the GitHub API. If rate-limited:
+
+```bash
+export GITHUB_TOKEN=ghp_your_token_here
+make deploy
+```
+
+### Starting Fresh
+
+```bash
+make purge   # Removes ~/.wine-eq and all logs (asks for confirmation)
+make deploy  # Rebuild from scratch
+```
 
 ## Project Structure
 
 ```
 norrath-native/
   scripts/
-    deploy_eq_env.sh        # Wine prefix + DXVK setup (idempotent)
-    start_eq.sh             # Launch wrapper (multibox support)
+    install_prerequisites.sh  # System dependency installer
+    deploy_eq_env.sh          # Wine prefix + DXVK + EQ (idempotent)
+    configure_eq.sh           # eqclient.ini manager
+    start_eq.sh               # Launch wrapper (multibox, graceful shutdown)
+    doctor.sh                 # Health check (18 validation checks)
   src/
-    config-injector.ts      # INI file manager (idempotent, path-safe)
-    dxvk-resolver.ts        # GitHub API DXVK release fetcher
+    config-injector.ts        # INI file manager (idempotent, path-safe)
+    dxvk-resolver.ts          # GitHub API DXVK release fetcher
     types/
-      interfaces.ts         # TypeScript contract definitions
+      interfaces.ts           # TypeScript contract definitions
   tests/
-    config-injector.test.ts # 14 tests covering all critical paths
-  Makefile                  # Unified task runner
+    config-injector.test.ts   # 14 tests covering all critical paths
+  docs/
+    launcher-screenshot.png   # E2E verified launcher rendering
+  Makefile                    # Unified task runner (make help for all commands)
 ```
+
+## Verified Hardware
+
+Tested and confirmed working on:
+
+| Component | Details |
+|---|---|
+| CPU | Intel Alder Lake-P (12th Gen) |
+| GPU | Intel Iris Xe Graphics (ADL GT2) |
+| OS | Ubuntu 24.04 LTS (Noble Numbat) |
+| Display | Wayland + XWayland |
+| Wine | 9.0 (Ubuntu package) |
+| DXVK | 2.7.1 (auto-downloaded) |
+| Vulkan | 1.4.318 (Mesa 25.2.8) |
 
 ## Development
 
@@ -154,22 +249,23 @@ norrath-native/
 pnpm install               # Install dependencies
 pnpm typecheck             # TypeScript strict mode
 pnpm lint                  # ESLint (complexity < 10, functions < 50 lines)
-pnpm test run              # Run test suite
-pnpm test run --coverage   # Coverage report
+pnpm run test:run          # Run test suite
+pnpm run test:run --coverage  # Coverage report
 ```
 
 CI runs on every push: TypeScript check, ESLint, Vitest, and ShellCheck for bash scripts.
 
 ## Contributing
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for full details. In short:
+
 1. Fork the repository
-2. Create a feature branch
-3. Write tests first (TDD required)
-4. Ensure all quality gates pass: `make typecheck && make lint && make test`
-5. Open a pull request
+2. Write tests first (TDD required)
+3. Ensure all quality gates pass
+4. Open a pull request
 
 This project does not include, reference, or support any third-party memory injectors, bots, or automation tools. Vanilla EverQuest only.
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE)

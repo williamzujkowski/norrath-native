@@ -51,18 +51,34 @@ parse_args() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --instances)
+                if [[ $# -lt 2 ]]; then
+                    log "ERROR: --instances requires a value"
+                    exit 1
+                fi
                 INSTANCES="$2"
                 shift 2
                 ;;
             --stagger-delay)
+                if [[ $# -lt 2 ]]; then
+                    log "ERROR: --stagger-delay requires a value"
+                    exit 1
+                fi
                 STAGGER_DELAY="$2"
                 shift 2
                 ;;
             --prefix)
+                if [[ $# -lt 2 ]]; then
+                    log "ERROR: --prefix requires a value"
+                    exit 1
+                fi
                 PREFIX="$2"
                 shift 2
                 ;;
             --eq-dir)
+                if [[ $# -lt 2 ]]; then
+                    log "ERROR: --eq-dir requires a value"
+                    exit 1
+                fi
                 EQ_DIR="$2"
                 shift 2
                 ;;
@@ -171,12 +187,22 @@ graceful_shutdown() {
         fi
     done
 
+    # Wait up to 5 seconds for graceful exit, then SIGKILL
+    local deadline=$((SECONDS + 5))
     for (( i=${#PIDS[@]}-1; i>=0; i-- )); do
         local pid="${PIDS[i]}"
+        while kill -0 "${pid}" 2>/dev/null && [[ ${SECONDS} -lt ${deadline} ]]; do
+            sleep 0.5
+        done
         if kill -0 "${pid}" 2>/dev/null; then
-            log "Waiting for instance $((i+1)) (PID ${pid}) to exit..."
-            wait "${pid}" 2>/dev/null || true
+            log "Instance $((i+1)) (PID ${pid}) did not exit in time, sending SIGKILL..."
+            kill -9 "${pid}" 2>/dev/null || true
         fi
+    done
+
+    # Final wait to reap all children
+    for (( i=${#PIDS[@]}-1; i>=0; i-- )); do
+        wait "${PIDS[i]}" 2>/dev/null || true
     done
 
     log "All instances stopped."
@@ -194,7 +220,7 @@ launch_instances() {
 
         log "Starting instance ${i}/${INSTANCES}..."
 
-        WINEPREFIX="${PREFIX}" ${WINE_CMD} "${EQ_DIR}/${EQ_EXECUTABLE}" --disable-gpu \
+        WINEPREFIX="${PREFIX}" "${WINE_CMD}" "${EQ_DIR}/${EQ_EXECUTABLE}" --disable-gpu \
             >> "${instance_log}" 2>&1 &
 
         local pid=$!

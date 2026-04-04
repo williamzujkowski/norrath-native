@@ -15,6 +15,7 @@ DRY_RUN=0
 PREFIX="${HOME}/.wine-eq"
 RESOLUTION="1920x1080"
 WINE_CMD=""
+CLEANUP_DIRS=()
 
 usage() {
     cat <<EOF
@@ -59,10 +60,18 @@ parse_args() {
                 shift
                 ;;
             --prefix)
+                if [[ $# -lt 2 ]]; then
+                    log "ERROR: --prefix requires a value"
+                    exit 1
+                fi
                 PREFIX="$2"
                 shift 2
                 ;;
             --resolution)
+                if [[ $# -lt 2 ]]; then
+                    log "ERROR: --resolution requires a value"
+                    exit 1
+                fi
                 RESOLUTION="$2"
                 shift 2
                 ;;
@@ -166,13 +175,22 @@ install_dxvk_dlls() {
 download_and_install_dxvk() {
     log "Downloading latest DXVK release..."
 
+    local api_output
+    api_output="$(wget -qO- "${DXVK_API_URL}" 2>&1)" || true
+
     local tarball_url
-    tarball_url="$(wget -qO- "${DXVK_API_URL}" \
+    tarball_url="$(printf '%s' "${api_output}" \
         | grep -oP '"browser_download_url"\s*:\s*"\K[^"]+\.tar\.gz' \
-        | head -n 1)"
+        | head -n 1)" || true
 
     if [[ -z "${tarball_url}" ]]; then
-        log "ERROR: Could not determine DXVK download URL from GitHub API."
+        if printf '%s' "${api_output}" | grep -qi "rate limit\|API rate"; then
+            log "ERROR: GitHub API rate limit exceeded."
+            log "Set GITHUB_TOKEN in your environment and try again:"
+            log "  export GITHUB_TOKEN=ghp_your_token_here"
+        else
+            log "ERROR: Could not determine DXVK download URL from GitHub API."
+        fi
         exit 1
     fi
 
@@ -180,11 +198,10 @@ download_and_install_dxvk() {
 
     local tmpdir
     tmpdir="$(mktemp -d)"
-    # shellcheck disable=SC2064
-    trap "rm -rf '${tmpdir}'" RETURN
+    CLEANUP_DIRS+=("${tmpdir}")
 
     local tarball="${tmpdir}/dxvk.tar.gz"
-    run wget -q -O "${tarball}" "${tarball_url}"
+    run wget -q -O "${tarball}.tmp" "${tarball_url}" && mv "${tarball}.tmp" "${tarball}"
 
     if [[ "${DRY_RUN}" -eq 1 ]]; then
         log "[DRY-RUN] Would extract ${tarball} to ${tmpdir}"
@@ -213,7 +230,7 @@ configure_dxvk_overrides() {
     log "Configuring DXVK DLL overrides..."
 
     for dll in "${DXVK_OVERRIDE_DLLS[@]}"; do
-        run env WINEPREFIX="${PREFIX}" ${WINE_CMD} reg add \
+        run env WINEPREFIX="${PREFIX}" "${WINE_CMD}" reg add \
             'HKEY_CURRENT_USER\Software\Wine\DllOverrides' \
             /v "${dll}" /d native /f
     done
@@ -229,11 +246,11 @@ enable_virtual_desktop() {
     height="${RESOLUTION##*x}"
 
     local desktop_key='HKEY_CURRENT_USER\Software\Wine\Explorer\Desktops'
-    run env WINEPREFIX="${PREFIX}" ${WINE_CMD} reg add "${desktop_key}" \
+    run env WINEPREFIX="${PREFIX}" "${WINE_CMD}" reg add "${desktop_key}" \
         /v Default /d "${width}x${height}" /f
 
     local explorer_key='HKEY_CURRENT_USER\Software\Wine\Explorer'
-    run env WINEPREFIX="${PREFIX}" ${WINE_CMD} reg add "${explorer_key}" \
+    run env WINEPREFIX="${PREFIX}" "${WINE_CMD}" reg add "${explorer_key}" \
         /v Desktop /d Default /f
 
     log "Virtual desktop enabled (${RESOLUTION})."
@@ -253,7 +270,7 @@ install_everquest() {
 
     if [[ ! -f "${eq_setup}" ]]; then
         log "Downloading EQ installer..."
-        run wget -q -O "${eq_setup}" "${eq_setup_url}"
+        run wget -q -O "${eq_setup}.tmp" "${eq_setup_url}" && mv "${eq_setup}.tmp" "${eq_setup}"
     else
         log "EQ installer already downloaded, reusing."
     fi
@@ -264,7 +281,7 @@ install_everquest() {
     fi
 
     log "Running silent install (this may take a moment)..."
-    run env WINEPREFIX="${PREFIX}" ${WINE_CMD} "${eq_setup}" /S /D='C:\EverQuest'
+    run env WINEPREFIX="${PREFIX}" "${WINE_CMD}" "${eq_setup}" /S /D='C:\EverQuest'
     sleep 5
 
     if [[ -f "${eq_dir}/LaunchPad.exe" ]]; then
@@ -274,7 +291,32 @@ install_everquest() {
     fi
 }
 
+configure_eq_settings() {
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local configure_script="${script_dir}/configure_eq.sh"
+
+    if [[ ! -f "${configure_script}" ]]; then
+        log "WARNING: configure_eq.sh not found, skipping INI configuration."
+        return 0
+    fi
+
+    log "Applying optimized EverQuest settings..."
+    local args=("--prefix" "${PREFIX}")
+    if [[ "${DRY_RUN}" -eq 1 ]]; then
+        args+=("--dry-run")
+    fi
+    bash "${configure_script}" "${args[@]}"
+}
+
+cleanup() {
+    for dir in "${CLEANUP_DIRS[@]}"; do
+        rm -rf "${dir}"
+    done
+}
+
 main() {
+    trap cleanup EXIT
     parse_args "$@"
     ensure_log_dir
     log "=== ${SCRIPT_NAME} started ==="
@@ -286,8 +328,10 @@ main() {
     configure_dxvk_overrides
     enable_virtual_desktop
     install_everquest
+    configure_eq_settings
 
     log "=== ${SCRIPT_NAME} completed ==="
+    log "Run 'make doctor' to verify installation, 'make launch' to play."
 }
 
 main "$@"
