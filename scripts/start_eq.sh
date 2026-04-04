@@ -6,7 +6,7 @@ set -euo pipefail
 
 readonly SCRIPT_NAME="start_eq.sh"
 readonly LOG_DIR="${HOME}/.local/share/norrath-native"
-readonly EQ_EXECUTABLE="Launchpad.exe"
+readonly EQ_EXECUTABLE="LaunchPad.exe"
 
 INSTANCES=1
 STAGGER_DELAY=5
@@ -220,7 +220,8 @@ launch_instances() {
 
         log "Starting instance ${i}/${INSTANCES}..."
 
-        WINEPREFIX="${PREFIX}" "${WINE_CMD}" "${EQ_DIR}/${EQ_EXECUTABLE}" --disable-gpu \
+        WINEPREFIX="${PREFIX}" "${WINE_CMD}" explorer /desktop=Default,1920x1080 \
+            "${EQ_DIR}/${EQ_EXECUTABLE}" --disable-gpu \
             >> "${instance_log}" 2>&1 &
 
         local pid=$!
