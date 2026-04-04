@@ -375,8 +375,23 @@ cmd_apply() {
         fi
     fi
 
+    # Check if resolution needs updating
+    local wine_res
+    wine_res="$(grep '"Default"=' "${PREFIX}/user.reg" 2>/dev/null | grep -oP '\d+x\d+' | head -1 || echo '')"
+    if [[ -n "${wine_res}" ]] && [[ "${wine_res}" != "${NN_RESOLUTION}" ]]; then
+        nn_log ""
+        nn_log "NOTE: Wine desktop is ${wine_res} but your monitor is ${NN_RESOLUTION}."
+        nn_log "  Run: make resolution   (to fill your screen)"
+    fi
+
     nn_log ""
-    nn_log "Layout applied. In-game: /loadskin Default 1"
+    nn_log "UI positions written to INI files."
+    nn_log ""
+    nn_log "Next steps:"
+    nn_log "  1. make launch-multi        (start EQ instances)"
+    nn_log "  2. Wait for all windows to load"
+    nn_log "  3. make tile                (arrange windows on screen)"
+    nn_log "  4. In-game: /loadskin Default 1"
 }
 
 # Main dispatch
