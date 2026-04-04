@@ -8,6 +8,8 @@
 make: Entering directory '/home/william/git/norrath-native'
 backup-session     Back up launcher login session for disaster recovery
 clean              Remove build artifacts and coverage
+colors-preview     Preview color scheme changes without applying
+colors             Apply optimized chat color scheme for raid readability
 configure-dry      Preview INI changes without writing
 configure          Apply optimized eqclient.ini settings
 deploy-dry         Preview deployment without making changes
@@ -31,6 +33,29 @@ test-coverage      Run tests with coverage report
 test               Run Vitest test suite
 typecheck          Run TypeScript strict type checking
 make: Leaving directory '/home/william/git/norrath-native'
+```
+
+## apply_colors
+
+```
+Usage: apply_colors.sh [OPTIONS]
+
+Apply an optimized chat color scheme to eqclient.ini.
+
+The scheme is designed for raid readability:
+  - Tells: bright pink (unmissable)
+  - Guild: bright green
+  - Group: soft blue
+  - Raid:  orange
+  - Your damage: warm yellow/gold
+  - Your healing: cool mint/blue
+  - Others' combat: dimmed gray (reduces spam)
+  - Death/Low HP: bright red alert
+
+Options:
+  --prefix PATH   Override WINEPREFIX
+  --dry-run       Preview changes without writing
+  -h, --help      Show this help
 ```
 
 ## configure_eq

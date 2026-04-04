@@ -1,4 +1,4 @@
-.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
+.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -76,6 +76,12 @@ restore-session:    ## Restore launcher session from backup
 	else \
 		echo "No backup found. Run make backup-session first."; \
 	fi
+
+colors:             ## Apply optimized chat color scheme for raid readability
+	bash scripts/apply_colors.sh
+
+colors-preview:     ## Preview color scheme changes without applying
+	bash scripts/apply_colors.sh --dry-run
 
 FILE ?=
 
