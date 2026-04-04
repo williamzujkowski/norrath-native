@@ -18,6 +18,22 @@ import {
   calculateViewport,
   calculateTilePositions,
 } from './resolution.js';
+import {
+  buildDefaultChecks,
+  runChecks,
+  formatJson,
+  formatText,
+} from './doctor.js';
+import {
+  COLOR_SCHEME,
+  generateColorIniEntries,
+  validateSchemeContrast,
+} from './colors.js';
+import {
+  CHANNEL_MAP,
+  CHANNEL_NAMES,
+  generateChannelMapEntries,
+} from './layout.js';
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -39,6 +55,13 @@ function commands(): Record<
     'resolution:clamp': cmdResolutionClamp,
     'resolution:viewport': cmdResolutionViewport,
     'resolution:tiles': cmdResolutionTiles,
+    'colors:scheme': cmdColorsScheme,
+    'colors:ini': cmdColorsIni,
+    'colors:validate': cmdColorsValidate,
+    'layout:channels': cmdLayoutChannels,
+    'layout:ini': cmdLayoutIni,
+    'doctor': cmdDoctor,
+    'doctor:json': cmdDoctorJson,
     'help': cmdHelp,
   };
 }
@@ -102,6 +125,88 @@ function cmdResolutionTiles(): void {
   printJson(calculateTilePositions(count, width, height));
 }
 
+function cmdColorsScheme(): void {
+  printJson(COLOR_SCHEME);
+}
+
+function cmdColorsIni(): void {
+  const entries = generateColorIniEntries();
+  for (const [key, value] of Object.entries(entries)) {
+    process.stdout.write(`${key}=${value}\n`);
+  }
+}
+
+function cmdColorsValidate(): void {
+  const bgR = parseInt(args[1] ?? '13', 10);
+  const bgG = parseInt(args[2] ?? '13', 10);
+  const bgB = parseInt(args[3] ?? '26', 10);
+  const results = validateSchemeContrast({ r: bgR, g: bgG, b: bgB });
+  const failing = results.filter((r) => !r.passes);
+  if (failing.length > 0) {
+    process.stderr.write(`${String(failing.length)} colors fail WCAG AA:\n`);
+    for (const f of failing) {
+      process.stderr.write(
+        `  ${String(f.id)} ${f.name}: ${String(f.ratio)}:1\n`,
+      );
+    }
+    process.exit(1);
+  }
+  process.stdout.write(`All ${String(results.length)} colors pass WCAG AA\n`);
+}
+
+function cmdLayoutChannels(): void {
+  const channels: Record<string, { window: number; name: string }> = {};
+  for (const [id, windowIndex] of Object.entries(CHANNEL_MAP)) {
+    channels[id] = {
+      window: windowIndex,
+      name: CHANNEL_NAMES[Number(id)] ?? `Channel${id}`,
+    };
+  }
+  printJson(channels);
+}
+
+function cmdLayoutIni(): void {
+  const entries = generateChannelMapEntries();
+  for (const [key, value] of Object.entries(entries)) {
+    process.stdout.write(`${key}=${value}\n`);
+  }
+}
+
+function getDoctorPrefix(): string {
+  // --prefix flag takes precedence, then config, then default
+  const prefixIdx = args.indexOf('--prefix');
+  if (prefixIdx !== -1 && args[prefixIdx + 1]) {
+    return args[prefixIdx + 1];
+  }
+  const result = resolveConfig();
+  if (result.ok) {
+    return result.value.prefix;
+  }
+  const home = process.env['HOME'] ?? '/tmp';
+  return `${home}/.wine-eq`;
+}
+
+function cmdDoctor(): void {
+  const prefix = getDoctorPrefix();
+  const checks = buildDefaultChecks(prefix);
+  const report = runChecks(checks);
+  process.stdout.write(formatText(report));
+  if (report.failed > 0) {
+    process.exit(1);
+  }
+}
+
+function cmdDoctorJson(): void {
+  const prefix = getDoctorPrefix();
+  const checks = buildDefaultChecks(prefix);
+  const report = runChecks(checks);
+  process.stdout.write(formatJson(report));
+  process.stdout.write('\n');
+  if (report.failed > 0) {
+    process.exit(1);
+  }
+}
+
 function cmdHelp(): void {
   process.stdout.write(`norrath-native CLI
 
@@ -112,11 +217,23 @@ Commands:
   resolution:clamp W H     Clamp to 16:9
   resolution:viewport W H  Calculate viewport offsets
   resolution:tiles N W H   Calculate tile positions for N windows
+  colors:scheme            Output color scheme as JSON
+  colors:ini               Output INI key=value entries for TextColors
+  colors:validate [R G B]  Validate WCAG contrast (default bg: 13,13,26)
+  layout:channels          Output channel routing as JSON
+  layout:ini               Output ChannelMap INI entries
+  doctor                   Run health checks (ANSI text output)
+  doctor:json              Run health checks (JSON output)
+  doctor --prefix PATH     Override WINEPREFIX to check
 
 Usage from bash:
   node dist/cli.js config | jq '.prefix'
   node dist/cli.js config:settings | jq -r 'to_entries[] | "\\(.key)=\\(.value)"'
   node dist/cli.js resolution:detect 3440 1440
+  node dist/cli.js colors:ini >> eqclient.ini
+  node dist/cli.js layout:ini >> UI_charname_server.ini
+  node dist/cli.js doctor
+  node dist/cli.js doctor:json | jq '.failed'
 `);
 }
 
