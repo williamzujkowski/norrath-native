@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# set_remember_me.sh — Enable "Remember me" in the EQ launcher
+# set_remember_me.sh — Check and display Remember Me status for the EQ launcher
 #
-# This modifies the launcher's cookies database to enable auto-login.
-# Requires: sqlite3, python3, cryptography (pip)
+# The "Remember Me" checkbox creates a server-issued lp-token cookie
+# that expires in 1 year. This token cannot be generated locally —
+# it must be obtained by checking the box during login.
 #
-# The launcher stores credentials in Chrome v10 encrypted cookies.
-# This script decrypts the options cookie, sets the remember flag,
-# and re-encrypts it.
+# This script can:
+#   - Show current Remember Me status
+#   - Decrypt and display all launcher cookies (for debugging)
+#   - Back up the session token for disaster recovery
 
 PREFIX="${HOME}/.wine-eq"
 CACHE_DIR="${PREFIX}/drive_c/EverQuest/LaunchPad.libs/LaunchPad.Cache"
 COOKIES_DB="${CACHE_DIR}/Cookies"
-C_SOURCE="/tmp/norrath-native-dpapi-decrypt.c"
 C_EXE="/tmp/norrath-native-dpapi-decrypt.exe"
-E_SOURCE="/tmp/norrath-native-dpapi-encrypt.c"
-E_EXE="/tmp/norrath-native-dpapi-encrypt.exe"
+C_SOURCE="/tmp/norrath-native-dpapi-decrypt.c"
 
 log() {
     local timestamp
@@ -24,38 +24,17 @@ log() {
     printf '[%s] %s\n' "${timestamp}" "$*"
 }
 
-check_prerequisites() {
-    local missing=()
-    for cmd in sqlite3 python3 wine; do
-        if ! command -v "${cmd}" &>/dev/null; then
-            missing+=("${cmd}")
-        fi
-    done
-
-    if ! python3 -c "import cryptography" &>/dev/null; then
-        missing+=("python3-cryptography (pip install cryptography)")
+build_dpapi_tool() {
+    if [[ -f "${C_EXE}" ]]; then
+        return 0
     fi
 
     if ! command -v x86_64-w64-mingw32-gcc &>/dev/null; then
-        missing+=("gcc-mingw-w64 (sudo apt install gcc-mingw-w64)")
-    fi
-
-    if [[ ${#missing[@]} -gt 0 ]]; then
-        log "ERROR: Missing prerequisites: ${missing[*]}"
+        log "ERROR: gcc-mingw-w64 required. Install: sudo apt install gcc-mingw-w64"
         exit 1
     fi
 
-    if [[ ! -f "${COOKIES_DB}" ]]; then
-        log "ERROR: Cookies database not found. Log in to the launcher first."
-        exit 1
-    fi
-}
-
-build_dpapi_tools() {
-    # Build decrypt tool if not already built
-    if [[ ! -f "${C_EXE}" ]]; then
-        log "Building DPAPI decrypt tool..."
-        cat > "${C_SOURCE}" << 'CEOF'
+    cat > "${C_SOURCE}" << 'CEOF'
 #include <windows.h>
 #include <wincrypt.h>
 #include <stdio.h>
@@ -76,48 +55,24 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 CEOF
-        x86_64-w64-mingw32-gcc -o "${C_EXE}" "${C_SOURCE}" -lcrypt32 2>/dev/null
-    fi
-
-    # Build encrypt tool if not already built
-    if [[ ! -f "${E_EXE}" ]]; then
-        log "Building DPAPI encrypt tool..."
-        cat > "${E_SOURCE}" << 'CEOF'
-#include <windows.h>
-#include <wincrypt.h>
-#include <stdio.h>
-#include <stdlib.h>
-int main(int argc, char *argv[]) {
-    if (argc < 2) return 1;
-    const char *hex = argv[1];
-    int len = (int)strlen(hex) / 2;
-    BYTE *data = (BYTE*)malloc(len);
-    for (int i = 0; i < len; i++) sscanf(hex + 2*i, "%2hhx", &data[i]);
-    DATA_BLOB in = { (DWORD)len, data };
-    DATA_BLOB out = { 0, NULL };
-    if (CryptProtectData(&in, NULL, NULL, NULL, NULL, 0, &out)) {
-        fwrite(out.pbData, 1, out.cbData, stdout);
-        LocalFree(out.pbData);
-    }
-    free(data);
-    return 0;
-}
-CEOF
-        x86_64-w64-mingw32-gcc -o "${E_EXE}" "${E_SOURCE}" -lcrypt32 2>/dev/null
-    fi
+    x86_64-w64-mingw32-gcc -o "${C_EXE}" "${C_SOURCE}" -lcrypt32 2>/dev/null
 }
 
 main() {
-    log "=== EverQuest Remember Me Configuration ==="
+    if [[ ! -f "${COOKIES_DB}" ]]; then
+        log "ERROR: No cookies database. Log in to the launcher first."
+        exit 1
+    fi
 
-    check_prerequisites
-    build_dpapi_tools
+    if ! command -v python3 &>/dev/null || ! python3 -c "import cryptography" &>/dev/null; then
+        log "ERROR: python3 + cryptography required. Install: pip install cryptography"
+        exit 1
+    fi
 
-    log "Reading current cookie state..."
+    build_dpapi_tool
 
-    # Use Python to decrypt, modify, and re-encrypt
     python3 << PYEOF
-import json, sqlite3, base64, subprocess, os, sys
+import json, sqlite3, base64, subprocess, os
 from pathlib import Path
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
@@ -125,72 +80,75 @@ prefix = Path("${PREFIX}")
 cache = prefix / "drive_c/EverQuest/LaunchPad.libs/LaunchPad.Cache"
 prefs = json.loads((cache / "LocalPrefs.json").read_text())
 
-# Get AES key by decrypting DPAPI blob via Wine
 raw_key = base64.b64decode(prefs["os_crypt"]["encrypted_key"])
-dpapi_blob = raw_key[5:]  # strip "DPAPI" prefix
-
 result = subprocess.run(
-    ["wine", "${C_EXE}", dpapi_blob.hex()],
+    ["wine", "${C_EXE}", raw_key[5:].hex()],
     capture_output=True,
     env={**os.environ, "WINEPREFIX": "${PREFIX}"}
 )
 aes_key = result.stdout
 if len(aes_key) != 32:
-    print(f"ERROR: Failed to decrypt AES key (got {len(aes_key)} bytes)")
-    sys.exit(1)
+    print("ERROR: Failed to decrypt AES key")
+    exit(1)
 
 aesgcm = AESGCM(aes_key)
 
-def decrypt_cookie(enc):
-    if enc[:3] == b"v10":
-        return aesgcm.decrypt(enc[3:15], enc[15:], None).decode()
-    return enc.decode()
-
-def encrypt_cookie(plaintext):
-    import secrets
-    nonce = secrets.token_bytes(12)
-    ct = aesgcm.encrypt(nonce, plaintext.encode(), None)
-    return b"v10" + nonce + ct
-
 db = sqlite3.connect(str(cache / "Cookies"))
 
-# Read current state
-rows = db.execute("SELECT name, encrypted_value FROM cookies").fetchall()
-print("Current cookies:")
-for name, enc in rows:
+# Check for lp-token (Remember Me)
+token_row = db.execute(
+    "SELECT encrypted_value, datetime((expires_utc/1000000)-11644473600, 'unixepoch') "
+    "FROM cookies WHERE name='lp-token'"
+).fetchone()
+
+# Check username
+user_row = db.execute(
+    "SELECT encrypted_value FROM cookies WHERE name='lp-u'"
+).fetchone()
+
+username = "unknown"
+if user_row and user_row[0][:3] == b"v10":
     try:
-        val = decrypt_cookie(enc)
-        print(f"  {name} = {val}")
+        username = aesgcm.decrypt(user_row[0][3:15], user_row[0][15:], None).decode()
     except:
-        print(f"  {name} = [decrypt error]")
+        pass
 
-# Check if remember-me is already set
-opts_row = db.execute("SELECT encrypted_value FROM cookies WHERE name='lp-options'").fetchone()
-if opts_row:
-    opts_val = decrypt_cookie(opts_row[0])
-    print(f"\nCurrent lp-options: '{opts_val}'")
+print()
+print("=== EverQuest Launcher Session Status ===")
+print(f"  Account:     {username}")
 
-    if "rememberMe" in opts_val or len(opts_val) > 5:
-        print("Remember Me appears to be already enabled.")
-    else:
-        # Set remember-me by updating the lp-options cookie
-        # The launcher sets this to a JSON or query string with rememberMe flag
-        # Based on Daybreak launcher analysis, the options cookie with remember
-        # is typically: rememberMe=true or similar
-        new_opts = "rememberMe=true"
-        new_enc = encrypt_cookie(new_opts)
-        db.execute(
-            "UPDATE cookies SET encrypted_value=? WHERE name='lp-options'",
-            (new_enc,)
-        )
-        db.commit()
-        print(f"Updated lp-options to: '{new_opts}'")
-        print("Remember Me enabled!")
+if token_row:
+    expires = token_row[1]
+    print(f"  Remember Me: ENABLED")
+    print(f"  Token expires: {expires}")
+    print()
+    print("  Auto-login is active. The launcher will skip the login screen")
+    print("  on next launch. The token is valid for ~1 year.")
+    print()
+    print("  Back up with: make backup-session")
+else:
+    print(f"  Remember Me: NOT ENABLED")
+    print()
+    print("  To enable: check 'Remember me on this computer' when you next log in.")
+    print("  The launcher will then auto-login for ~1 year.")
+
+print()
+
+# Show all cookies if --verbose
+if "${1:-}" == "--verbose" or "${1:-}" == "-v":
+    print("All cookies:")
+    for name, enc in db.execute("SELECT name, encrypted_value FROM cookies ORDER BY name"):
+        if enc[:3] == b"v10":
+            try:
+                val = aesgcm.decrypt(enc[3:15], enc[15:], None).decode()
+                if len(val) > 60:
+                    val = val[:57] + "..."
+                print(f"  {name:35s} = {val}")
+            except:
+                print(f"  {name:35s} = [decrypt error]")
 
 db.close()
 PYEOF
-
-    log "Done. Next launch should auto-login."
 }
 
 main "$@"

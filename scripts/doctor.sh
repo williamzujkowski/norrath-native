@@ -183,12 +183,25 @@ check_everquest() {
         warn "Game not yet patched (run make launch, log in, and let the patcher finish)"
     fi
 
+    # Check for Remember Me token
+    if command -v sqlite3 &>/dev/null && [[ -f "${eq_dir}/LaunchPad.libs/LaunchPad.Cache/Cookies" ]]; then
+        # shellcheck disable=SC2016
+        local token_count
+        token_count="$(sqlite3 "${eq_dir}/LaunchPad.libs/LaunchPad.Cache/Cookies" \
+            "SELECT count(*) FROM cookies WHERE name='lp-token';" 2>/dev/null || echo "0")"
+        if [[ "${token_count}" -gt 0 ]]; then
+            pass "Remember Me enabled (auto-login active)"
+        else
+            warn "Remember Me not set (check the box on next login)"
+        fi
+    fi
+
     # Check for login credentials in pass
     if command -v pass &>/dev/null; then
         if pass gaming/daybreak/username &>/dev/null; then
             pass "Login credentials stored in pass"
         else
-            warn "No login credentials in pass (run: make login --help)"
+            warn "No login credentials in pass (optional: make login --help)"
         fi
     fi
 }
