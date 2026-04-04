@@ -1,4 +1,4 @@
-.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview resolution resolution-detect profile-save profile-load profile-list setup-all tile pip focus-next windows doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
+.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates resolution resolution-detect profile-save profile-load profile-list setup-all tile pip focus-next windows doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -44,6 +44,17 @@ resolution:         ## Set Wine + EQ resolution to match your monitor (auto-dete
 
 resolution-detect:  ## Show detected monitor resolution vs current Wine resolution
 	bash scripts/resolution_manager.sh detect
+
+TEMPLATE ?=
+
+layout-apply:       ## Apply a layout template (TEMPLATE=name, e.g., multibox-bard-pull)
+	@if [ -z "$(TEMPLATE)" ]; then bash scripts/layout_calculator.sh list; else bash scripts/layout_calculator.sh apply "$(TEMPLATE)"; fi
+
+layout-show:        ## Preview a layout template's calculated positions
+	@if [ -z "$(TEMPLATE)" ]; then bash scripts/layout_calculator.sh list; else bash scripts/layout_calculator.sh show "$(TEMPLATE)"; fi
+
+layout-templates:   ## List available layout templates
+	bash scripts/layout_calculator.sh list
 
 PROFILE ?=
 

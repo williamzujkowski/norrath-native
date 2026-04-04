@@ -22,7 +22,10 @@ help               Show this help
 install            Install pnpm dependencies
 launch-multi       Launch multibox instances (default: 3, set multibox_instances in config)
 launch             Launch a single EverQuest instance
+layout-apply       Apply a layout template (TEMPLATE=name, e.g., multibox-bard-pull)
 layout-preview     Preview chat layout changes without applying
+layout-show        Preview a layout template's calculated positions
+layout-templates   List available layout templates
 layout             Apply recommended 4-window chat layout (Social/Combat/Spam/Alerts)
 lint               Run ESLint with project rules
 maps               Install Brewall's map pack (FILE=path/to/downloaded.zip)
