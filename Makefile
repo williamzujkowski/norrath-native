@@ -1,4 +1,4 @@
-.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage deploy deploy-dry configure configure-dry doctor launch launch-multi clean purge help
+.PHONY: install prereqs prereqs-dry typecheck lint test test-coverage deploy deploy-dry configure configure-dry doctor login launch launch-multi clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -35,6 +35,9 @@ configure-dry:      ## Preview INI changes without writing
 
 doctor:             ## Health check — validate entire installation
 	bash scripts/doctor.sh
+
+login:              ## Auto-fill login credentials from pass store
+	bash scripts/login_helper.sh
 
 launch:             ## Launch a single EverQuest instance
 	bash scripts/start_eq.sh
