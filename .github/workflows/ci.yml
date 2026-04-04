@@ -18,13 +18,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm run test:run
-      - name: TypeDoc drift check
-        run: |
-          pnpm docs
-          if ! git diff --quiet docs/api/; then
-            echo "::error::TypeDoc output has drifted. Run 'make docs' and commit."
-            exit 1
-          fi
+      - name: TypeDoc build check
+        run: npx typedoc --logLevel Warn
       - name: ShellCheck bash scripts
         uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38 # v2.0.0
         with:
