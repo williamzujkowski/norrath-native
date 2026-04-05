@@ -228,9 +228,17 @@ launch_instances() {
     for (( i=1; i<=INSTANCES; i++ )); do
         local instance_log="${LOG_DIR}/eq-instance-${i}.log"
 
-        nn_log "Starting instance ${i}/${INSTANCES}..."
+        # First instance = main (normal priority), rest = box (deprioritized)
+        local priority_prefix=""
+        if [[ "${i}" -gt 1 ]]; then
+            priority_prefix="nice -n 10 ionice -c 3"
+            nn_log "Starting instance ${i}/${INSTANCES} (background priority)..."
+        else
+            nn_log "Starting instance ${i}/${INSTANCES} (main)..."
+        fi
 
-        WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" explorer "/desktop=Default,${NN_RESOLUTION}" \
+        # shellcheck disable=SC2086
+        ${priority_prefix} env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" explorer "/desktop=Default,${NN_RESOLUTION}" \
             "${EQ_DIR}/${EQ_EXECUTABLE}" --disable-gpu \
             >> "${instance_log}" 2>&1 &
 

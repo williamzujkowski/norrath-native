@@ -1,4 +1,4 @@
-.PHONY: install build prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates resolution resolution-detect profile-save profile-load profile-list setup-all tile pip focus-next windows identify doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
+.PHONY: install build prereqs launch-perf launch-safe logs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates resolution resolution-detect profile-save profile-load profile-list setup-all tile pip focus-next windows identify doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -105,6 +105,15 @@ setup-all:          ## Apply ALL customizations to ALL characters (config + colo
 
 launch:             ## Launch a single EverQuest instance
 	bash scripts/start_eq.sh
+
+launch-perf:        ## Launch with DXVK performance overlay (FPS, GPU, frame times)
+	DXVK_HUD=fps,frametimes,devinfo,gpuload,compiler bash scripts/start_eq.sh
+
+launch-safe:        ## Launch with minimal profile + diagnostics for troubleshooting
+	DXVK_HUD=fps,devinfo DXVK_LOG_LEVEL=info bash scripts/start_eq.sh
+
+logs:               ## Tail all EQ instance logs (color-coded)
+	@tail -f ~/.local/share/norrath-native/eq-instance-*.log 2>/dev/null || echo "No instance logs found. Launch EQ first."
 
 launch-multi:       ## Launch multibox instances (default: 3, set multibox_instances in config)
 	bash scripts/start_eq.sh --multi
