@@ -47,6 +47,22 @@ nn_find_eq_windows() {
     done < <(DISPLAY=:0 xdotool search --name "EverQuest" 2>/dev/null || true)
 }
 
+# ─── Wine Desktop Size Detection ─────────────────────────────────────────────
+# Returns the Wine virtual desktop size if configured, otherwise the physical
+# monitor size. EQ windows are constrained to the virtual desktop — tiling
+# must use this size, not the monitor size.
+
+nn_get_screen_size() {
+    local prefix="${NN_PREFIX:-${HOME}/.wine-eq}"
+    local vdesktop
+    vdesktop="$(grep -oP '"Default"="\K[^"]+' "${prefix}/user.reg" 2>/dev/null || echo '')"
+    if [[ "${vdesktop}" =~ ^[0-9]+x[0-9]+$ ]]; then
+        echo "${vdesktop%%x*} ${vdesktop##*x}"
+    else
+        DISPLAY=:0 xdotool getdisplaygeometry 2>/dev/null
+    fi
+}
+
 # ─── EQ Running Guard ─────────────────────────────────────────────────────────
 # Call this before modifying UI_*.ini or eqclient.ini files.
 # EQ holds these in memory and overwrites on camp/zone, so changes made
