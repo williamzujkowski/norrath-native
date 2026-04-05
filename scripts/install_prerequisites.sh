@@ -217,6 +217,39 @@ verify_vulkan() {
     fi
 }
 
+enable_ntsync() {
+    nn_log "Enabling NTSYNC (Wine performance optimization)..."
+
+    # NTSYNC requires kernel 6.14+ and the ntsync module
+    if [[ -c /dev/ntsync ]]; then
+        nn_log "  NTSYNC already active (/dev/ntsync exists)"
+        return 0
+    fi
+
+    # Check if module is available
+    if ! modinfo ntsync &>/dev/null; then
+        nn_log "  NTSYNC module not available (kernel may be too old)"
+        nn_log "  This is optional — Wine will work without it, just slower"
+        return 0
+    fi
+
+    # Load the module
+    nn_log "  Loading ntsync kernel module..."
+    run sudo modprobe ntsync
+
+    # Make persistent across reboots
+    if [[ ! -f /etc/modules-load.d/ntsync.conf ]]; then
+        run sudo bash -c 'echo ntsync > /etc/modules-load.d/ntsync.conf'
+        nn_log "  NTSYNC set to load on boot"
+    fi
+
+    if [[ -c /dev/ntsync ]]; then
+        nn_log "  NTSYNC enabled — Wine will use kernel-level synchronization"
+    else
+        nn_log "  NTSYNC module loaded but /dev/ntsync not created (may need reboot)"
+    fi
+}
+
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 main() {
@@ -261,14 +294,18 @@ main() {
         nn_log "Step 5/6: Skipping optional packages (--skip-optional)"
     fi
 
+    nn_log ""
+    nn_log "Step 6/7: Enable NTSYNC (kernel-level Wine performance)"
+    enable_ntsync
+
     if [[ "${DRY_RUN}" -eq 0 ]]; then
         nn_log ""
-        nn_log "Step 6/6: Verify installation"
+        nn_log "Step 7/7: Verify installation"
         verify_wine
         verify_vulkan
     else
         nn_log ""
-        nn_log "Step 5/5: Skipping verification (dry-run mode)"
+        nn_log "Step 7/7: Skipping verification (dry-run mode)"
     fi
 
     nn_log ""

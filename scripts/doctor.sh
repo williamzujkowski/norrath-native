@@ -90,6 +90,15 @@ check_system_deps() {
         fail "SYS_VULKAN" "vulkaninfo not found" "run: make prereqs"
     fi
 
+    # NTSYNC (kernel-level Wine performance)
+    if [[ -c /dev/ntsync ]]; then
+        pass "SYS_NTSYNC" "NTSYNC active (/dev/ntsync) — kernel-level Wine sync"
+    elif modinfo ntsync &>/dev/null 2>&1; then
+        warn "SYS_NTSYNC" "NTSYNC module available but not loaded" "run: make prereqs"
+    else
+        warn "SYS_NTSYNC" "NTSYNC not available (kernel may be < 6.14)" "optional: upgrade kernel for better Wine performance"
+    fi
+
     # ntlm_auth (winbind)
     if command -v ntlm_auth &>/dev/null; then
         pass "SYS_NTLM" "ntlm_auth (winbind) available"
