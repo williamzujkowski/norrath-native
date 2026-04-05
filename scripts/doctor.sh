@@ -57,15 +57,22 @@ section() {
 check_system_deps() {
     section "System Dependencies"
 
-    # Wine
-    if command -v wine64 &>/dev/null; then
+    # Wine (minimum 11.0 for WPF/EQLogParser support)
+    if command -v wine &>/dev/null; then
+        local ver major
+        ver="$(wine --version 2>/dev/null | sed 's/wine-//')"
+        major="$(echo "${ver}" | cut -d'.' -f1)"
+        if [[ "${major}" -ge 11 ]] 2>/dev/null; then
+            pass "SYS_WINE" "wine ${ver} (WineHQ stable)"
+        else
+            warn "SYS_WINE" "wine ${ver} — version 11.0+ recommended for WPF support" \
+                "run: make prereqs (installs Wine 11 from WineHQ)"
+        fi
+    elif command -v wine64 &>/dev/null; then
         local ver
         ver="$(wine64 --version 2>/dev/null | sed 's/wine-//')"
-        pass "SYS_WINE" "wine64 ${ver}"
-    elif command -v wine &>/dev/null; then
-        local ver
-        ver="$(wine --version 2>/dev/null | sed 's/wine-//')"
-        pass "SYS_WINE" "wine ${ver}"
+        warn "SYS_WINE" "wine64 ${ver} — upgrade to Wine 11+ (unified wine binary)" \
+            "run: make prereqs"
     else
         fail "SYS_WINE" "Wine not found" "run: make prereqs"
     fi
