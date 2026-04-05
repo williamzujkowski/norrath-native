@@ -48,17 +48,17 @@ make setup-all        # Apply all customizations to all characters
 
 ## Canonical Paths
 
-| Concern | Path |
-|---|---|
-| User config | `norrath-native.yaml` |
-| Config parsing | `src/config.ts` |
+| Concern              | Path                                      |
+| -------------------- | ----------------------------------------- |
+| User config          | `norrath-native.yaml`                     |
+| Config parsing       | `src/config.ts`                           |
 | Managed INI settings | `src/config.ts:generateManagedSettings()` |
-| Color scheme | `src/colors.ts:COLOR_SCHEME` |
-| Channel routing | `src/layout.ts:CHANNEL_MAP` |
-| Health checks | `src/doctor.ts:buildDefaultChecks()` |
-| CLI entry point | `src/cli.ts` → `dist/cli.js` |
-| Bash→TS bridge | `scripts/config_reader.sh:cli_cmd()` |
-| Layout templates | `layouts/*.conf` |
-| Wine prefix | `~/.wine-eq` (configurable) |
-| State/logs | `~/.local/share/norrath-native/` |
-| Profiles | `~/.local/share/norrath-native/profiles/` |
+| Color scheme         | `src/colors.ts:COLOR_SCHEME`              |
+| Channel routing      | `src/layout.ts:CHANNEL_MAP`               |
+| Health checks        | `src/doctor.ts:buildDefaultChecks()`      |
+| CLI entry point      | `src/cli.ts` → `dist/cli.js`              |
+| Bash→TS bridge       | `scripts/config_reader.sh:cli_cmd()`      |
+| Layout templates     | `layouts/*.conf`                          |
+| Wine prefix          | `~/.wine-eq` (configurable)               |
+| State/logs           | `~/.local/share/norrath-native/`          |
+| Profiles             | `~/.local/share/norrath-native/profiles/` |

@@ -8,7 +8,7 @@
  * @module resolution
  */
 
-import { type Result, ok, err } from './types/interfaces.js';
+import { type Result, ok, err } from "./types/interfaces.js";
 
 /** Check if a resolution is ultrawide (wider than 16:9) */
 export function isUltrawide(width: number, height: number): boolean {
@@ -18,7 +18,7 @@ export function isUltrawide(width: number, height: number): boolean {
 /** Clamp a resolution to 16:9 aspect ratio (EQ's max supported) */
 export function clampTo16x9(
   width: number,
-  height: number
+  height: number,
 ): { width: number; height: number } {
   if (isUltrawide(width, height)) {
     return { width: Math.floor((height * 16) / 9), height };
@@ -29,13 +29,10 @@ export function clampTo16x9(
 /** Calculate centered viewport offset for ultrawide monitors */
 export function calculateViewport(
   monitorWidth: number,
-  monitorHeight: number
-): Result<
-  { x: number; y: number; width: number; height: number },
-  Error
-> {
+  monitorHeight: number,
+): Result<{ x: number; y: number; width: number; height: number }, Error> {
   if (monitorWidth <= 0 || monitorHeight <= 0) {
-    return err(new Error('Invalid monitor dimensions'));
+    return err(new Error("Invalid monitor dimensions"));
   }
 
   const clamped = clampTo16x9(monitorWidth, monitorHeight);
@@ -50,9 +47,7 @@ export function calculateViewport(
     });
   }
 
-  const offset = Math.floor(
-    (monitorWidth - clamped.width) / 2
-  );
+  const offset = Math.floor((monitorWidth - clamped.width) / 2);
   return ok({
     x: offset,
     y: 0,
@@ -62,10 +57,7 @@ export function calculateViewport(
 }
 
 /** Convert percentage position to pixel position */
-export function percentToPixel(
-  percent: number,
-  totalPixels: number
-): number {
+export function percentToPixel(percent: number, totalPixels: number): number {
   return Math.floor((percent * totalPixels) / 100);
 }
 
@@ -81,7 +73,7 @@ function buildGrid(
   count: number,
   cols: number,
   screenWidth: number,
-  screenHeight: number
+  screenHeight: number,
 ): Tile[] {
   const rows = Math.ceil(count / cols);
   const tileW = Math.floor(screenWidth / cols);
@@ -102,7 +94,7 @@ function buildGrid(
 export function calculateTilePositions(
   count: number,
   screenWidth: number,
-  screenHeight: number
+  screenHeight: number,
 ): Tile[] {
   if (count <= 0) return [];
   if (count === 1) {

@@ -9,6 +9,22 @@ updates:
     labels:
       - dependencies
     open-pull-requests-limit: 10
+    groups:
+      typescript-eslint:
+        patterns:
+          - "@typescript-eslint/*"
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+        exclude-patterns:
+          - "@typescript-eslint/*"
+          - "vitest"
+          - "@vitest/*"
 
   - package-ecosystem: github-actions
     directory: /
@@ -18,3 +34,7 @@ updates:
       prefix: "chore(ci):"
     labels:
       - ci
+    groups:
+      actions:
+        patterns:
+          - "*"
