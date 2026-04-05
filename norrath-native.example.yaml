@@ -188,9 +188,9 @@ profile: raid
 
 # ── Window Behavior ──
 # These are always managed by norrath-native:
-#   WindowedMode=TRUE       Required for virtual desktop
+#   WindowedMode=TRUE       Required for windowed mode under Wine
 #   UpdateInBackground=1    Keeps unfocused clients responsive
 #   AllowResize=1           Allow window resizing
-#   Maximized=1             Start maximized in virtual desktop
+#   Maximized=1             Start maximized
 #   ClientCore0-11=-1       Let Linux scheduler manage CPU affinity
 #   Log=TRUE                Enable logging (required for parsers)

@@ -29,11 +29,6 @@ export interface IWineEnvironment {
   prefixExists: boolean;
   /** Installed DXVK version string, e.g. "2.5.3" */
   dxvkVersion: string;
-  virtualDesktop: {
-    enabled: boolean;
-    /** e.g. "1920x1080" */
-    resolution: string;
-  };
 }
 
 // ---------------------------------------------------------------------------

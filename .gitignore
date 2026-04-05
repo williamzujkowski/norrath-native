@@ -5,3 +5,4 @@ coverage/
 *.log
 .wine*/
 norrath-native.yaml
+norrath-native-support.tar.gz

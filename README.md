@@ -7,11 +7,11 @@
 
 A deterministic, idempotent deployment toolkit to run EverQuest natively on Ubuntu 24.04 LTS via Wine and DXVK. One command to deploy, one command to launch.
 
-EverQuest's recent upgrade to DirectX 11 introduced several pain points on Linux: aggressive focus stealing, a broken launcher (black box rendering), and CPU thrashing when multiboxing. Norrath-Native solves all three with an Infrastructure-as-Code approach that creates an isolated Wine prefix with DXVK, a virtual desktop, and tuned client settings.
+EverQuest's recent upgrade to DirectX 11 introduced several pain points on Linux: aggressive focus stealing, a broken launcher (black box rendering), and CPU thrashing when multiboxing. Norrath-Native solves all three with an Infrastructure-as-Code approach that creates an isolated Wine prefix with DXVK and tuned client settings. Each EQ instance runs as a native XWayland window with full click-to-focus support.
 
-![EverQuest Launcher running in Wine Virtual Desktop on Ubuntu 24.04](docs/launcher-screenshot.png)
+![EverQuest multibox layout on Ubuntu 24.04](docs/multibox-screenshot.png)
 
-_The Daybreak Launcher rendering correctly inside a Wine Virtual Desktop on Ubuntu 24.04 with Intel Iris Xe Graphics._
+_Three EQ instances tiled on an ultrawide monitor — Grenlan (main, 16:9) with two box characters stacked right._
 
 ## Prerequisites
 
@@ -52,7 +52,7 @@ The first launch requires a few extra steps. Subsequent launches skip straight t
 ### 1. Launch and Log In
 
 ```bash
-make launch        # Opens the Daybreak Launcher in a Wine virtual desktop
+make launch        # Launch EverQuest
 ```
 
 Log in with your Daybreak account. You can type your credentials directly into the launcher, or copy/paste them — right-click the password field and select "Paste" from the context menu.
@@ -86,7 +86,7 @@ The deployment is fully automated and idempotent (safe to run multiple times):
 3. **Downloads DXVK** from GitHub (latest stable, currently v2.7.1)
 4. **Installs DXVK DLLs** — both x64 (system32) and x32 (syswow64) for launcher compatibility
 5. **Configures DLL overrides** — d3d11 and dxgi set to native
-6. **Enables Wine Virtual Desktop** — traps the game window (default 1920x1080)
+6. **Tunes Wine registry** — disables WM decorations, configures mouse capture, focus handling
 7. **Downloads and installs EverQuest** — silent install via Daybreak installer
 8. **Applies optimized INI settings** — WindowedMode, background FPS cap, CPU affinity
 
@@ -108,13 +108,9 @@ make help          Show all available commands
 
 ## Architecture Decisions
 
-### Why Virtual Desktop?
+### Why Native Windows Instead of Wine Virtual Desktop?
 
-EverQuest aggressively steals mouse and keyboard focus, making it impossible to use your Linux desktop while the game runs. Wine's virtual desktop traps the game inside a managed window, preventing focus theft on both X11 and Wayland compositors. The resolution is configurable:
-
-```bash
-bash scripts/deploy_eq_env.sh --resolution 2560x1440
-```
+Each EQ instance runs as its own top-level XWayland window. This gives native click-to-focus from your window manager (GNOME, KDE, etc.) without Wine's virtual desktop X11 stacking bugs that prevented click-to-focus on the first-launched process. Wine's `GrabFullscreen=Y` registry setting prevents EQ's aggressive focus-stealing without needing a virtual desktop container.
 
 ### Why `--disable-gpu` on the Launcher?
 
@@ -162,7 +158,7 @@ The deployment applies optimized `eqclient.ini` settings for Linux multiboxing:
 
 | Setting              | Value  | Rationale                                  |
 | -------------------- | ------ | ------------------------------------------ |
-| `WindowedMode`       | `TRUE` | Required for virtual desktop               |
+| `WindowedMode`       | `TRUE` | Required for windowed mode under Wine      |
 | `UpdateInBackground` | `1`    | Keeps unfocused clients responsive         |
 | `MaxBGFPS`           | `30`   | Reduces CPU/GPU load on background clients |
 | `ClientCore0-11`     | `-1`   | Lets Linux scheduler manage CPU affinity   |
@@ -259,7 +255,7 @@ norrath-native/
     colors.ts            — 91-color WCAG AA-compliant chat scheme
     layout.ts            — 107-channel → 4-window chat routing
     resolution.ts        — Ultrawide detection, 16:9 clamping, tiling
-    doctor.ts            — 29 structured health checks (JSON output)
+    doctor.ts            — 28 structured health checks (JSON output)
     config-injector.ts   — Idempotent INI file manipulation
     dxvk-resolver.ts     — GitHub API DXVK release resolver
     metadata.ts          — Programmatic project stats (self-documenting)

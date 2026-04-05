@@ -251,20 +251,6 @@ configure_dxvk_overrides() {
     nn_log "DLL overrides configured."
 }
 
-disable_virtual_desktop() {
-    nn_log "Disabling virtual desktop (using native window management)..."
-
-    # Remove the virtual desktop entries so Wine doesn't create one
-    run env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" reg delete \
-        'HKEY_CURRENT_USER\Software\Wine\Explorer\Desktops' \
-        /v Default /f 2>/dev/null || true
-    run env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" reg delete \
-        'HKEY_CURRENT_USER\Software\Wine\Explorer' \
-        /v Desktop /f 2>/dev/null || true
-
-    nn_log "Virtual desktop disabled. EQ windows will be native XWayland windows."
-}
-
 fix_mouse_capture() {
     nn_log "Configuring mouse capture for camera rotation..."
     run env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" reg add \
@@ -276,13 +262,13 @@ fix_mouse_capture() {
 tune_wine_registry() {
     nn_log "Tuning Wine registry..."
 
-    # Prevent focus-steal leakage beyond virtual desktop
+    # Prevent focus-steal leakage when EQ goes fullscreen
     run env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" reg add \
         'HKEY_CURRENT_USER\Software\Wine\X11 Driver' \
         /v GrabFullscreen /d Y /f
 
-    # Disable WM decorations on virtual desktop — prevents compositor
-    # resize grips from absorbing clicks near window edges/origin
+    # Disable WM decorations — prevents compositor resize grips
+    # from interfering with window edge clicks
     run env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" reg add \
         'HKEY_CURRENT_USER\Software\Wine\X11 Driver' \
         /v Decorated /d N /f
@@ -471,7 +457,6 @@ main() {
     install_corefonts
     download_and_install_dxvk
     configure_dxvk_overrides
-    disable_virtual_desktop
     fix_mouse_capture
     tune_wine_registry
     install_everquest

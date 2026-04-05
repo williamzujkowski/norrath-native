@@ -306,34 +306,6 @@ void cmd_map(void) {
     }
 }
 
-/* ── Fix X11 stacking for a window ── */
-/* The first-launched EQ process's X11 child window gets stuck at the
- * bottom of the Wine desktop's sibling stack. Hide/show forces Wine
- * to unmap and re-map the X11 child, placing it at the top.
- * This MUST run as a separate wine process invocation so the Wine
- * server fully processes the X11 unmap/remap between calls. */
-
-void cmd_fix_stacking(HWND hwnd) {
-    RECT r;
-    GetWindowRect(hwnd, &r);
-    int w = r.right - r.left;
-    int h = r.bottom - r.top;
-
-    printf("fix-stacking: hiding HWND %p\n", hwnd);
-    ShowWindow(hwnd, SW_HIDE);
-    Sleep(200);
-
-    printf("fix-stacking: showing HWND %p\n", hwnd);
-    ShowWindow(hwnd, SW_SHOW);
-    Sleep(200);
-
-    /* Re-apply position to trigger WM_SIZE for correct render */
-    SetWindowPos(hwnd, NULL, r.left, r.top, w, h,
-                 SWP_NOZORDER | SWP_NOACTIVATE);
-    SetForegroundWindow(hwnd);
-    printf("fix-stacking: done (%d,%d %dx%d)\n", r.left, r.top, w, h);
-}
-
 /* ── Send text to a window (types characters via WM_CHAR + Enter) ── */
 
 void cmd_send_text(HWND hwnd, const char *text) {
@@ -435,8 +407,6 @@ int main(int argc, char *argv[]) {
         cmd_tile(argc - 2, argv + 2);
     } else if (strcmp(argv[1], "tile-hwnd") == 0 && argc >= 4) {
         cmd_tile_hwnd(argc - 2, argv + 2);
-    } else if (strcmp(argv[1], "fix-stacking") == 0 && argc >= 3) {
-        cmd_fix_stacking((HWND)(LONG_PTR)strtoull(argv[2], NULL, 0));
     } else if (strcmp(argv[1], "send-text") == 0 && argc >= 4) {
         cmd_send_text((HWND)(LONG_PTR)strtoull(argv[2], NULL, 0), argv[3]);
     } else if (strcmp(argv[1], "focus") == 0 && argc >= 3) {

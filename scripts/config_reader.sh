@@ -50,26 +50,17 @@ nn_find_eq_windows() {
     fi
 }
 
-# ─── Wine Desktop Size Detection ─────────────────────────────────────────────
-# Returns the Wine virtual desktop size if configured, otherwise the physical
-# monitor size via xrandr. EQ windows are constrained to the virtual desktop —
-# tiling must use this size, not the monitor size.
+# ─── Screen Size Detection ───────────────────────────────────────────────────
+# Returns the primary monitor size via xrandr for tiling calculations.
+# Falls back to 1920x1080 if xrandr is unavailable.
 
 nn_get_screen_size() {
-    local prefix="${NN_PREFIX:-${HOME}/.wine-eq}"
-    local vdesktop
-    vdesktop="$(grep -oP '"Default"="\K[^"]+' "${prefix}/user.reg" 2>/dev/null || echo '')"
-    if [[ "${vdesktop}" =~ ^[0-9]+x[0-9]+$ ]]; then
-        echo "${vdesktop%%x*} ${vdesktop##*x}"
-    else
-        # Fallback: physical monitor via xrandr
-        local res
-        res="$(DISPLAY=:0 xrandr 2>/dev/null | grep ' connected primary' | grep -oP '\d+x\d+' | head -1 || true)"
-        if [[ -z "${res}" ]]; then
-            res="$(DISPLAY=:0 xrandr 2>/dev/null | grep ' connected' | grep -oP '\d+x\d+' | head -1 || echo '1920x1080')"
-        fi
-        echo "${res%%x*} ${res##*x}"
+    local res
+    res="$(DISPLAY=:0 xrandr 2>/dev/null | grep ' connected primary' | grep -oP '\d+x\d+' | head -1 || true)"
+    if [[ -z "${res}" ]]; then
+        res="$(DISPLAY=:0 xrandr 2>/dev/null | grep ' connected' | grep -oP '\d+x\d+' | head -1 || echo '1920x1080')"
     fi
+    echo "${res%%x*} ${res##*x}"
 }
 
 # ─── EQ Running Guard ─────────────────────────────────────────────────────────

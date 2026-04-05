@@ -274,13 +274,6 @@ function prefixChecks(prefix: string): Check[] {
       "#arch=win64",
       "run: make deploy",
     ),
-    createGrepCheck(
-      "PREFIX_VDESKTOP",
-      "Virtual desktop configured",
-      userReg,
-      '"Default"=',
-      "run: make deploy",
-    ),
     createFileCheck(
       "PREFIX_COREFONTS",
       "Microsoft core fonts installed",

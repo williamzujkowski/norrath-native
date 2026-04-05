@@ -20,7 +20,7 @@ make launch-multi     # Launch 3 instances (multibox)
 - `src/types/interfaces.ts` — Contract definitions (IWineEnvironment, IClientConfig, ILaunchOptions)
 - `src/config-injector.ts` — INI file manager (idempotent, path-safe)
 - `src/dxvk-resolver.ts` — GitHub API DXVK release fetcher
-- `scripts/deploy_eq_env.sh` — Idempotent environment bootstrap (Wine prefix, DXVK, virtual desktop)
+- `scripts/deploy_eq_env.sh` — Idempotent environment bootstrap (Wine prefix, DXVK, registry tuning)
 - `scripts/start_eq.sh` — Launch wrapper (multibox, graceful shutdown)
 
 ## Key Constraints
