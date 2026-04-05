@@ -103,9 +103,10 @@ void cmd_resize(int index, int x, int y, int w, int h) {
     }
 
     HWND hwnd = eq.windows[index];
-    SetWindowPos(hwnd, NULL, x, y, w, h, SWP_NOZORDER);
+    SetWindowPos(hwnd, HWND_TOP, x, y, w, h, 0);
     InvalidateRect(hwnd, NULL, TRUE);
     UpdateWindow(hwnd);
+    SetForegroundWindow(hwnd);
 
     printf("Resized window #%d to (%d,%d) %dx%d\n", index, x, y, w, h);
 }
@@ -121,10 +122,16 @@ void cmd_tile(int argc, char *argv[]) {
     for (i = 0; i < argc && i < eq.count; i++) {
         int x, y, w, h;
         if (sscanf(argv[i], "%d,%d,%dx%d", &x, &y, &w, &h) == 4) {
-            SetWindowPos(eq.windows[i], NULL, x, y, w, h, SWP_NOZORDER);
+            SetWindowPos(eq.windows[i], HWND_TOP, x, y, w, h, 0);
             InvalidateRect(eq.windows[i], NULL, TRUE);
             printf("Window %d: (%d,%d) %dx%d\n", i, x, y, w, h);
         }
+    }
+
+    /* Focus the first window after tiling */
+    if (eq.count > 0) {
+        SetForegroundWindow(eq.windows[0]);
+        BringWindowToTop(eq.windows[0]);
     }
 }
 
@@ -143,6 +150,14 @@ void cmd_focus(int index) {
     SetForegroundWindow(hwnd);
     BringWindowToTop(hwnd);
     printf("Focused window #%d\n", index);
+}
+
+/* ── Focus window by HWND directly ── */
+
+void cmd_focus_hwnd(HWND hwnd) {
+    SetForegroundWindow(hwnd);
+    BringWindowToTop(hwnd);
+    printf("Focused HWND %p\n", hwnd);
 }
 
 /* ── Focus next window (cycle) ── */
@@ -222,15 +237,23 @@ void cmd_map(void) {
 
 void cmd_tile_hwnd(int argc, char *argv[]) {
     /* Format: HWND X,Y,WxH HWND X,Y,WxH ... */
+    HWND first_hwnd = NULL;
     int i;
     for (i = 0; i + 1 < argc; i += 2) {
         HWND hwnd = (HWND)(LONG_PTR)strtoull(argv[i], NULL, 0);
         int x, y, w, h;
         if (sscanf(argv[i+1], "%d,%d,%dx%d", &x, &y, &w, &h) == 4) {
-            SetWindowPos(hwnd, NULL, x, y, w, h, SWP_NOZORDER);
+            SetWindowPos(hwnd, HWND_TOP, x, y, w, h, 0);
             InvalidateRect(hwnd, NULL, TRUE);
             printf("HWND %p: (%d,%d) %dx%d\n", hwnd, x, y, w, h);
+            if (!first_hwnd) first_hwnd = hwnd;
         }
+    }
+
+    /* Focus the first (main) window after tiling */
+    if (first_hwnd) {
+        SetForegroundWindow(first_hwnd);
+        BringWindowToTop(first_hwnd);
     }
 }
 
@@ -246,6 +269,7 @@ void usage(void) {
     printf("  tile SPEC [...]       Tile EQ windows by index (X,Y,WxH)\n");
     printf("  tile-hwnd HWND SPEC [...] Tile by HWND directly\n");
     printf("  focus N               Focus EQ window by index\n");
+    printf("  focus-hwnd HWND       Focus window by HWND directly\n");
     printf("  focus-next            Cycle focus to next EQ window\n");
     printf("  save                  Save current window positions\n");
 }
@@ -268,6 +292,8 @@ int main(int argc, char *argv[]) {
         cmd_tile_hwnd(argc - 2, argv + 2);
     } else if (strcmp(argv[1], "focus") == 0 && argc >= 3) {
         cmd_focus(atoi(argv[2]));
+    } else if (strcmp(argv[1], "focus-hwnd") == 0 && argc >= 3) {
+        cmd_focus_hwnd((HWND)(LONG_PTR)strtoull(argv[2], NULL, 0));
     } else if (strcmp(argv[1], "focus-next") == 0) {
         cmd_focus_next();
     } else if (strcmp(argv[1], "save") == 0) {

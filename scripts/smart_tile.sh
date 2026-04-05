@@ -78,53 +78,95 @@ main() {
         exit 1
     fi
 
-    # Map X11 WID→PID→character via sorted login timestamp correlation
+    # Map X11 WID→PID→character via PID→log file correlation
     nn_log "Identifying characters..."
 
-    # Build sorted list of (process_start, hwnd_index) for Wine windows
-    local -a proc_entries=()
+    local eq_dir="${PREFIX}/drive_c/EverQuest"
+
+    # Build PID→hwnd_index mapping for Wine windows
+    local -a pid_list=()
     local i
     for (( i=0; i<count; i++ )); do
         local x11wid="${x11wid_list[i]}"
         local pid
         pid="$(DISPLAY=:0 xdotool getwindowpid "${x11wid}" 2>/dev/null || echo '0')"
-        local proc_start
-        proc_start="$(stat -c '%Z' "/proc/${pid}" 2>/dev/null || echo '0')"
-        proc_entries+=("${proc_start}:${i}")
+        pid_list+=("${pid}")
     done
-    mapfile -t proc_entries < <(printf '%s\n' "${proc_entries[@]}" | sort -n)
 
-    # Build sorted list of (login_time, char_name)
-    local -a char_entries=()
-    local eq_dir="${PREFIX}/drive_c/EverQuest"
-    for logfile in "${eq_dir}"/Logs/eqlog_*_*.txt; do
-        [[ -f "${logfile}" ]] || continue
-        local cname
-        cname="$(basename "${logfile}" | sed 's/eqlog_//;s/_[^_]*\.txt//')"
-        local login_epoch
-        login_epoch="$(grep 'Welcome to EverQuest' "${logfile}" 2>/dev/null | tail -1 | grep -oP '\[.*?\]' | sed 's/[][]//g' | xargs -I{} date -d '{}' '+%s' 2>/dev/null || echo '0')"
-        if [[ "${login_epoch}" -gt 0 ]]; then
-            char_entries+=("${login_epoch}:${cname}")
+    # Build PID→character mapping via /proc/PID open file descriptors.
+    # Each EQ instance has its log file open: eqlog_CharName_Server.txt
+    # This is more reliable than timestamp correlation because it's a
+    # direct link from process to character, not a sorted-order guess.
+    local -A pid_to_char=()
+    for (( i=0; i<count; i++ )); do
+        local pid="${pid_list[i]}"
+        [[ "${pid}" == "0" ]] && continue
+
+        # Check /proc/PID/fd for open eqlog files
+        local cname=""
+        for fd in /proc/"${pid}"/fd/*; do
+            local target
+            target="$(readlink "${fd}" 2>/dev/null || echo '')"
+            if [[ "${target}" == *"/Logs/eqlog_"*".txt" ]]; then
+                cname="$(basename "${target}" | sed 's/eqlog_//;s/_[^_]*\.txt//')"
+                break
+            fi
+        done
+
+        if [[ -n "${cname}" ]]; then
+            pid_to_char["${pid}"]="${cname}"
         fi
     done
-    mapfile -t char_entries < <(printf '%s\n' "${char_entries[@]}" | sort -n)
 
-    # Match 1:1 by sorted position (1st process = 1st login, etc.)
-    local -a char_names=()
-    for (( i=0; i<count; i++ )); do
-        char_names+=("unknown")
-    done
+    # Fallback: if /proc/PID/fd didn't work (permissions), use timestamp correlation
+    if [[ ${#pid_to_char[@]} -eq 0 ]]; then
+        nn_log "  (using timestamp fallback for character identification)"
 
-    local match_count=${#proc_entries[@]}
-    if [[ ${#char_entries[@]} -lt ${match_count} ]]; then
-        match_count=${#char_entries[@]}
+        # Sort processes by start time
+        local -a proc_entries=()
+        for (( i=0; i<count; i++ )); do
+            local proc_start
+            proc_start="$(stat -c '%Z' "/proc/${pid_list[i]}" 2>/dev/null || echo '0')"
+            proc_entries+=("${proc_start}:${i}")
+        done
+        mapfile -t proc_entries < <(printf '%s\n' "${proc_entries[@]}" | sort -n)
+
+        # Sort characters by log file mtime (more reliable than parsing Welcome message)
+        local -a char_entries=()
+        for logfile in "${eq_dir}"/Logs/eqlog_*_*.txt; do
+            [[ -f "${logfile}" ]] || continue
+            local cname
+            cname="$(basename "${logfile}" | sed 's/eqlog_//;s/_[^_]*\.txt//')"
+            local mtime
+            mtime="$(stat -c '%Y' "${logfile}" 2>/dev/null || echo '0')"
+            # Only consider log files modified in the last hour (active sessions)
+            local now
+            now="$(date '+%s')"
+            if [[ $((now - mtime)) -lt 3600 ]]; then
+                char_entries+=("${mtime}:${cname}")
+            fi
+        done
+        mapfile -t char_entries < <(printf '%s\n' "${char_entries[@]}" | sort -n)
+
+        local match_count=${#proc_entries[@]}
+        if [[ ${#char_entries[@]} -lt ${match_count} ]]; then
+            match_count=${#char_entries[@]}
+        fi
+
+        for (( i=0; i<match_count; i++ )); do
+            local idx="${proc_entries[i]##*:}"
+            local cname="${char_entries[i]##*:}"
+            pid_to_char["${pid_list[idx]}"]="${cname}"
+        done
     fi
 
-    for (( i=0; i<match_count; i++ )); do
-        local hwnd_idx="${proc_entries[i]##*:}"
-        local cname="${char_entries[i]##*:}"
-        char_names[hwnd_idx]="${cname}"
-        nn_log "  ${cname} → HWND ${hwnd_list[hwnd_idx]}"
+    # Assign character names to HWND indices
+    local -a char_names=()
+    for (( i=0; i<count; i++ )); do
+        local pid="${pid_list[i]}"
+        local cname="${pid_to_char[${pid}]:-unknown}"
+        char_names+=("${cname}")
+        nn_log "  ${cname} → HWND ${hwnd_list[i]}"
     done
 
     # Find main character index
@@ -176,13 +218,18 @@ main() {
         done
     fi
 
-    # Apply via Wine API (SetWindowPos for each HWND)
+    # Apply via Wine API (SetWindowPos + SetForegroundWindow for each HWND)
     nn_log ""
     nn_log "Applying via Wine API..."
     WINEPREFIX="${PREFIX}" DISPLAY=:0 wine "${helper}" tile-hwnd "${tile_args[@]}" 2>/dev/null
 
+    # Explicitly focus the main character window so it receives keyboard input.
+    # Without this, the terminal that ran `make tile` keeps keyboard focus.
+    sleep 0.3
+    WINEPREFIX="${PREFIX}" DISPLAY=:0 wine "${helper}" focus-hwnd "0x${hwnd_list[main_idx]}" 2>/dev/null || true
+
     nn_log ""
-    nn_log "Tiling complete. ${char_names[main_idx]} is the main window."
+    nn_log "Tiling complete. ${char_names[main_idx]} is the main window (focused)."
 }
 
 TEMPLATE="${1:-auto}"
