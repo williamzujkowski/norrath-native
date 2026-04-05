@@ -282,14 +282,11 @@ tune_wine_registry() {
         'HKEY_CURRENT_USER\Software\Wine\X11 Driver' \
         /v GrabFullscreen /d Y /f
 
-    # Disable WM decorations — prevents compositor resize grips
-    # from interfering with window edge clicks
-    run env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" reg add \
-        'HKEY_CURRENT_USER\Software\Wine\X11 Driver' \
-        /v Decorated /d N /f
-    run env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" reg add \
-        'HKEY_CURRENT_USER\Software\Wine\X11 Driver' \
-        /v Managed /d N /f
+    # NOTE: Do NOT set Managed=N or Decorated=N here.
+    # These were used with the Wine virtual desktop (removed in PR #78)
+    # to prevent compositor resize grip issues. With native XWayland
+    # windows, Managed=N causes WM_HINTS input=false which prevents
+    # GNOME from giving keyboard focus to EQ windows on click.
 
     # Disable DWM desktop composition — WPF apps (EQLogParser) crash on
     # minimize when DwmIsCompositionEnabled returns true, because Wine's
