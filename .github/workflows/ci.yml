@@ -18,6 +18,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm lint
+      - run: pnpm run format:check
       - run: pnpm run test:run
       - name: TypeDoc build check
         run: npx typedoc --logLevel Warn

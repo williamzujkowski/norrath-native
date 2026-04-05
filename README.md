@@ -11,17 +11,17 @@ EverQuest's recent upgrade to DirectX 11 introduced several pain points on Linux
 
 ![EverQuest Launcher running in Wine Virtual Desktop on Ubuntu 24.04](docs/launcher-screenshot.png)
 
-*The Daybreak Launcher rendering correctly inside a Wine Virtual Desktop on Ubuntu 24.04 with Intel Iris Xe Graphics.*
+_The Daybreak Launcher rendering correctly inside a Wine Virtual Desktop on Ubuntu 24.04 with Intel Iris Xe Graphics._
 
 ## Prerequisites
 
-| Requirement | Minimum Version | Notes |
-|---|---|---|
-| Ubuntu | 24.04 LTS | Target platform (Mint, Pop!_OS also work) |
-| Wine | 9.0 (stable) | 64-bit prefix, auto-detected as `wine` or `wine64` |
-| Vulkan drivers | mesa-vulkan-drivers | GPU must support Vulkan (Intel, AMD, NVIDIA) |
-| Node.js | 22.x LTS | TypeScript config tooling |
-| pnpm | 9.x | Package manager |
+| Requirement    | Minimum Version     | Notes                                              |
+| -------------- | ------------------- | -------------------------------------------------- |
+| Ubuntu         | 24.04 LTS           | Target platform (Mint, Pop!\_OS also work)         |
+| Wine           | 9.0 (stable)        | 64-bit prefix, auto-detected as `wine` or `wine64` |
+| Vulkan drivers | mesa-vulkan-drivers | GPU must support Vulkan (Intel, AMD, NVIDIA)       |
+| Node.js        | 22.x LTS            | TypeScript config tooling                          |
+| pnpm           | 9.x                 | Package manager                                    |
 
 Don't worry about installing these manually — `make prereqs` handles everything.
 
@@ -68,6 +68,7 @@ On first login, you'll be presented with the End User License Agreement. Accept 
 The launcher will download the full game client (~15-20 GB). This takes a while depending on your internet connection. The progress bar shows download status.
 
 **Patches persist across restarts.** The game files are stored at `~/.wine-eq/drive_c/EverQuest/` on your actual filesystem, not in memory. You can:
+
 - Close and reopen the launcher — patching resumes where it left off
 - Reboot your machine — all downloaded data is preserved
 - Run `make launch` again — the patcher only downloads what's missing
@@ -159,12 +160,12 @@ Press Ctrl+C to gracefully shut down all instances (SIGTERM with 5-second SIGKIL
 
 The deployment applies optimized `eqclient.ini` settings for Linux multiboxing:
 
-| Setting | Value | Rationale |
-|---|---|---|
-| `WindowedMode` | `TRUE` | Required for virtual desktop |
-| `UpdateInBackground` | `1` | Keeps unfocused clients responsive |
-| `MaxBGFPS` | `30` | Reduces CPU/GPU load on background clients |
-| `ClientCore0-11` | `-1` | Lets Linux scheduler manage CPU affinity |
+| Setting              | Value  | Rationale                                  |
+| -------------------- | ------ | ------------------------------------------ |
+| `WindowedMode`       | `TRUE` | Required for virtual desktop               |
+| `UpdateInBackground` | `1`    | Keeps unfocused clients responsive         |
+| `MaxBGFPS`           | `30`   | Reduces CPU/GPU load on background clients |
+| `ClientCore0-11`     | `-1`   | Lets Linux scheduler manage CPU affinity   |
 
 The config injector is idempotent: it updates managed keys without touching your custom settings (UI layout, keybinds, macros, etc.). Re-run anytime:
 
@@ -203,6 +204,7 @@ vulkaninfo | grep deviceName  # Should show your GPU
 ```
 
 If no device is listed:
+
 - **Intel:** `sudo apt install mesa-vulkan-drivers`
 - **AMD:** `sudo apt install mesa-vulkan-drivers`
 - **NVIDIA:** Install proprietary drivers with Vulkan support
@@ -271,15 +273,15 @@ norrath-native/
 
 Tested and confirmed working on:
 
-| Component | Details |
-|---|---|
-| CPU | Intel Alder Lake-P (12th Gen) |
-| GPU | Intel Iris Xe Graphics (ADL GT2) |
-| OS | Ubuntu 24.04 LTS (Noble Numbat) |
-| Display | Wayland + XWayland |
-| Wine | 9.0 (Ubuntu package) |
-| DXVK | 2.7.1 (auto-downloaded) |
-| Vulkan | 1.4.318 (Mesa 25.2.8) |
+| Component | Details                          |
+| --------- | -------------------------------- |
+| CPU       | Intel Alder Lake-P (12th Gen)    |
+| GPU       | Intel Iris Xe Graphics (ADL GT2) |
+| OS        | Ubuntu 24.04 LTS (Noble Numbat)  |
+| Display   | Wayland + XWayland               |
+| Wine      | 9.0 (Ubuntu package)             |
+| DXVK      | 2.7.1 (auto-downloaded)          |
+| Vulkan    | 1.4.318 (Mesa 25.2.8)            |
 
 ## Development
 

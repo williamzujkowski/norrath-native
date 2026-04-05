@@ -24,7 +24,7 @@ export interface IWineEnvironment {
   /** Absolute path to WINEPREFIX */
   prefixPath: string;
   /** Always 64-bit */
-  architecture: 'win64';
+  architecture: "win64";
   /** Whether the prefix directory already exists (idempotency check) */
   prefixExists: boolean;
   /** Installed DXVK version string, e.g. "2.5.3" */
@@ -82,10 +82,10 @@ export interface DxvkRelease {
 // ---------------------------------------------------------------------------
 
 /** Minimum Wine version required (major.minor) */
-export const MIN_WINE_VERSION = '9.0';
+export const MIN_WINE_VERSION = "9.0";
 
 /** Minimum DXVK version required (major.minor) */
-export const MIN_DXVK_VERSION = '2.4';
+export const MIN_DXVK_VERSION = "2.4";
 
 // ---------------------------------------------------------------------------
 // Required apt packages for 64-bit Wine + Vulkan on Ubuntu 24.04 LTS
@@ -93,22 +93,22 @@ export const MIN_DXVK_VERSION = '2.4';
 
 export const REQUIRED_APT_PACKAGES: readonly string[] = [
   // Wine (WineHQ stable or distro wine)
-  'wine64',
-  'wine32',
-  'wine',
+  "wine64",
+  "wine32",
+  "wine",
   // Vulkan drivers and loader (amd64)
-  'mesa-vulkan-drivers',
-  'libvulkan1',
-  'vulkan-tools',
+  "mesa-vulkan-drivers",
+  "libvulkan1",
+  "vulkan-tools",
   // Vulkan / Mesa 32-bit multiarch (required for 32-bit DXVK DLLs)
-  'mesa-vulkan-drivers:i386',
-  'libvulkan1:i386',
+  "mesa-vulkan-drivers:i386",
+  "libvulkan1:i386",
   // Wine authentication support (prevents ntlm_auth warnings)
-  'winbind',
+  "winbind",
   // Download and extraction utilities
-  'wget',
-  'tar',
-  'cabextract',
+  "wget",
+  "tar",
+  "cabextract",
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -120,20 +120,20 @@ export const REQUIRED_APT_PACKAGES: readonly string[] = [
 
 /** Reference only — canonical settings are in scripts/configure_eq.sh */
 export const MANAGED_INI_SETTINGS: Readonly<Record<string, string>> = {
-  WindowedMode: 'TRUE',
-  UpdateInBackground: '1',
-  Log: 'TRUE',
-  MaxBGFPS: '30',
-  ClientCore0: '-1',
-  ClientCore1: '-1',
-  ClientCore2: '-1',
-  ClientCore3: '-1',
-  ClientCore4: '-1',
-  ClientCore5: '-1',
-  ClientCore6: '-1',
-  ClientCore7: '-1',
-  ClientCore8: '-1',
-  ClientCore9: '-1',
-  ClientCore10: '-1',
-  ClientCore11: '-1',
+  WindowedMode: "TRUE",
+  UpdateInBackground: "1",
+  Log: "TRUE",
+  MaxBGFPS: "30",
+  ClientCore0: "-1",
+  ClientCore1: "-1",
+  ClientCore2: "-1",
+  ClientCore3: "-1",
+  ClientCore4: "-1",
+  ClientCore5: "-1",
+  ClientCore6: "-1",
+  ClientCore7: "-1",
+  ClientCore8: "-1",
+  ClientCore9: "-1",
+  ClientCore10: "-1",
+  ClientCore11: "-1",
 } as const;
