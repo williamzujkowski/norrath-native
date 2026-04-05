@@ -86,6 +86,12 @@ done
 install_dotnet() {
     info "Checking for .NET 8 Desktop Runtime..."
 
+    # Ensure Wine Mono is installed (prevents interactive dialog)
+    if [[ ! -d "${PREFIX}/drive_c/windows/mono" ]]; then
+        info "Installing Wine Mono first..."
+        WINEPREFIX="${PREFIX}" DISPLAY="" wineboot --update 2>/dev/null || true
+    fi
+
     # Check if already installed
     if WINEPREFIX="${PREFIX}" wine dotnet --list-runtimes 2>/dev/null | grep -q 'Microsoft.WindowsDesktop.App 8'; then
         ok ".NET 8 Desktop Runtime already installed"
