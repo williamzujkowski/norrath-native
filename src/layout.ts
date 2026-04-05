@@ -257,20 +257,33 @@ export function generateChannelMapEntries(): Record<string, string> {
     entries[`ChannelMap${id}`] = String(windowIndex);
   }
 
-  // Enable HH:MM:SS timestamps on all chat windows by default.
-  // Format: 0=off, 1=HH:MM:SS, 2=HH.MM, 3=MM.SS
-  // Timestamps are essential for log parsing, raid timing, and debugging.
+  // Configure each chat window as a tab in the Main Chat container.
+  // EQ requires ContainerIndex + ContainerTabIndex for windows to
+  // actually appear. Without these, NumWindows=4 creates the windows
+  // but they're invisible (no container placement).
   for (let w = 0; w < WINDOW_NAMES.length; w++) {
-    entries[`ChatWindow${String(w)}_TimestampFormat`] = "1";
-    entries[`ChatWindow${String(w)}_TimestampMatchChatColor`] = "1";
-  }
-
-  // Set window names
-  for (let w = 0; w < WINDOW_NAMES.length; w++) {
+    const prefix = `ChatWindow${String(w)}`;
     const name = WINDOW_NAMES[w];
     if (name !== undefined) {
-      entries[`ChatWindow${String(w)}_Name`] = name;
+      entries[`${prefix}_Name`] = name;
     }
+    // Place all windows as tabs in container 0 (Main Chat)
+    entries[`${prefix}_ContainerIndex`] = "0";
+    entries[`${prefix}_ContainerTabIndex`] = String(w);
+    // HH:MM:SS timestamps (essential for log parsing and raid timing)
+    entries[`${prefix}_TimestampFormat`] = "1";
+    entries[`${prefix}_TimestampMatchChatColor`] = "1";
+    entries[`${prefix}_TimestampColor.red`] = "255";
+    entries[`${prefix}_TimestampColor.green`] = "255";
+    entries[`${prefix}_TimestampColor.blue`] = "255";
+    // Defaults
+    entries[`${prefix}_ChatChannel`] = w === 0 ? "0" : "-1";
+    entries[`${prefix}_DefaultChannel`] = "8";
+    entries[`${prefix}_FontStyle`] = w === 0 ? "5" : "3";
+    entries[`${prefix}_Scrollbar`] = "1";
+    entries[`${prefix}_Highlight`] = "1";
+    entries[`${prefix}_HighlightColor`] = "-65536";
+    entries[`${prefix}_LanguageId`] = "0";
   }
 
   // Set NumWindows
