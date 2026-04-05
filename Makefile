@@ -124,8 +124,11 @@ logs:               ## Tail all EQ instance logs (color-coded)
 launch-multi:       ## Launch multibox instances (default: 3, set multibox_instances in config)
 	bash scripts/start_eq.sh --multi
 
-tile:               ## Arrange EQ windows in a grid layout (auto-detects count)
-	bash scripts/window_manager.sh tile
+tile:               ## Smart tile — identifies characters, main gets large window
+	bash scripts/smart_tile.sh auto
+
+tile-grid:          ## Equal grid tile (all windows same size)
+	bash scripts/smart_tile.sh equal
 
 pip:                ## Picture-in-picture: main window large, others stacked right
 	bash scripts/window_manager.sh pip

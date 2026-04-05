@@ -84,7 +84,8 @@ NN_DISPLAY="x11"
 NN_INSTANCES=1
 NN_MULTIBOX_INSTANCES=3
 NN_STAGGER_DELAY=5
-NN_PROFILE="high"
+NN_PROFILE="raid"
+NN_MAIN_CHARACTER=""
 
 # EQ Settings defaults (high profile)
 NN_MAX_FPS=60
@@ -198,6 +199,7 @@ _nn_read_config() {
     _nn_set "multibox_instances" "NN_MULTIBOX_INSTANCES"
     _nn_set "stagger_delay" "NN_STAGGER_DELAY"
     _nn_set "profile" "NN_PROFILE"
+    _nn_set "main_character" "NN_MAIN_CHARACTER"
 
     # Apply profile first, then individual overrides
     _nn_apply_profile

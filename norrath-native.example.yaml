@@ -48,6 +48,12 @@ multibox_instances: 3
 # Increase to 10 if you see crashes on launch
 stagger_delay: 5
 
+# Main character for tiling
+# This character gets the large window when you run 'make tile'.
+# Detected automatically by correlating login timestamps with process IDs.
+# Set this to avoid needing --main every time.
+# main_character: Grenlan
+
 # Character login order for multiboxing
 # Log in characters in this order — the tiling script assigns windows
 # to layout positions based on this sequence.

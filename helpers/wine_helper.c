@@ -76,11 +76,14 @@ void cmd_find(void) {
 
     for (int i = 0; i < eq.count; i++) {
         RECT r;
+        DWORD pid = 0;
         GetWindowRect(eq.windows[i], &r);
-        printf("%d|%p|%d,%d|%dx%d\n",
+        GetWindowThreadProcessId(eq.windows[i], &pid);
+        printf("%d|%p|%d,%d|%dx%d|%lu\n",
             i, eq.windows[i],
             r.left, r.top,
-            r.right - r.left, r.bottom - r.top);
+            r.right - r.left, r.bottom - r.top,
+            (unsigned long)pid);
     }
 
     if (eq.count == 0) {
@@ -191,19 +194,60 @@ void cmd_save(void) {
     }
 }
 
+/* ── Map HWNDs to X11 window IDs ── */
+/* Wine stores the X11 WID as a window property "__wine_x11_whole_window" */
+
+void cmd_map(void) {
+    EqWindows eq = { .count = 0 };
+    EnumWindows(FindEqProc, (LPARAM)&eq);
+
+    for (int i = 0; i < eq.count; i++) {
+        RECT r;
+        DWORD pid = 0;
+        GetWindowRect(eq.windows[i], &r);
+        GetWindowThreadProcessId(eq.windows[i], &pid);
+
+        HANDLE x11_wid = GetPropA(eq.windows[i], "__wine_x11_whole_window");
+
+        printf("%d|%p|%d,%d|%dx%d|%lu|%lu\n",
+            i, eq.windows[i],
+            r.left, r.top,
+            r.right - r.left, r.bottom - r.top,
+            (unsigned long)pid,
+            (unsigned long)(uintptr_t)x11_wid);
+    }
+}
+
+/* ── Tile by HWND directly ── */
+
+void cmd_tile_hwnd(int argc, char *argv[]) {
+    /* Format: HWND X,Y,WxH HWND X,Y,WxH ... */
+    int i;
+    for (i = 0; i + 1 < argc; i += 2) {
+        HWND hwnd = (HWND)(LONG_PTR)strtoull(argv[i], NULL, 0);
+        int x, y, w, h;
+        if (sscanf(argv[i+1], "%d,%d,%dx%d", &x, &y, &w, &h) == 4) {
+            SetWindowPos(hwnd, NULL, x, y, w, h, SWP_NOZORDER);
+            InvalidateRect(hwnd, NULL, TRUE);
+            printf("HWND %p: (%d,%d) %dx%d\n", hwnd, x, y, w, h);
+        }
+    }
+}
+
 /* ── Main ── */
 
 void usage(void) {
     printf("wine_helper.exe <command> [args...]\n\n");
     printf("Commands:\n");
     printf("  list                  List all visible windows\n");
-    printf("  find                  Find EverQuest windows\n");
-    printf("  resize N X Y W H     Resize EQ window #N\n");
-    printf("  tile SPEC [SPEC...]   Tile EQ windows (SPEC: X,Y,WxH)\n");
-    printf("  focus N               Focus EQ window #N\n");
+    printf("  find                  Find EverQuest windows (with PIDs)\n");
+    printf("  map                   Map HWNDs to X11 window IDs\n");
+    printf("  resize N X Y W H     Resize EQ window by index\n");
+    printf("  tile SPEC [...]       Tile EQ windows by index (X,Y,WxH)\n");
+    printf("  tile-hwnd HWND SPEC [...] Tile by HWND directly\n");
+    printf("  focus N               Focus EQ window by index\n");
     printf("  focus-next            Cycle focus to next EQ window\n");
     printf("  save                  Save current window positions\n");
-    printf("\nSPEC format: x,y,wxh  e.g. 0,0,2236x1440\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -213,11 +257,15 @@ int main(int argc, char *argv[]) {
         cmd_list();
     } else if (strcmp(argv[1], "find") == 0) {
         cmd_find();
+    } else if (strcmp(argv[1], "map") == 0) {
+        cmd_map();
     } else if (strcmp(argv[1], "resize") == 0 && argc >= 7) {
         cmd_resize(atoi(argv[2]), atoi(argv[3]), atoi(argv[4]),
                    atoi(argv[5]), atoi(argv[6]));
     } else if (strcmp(argv[1], "tile") == 0 && argc >= 3) {
         cmd_tile(argc - 2, argv + 2);
+    } else if (strcmp(argv[1], "tile-hwnd") == 0 && argc >= 4) {
+        cmd_tile_hwnd(argc - 2, argv + 2);
     } else if (strcmp(argv[1], "focus") == 0 && argc >= 3) {
         cmd_focus(atoi(argv[2]));
     } else if (strcmp(argv[1], "focus-next") == 0) {
