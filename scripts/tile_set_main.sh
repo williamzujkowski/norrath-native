@@ -77,9 +77,8 @@ mkdir -p "${state_dir}"
 hwnd_map="${state_dir}/hwnd-character-map"
 
 # Clear old mapping and save new one
-> "${hwnd_map}"
 main_hwnd="${local_hwnds[${main_idx}]}"
-echo "${main_hwnd}=${NN_MAIN_CHARACTER:-main}" >> "${hwnd_map}"
+echo "${main_hwnd}=${NN_MAIN_CHARACTER:-main}" > "${hwnd_map}"
 
 nn_log "Saved: window ${main_idx} (HWND ${main_hwnd}) = ${NN_MAIN_CHARACTER:-main}"
 nn_log ""
