@@ -193,14 +193,13 @@ main() {
     WINEPREFIX="${PREFIX}" DISPLAY=:0 wine "${helper}" tile-hwnd "${tile_args[@]}" 2>/dev/null
 
     # Focus the main character window so it receives keyboard input.
-    # Wine's SetForegroundWindow doesn't always work from background processes,
-    # so we also use xdotool at the X11 level as a belt-and-suspenders approach.
+    # Use windowactivate (sends _NET_ACTIVE_WINDOW which Wine processes
+    # correctly) but NOT windowfocus (sets X11 focus directly, bypassing
+    # Wine's internal focus tracking — causes keyboard input to go to
+    # the terminal instead of the game window).
     sleep 0.3
-    WINEPREFIX="${PREFIX}" DISPLAY=:0 wine "${helper}" focus-hwnd "0x${hwnd_list[main_idx]}" 2>/dev/null || true
-    sleep 0.1
     local main_x11wid="${x11wid_list[main_idx]}"
     DISPLAY=:0 xdotool windowactivate --sync "${main_x11wid}" 2>/dev/null || true
-    DISPLAY=:0 xdotool windowfocus --sync "${main_x11wid}" 2>/dev/null || true
 
     nn_log ""
     nn_log "Tiling complete. ${char_names[main_idx]} is the main window (focused)."
