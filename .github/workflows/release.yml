@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write
@@ -18,38 +18,60 @@ jobs:
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '22'
-          cache: 'pnpm'
+          node-version: "22"
+          cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      - run: pnpm build
       - run: pnpm run test:run
 
-      - name: Generate release notes
-        id: notes
+      - name: Build release tarball
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
-          PREV_TAG=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo "")
-          if [[ -n "$PREV_TAG" ]]; then
-            NOTES=$(git log --pretty=format:"- %s (%h)" "${PREV_TAG}..${TAG}")
-          else
-            NOTES=$(git log --pretty=format:"- %s (%h)" "${TAG}")
-          fi
-          echo "notes<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$NOTES" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          mkdir -p release-staging/norrath-native
+
+          # Runtime files only (no dev tools, tests, or source)
+          cp -r scripts/ release-staging/norrath-native/
+          cp -r dist/ release-staging/norrath-native/
+          cp -r helpers/ release-staging/norrath-native/
+          cp -r layouts/ release-staging/norrath-native/
+          cp norrath-native.example.yaml release-staging/norrath-native/
+          cp Makefile release-staging/norrath-native/
+          cp package.json pnpm-lock.yaml release-staging/norrath-native/
+          cp README.md LICENSE CHANGELOG.md release-staging/norrath-native/
+          cp AGENTS.md CLAUDE.md release-staging/norrath-native/
+          cp CONTRIBUTING.md SECURITY.md CODE_OF_CONDUCT.md release-staging/norrath-native/
+          cp .nvmrc .editorconfig release-staging/norrath-native/
+
+          # Create tarball
+          tar -czf "norrath-native-${TAG}.tar.gz" -C release-staging norrath-native
+          echo "tarball=norrath-native-${TAG}.tar.gz" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2
         with:
           body: |
-            ## Changes
-            ${{ steps.notes.outputs.notes }}
+            ## norrath-native ${{ github.ref_name }}
 
-            ## Installation
+            Deterministic EverQuest deployment toolkit for Ubuntu 24.04 LTS.
+
+            ### Quick Start
             ```bash
-            git clone https://github.com/williamzujkowski/norrath-native.git
+            # Download and extract
+            tar xzf norrath-native-${{ github.ref_name }}.tar.gz
             cd norrath-native
-            git checkout ${{ github.ref_name }}
-            make install && make deploy
+            make prereqs && make install && make deploy
+            make launch
             ```
+
+            ### What's Included
+            - Pre-compiled TypeScript CLI (`dist/`)
+            - Pre-compiled Wine helper (`helpers/wine_helper.exe`)
+            - All scripts, layout templates, and Makefile
+            - No dev dependencies (tests, source, build configs excluded)
+
+            ### Full Changelog
+            See [CHANGELOG.md](https://github.com/williamzujkowski/norrath-native/blob/main/CHANGELOG.md)
+          files: norrath-native-${{ github.ref_name }}.tar.gz
           generate_release_notes: true
+          prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
