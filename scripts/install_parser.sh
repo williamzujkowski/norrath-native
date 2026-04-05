@@ -115,6 +115,11 @@ if [[ "${DOTNET_ONLY}" -eq 1 ]]; then
     exit 0
 fi
 
+# ─── Ensure .NET 8 is installed ──────────────────────────────────────────────
+# Auto-detect and install if missing — parser won't run without it.
+
+install_dotnet
+
 # ─── Idempotency Check ──────────────────────────────────────────────────────
 
 if [[ "${FORCE_UPDATE}" -eq 0 ]] && [[ -f "${PARSER_EXE}" ]]; then
