@@ -191,7 +191,7 @@ function buildDefaults(): NorrathConfig {
     instances: 1,
     multiboxInstances: 3,
     staggerDelay: 5,
-    profile: "high",
+    profile: "raid",
     eqSettings: { ...DEFAULT_SETTINGS },
   };
 }
@@ -251,11 +251,12 @@ export function resolveConfig(
   const config = buildDefaults();
 
   const path = findConfigFile(configPath);
-  if (!path) return ok(config);
+  if (path) {
+    const content = readFileSync(path, "utf-8");
+    applyYamlOverrides(config, content);
+  }
 
-  const content = readFileSync(path, "utf-8");
-  applyYamlOverrides(config, content);
-
+  // Always apply profile (default is 'raid')
   config.eqSettings = {
     ...DEFAULT_SETTINGS,
     ...PROFILES[config.profile],

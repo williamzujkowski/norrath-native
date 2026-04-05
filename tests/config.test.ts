@@ -22,7 +22,7 @@ describe("resolveConfig", () => {
     if (result.ok) {
       expect(result.value.instances).toBe(1);
       expect(result.value.multiboxInstances).toBe(3);
-      expect(result.value.profile).toBe("high");
+      expect(result.value.profile).toBe("raid");
       expect(result.value.display).toBe("x11");
     }
   });

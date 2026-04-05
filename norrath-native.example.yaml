@@ -1,43 +1,61 @@
+# ═══════════════════════════════════════════════════════════════════════════════
 # norrath-native.yaml — User Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
 #
 # Copy this file to norrath-native.yaml and customize.
 # All settings have sensible defaults — you only need to change what you want.
 #
-# To apply changes: make configure
-# To preview:       make configure-dry
+# To apply changes:  make configure
+# To preview:        make configure-dry
+# To apply everything at once: make setup-all
+#
+# ═══════════════════════════════════════════════════════════════════════════════
 
 # ─── Wine Environment ────────────────────────────────────────────────────────
 
 # Wine prefix location (where all EQ data lives)
+# Default: ~/.wine-eq
 prefix: ~/.wine-eq
 
-# Virtual desktop resolution (traps EQ in a managed window)
-# Common values: 1920x1080, 2560x1440, 3840x2160
-resolution: 1920x1080
+# Virtual desktop resolution
+# Auto-detected from your primary monitor if not set.
+# On ultrawide (21:9), Wine desktop uses full monitor for tiling space,
+# but EQ game rendering is clamped to 16:9 to prevent distortion.
+# Common values: 1920x1080, 2560x1440, 3440x1440
+# Run 'make resolution-detect' to see your monitor vs current setting.
+# Run 'make adapt' after plugging/unplugging a monitor.
+# resolution: 1920x1080
 
-# Display backend: x11 (stable, recommended) or wayland (experimental)
+# Display backend
+# x11:     Stable, recommended (uses XWayland on Wayland desktops)
+# wayland: Experimental — may cause input lag or rendering artifacts
 display: x11
 
 # ─── Multiboxing ──────────────────────────────────────────────────────────────
 
-# 'make launch' always launches this many instances (default: 1)
-# Use this for your primary/raid-focus client
+# 'make launch' launches this many instances (default: 1)
+# Use 1 for raid-focus single client
 instances: 1
 
 # 'make launch-multi' launches this many instances (default: 3)
-# Use this when you want to multibox — switch easily without editing config
+# Use this when you want to multibox
+# First instance = main (normal CPU priority)
+# Additional instances = boxes (deprioritized with nice/ionice)
 multibox_instances: 3
 
-# Seconds to wait between launching each instance
+# Seconds between each instance launch
 # Prevents GPU initialization races and login throttling
+# Increase to 10 if you see crashes on launch
 stagger_delay: 5
 
-# Character login order for multiboxing.
+# Character login order for multiboxing
 # Log in characters in this order — the tiling script assigns windows
 # to layout positions based on this sequence.
 #
 # The first character gets the 'main' role (large window in bard-pull layout).
 # Remaining characters get the 'box' role (smaller windows).
+#
+# Run 'make identify' after logging in to verify the mapping.
 #
 # characters:
 #   - name: Grenlan
@@ -52,51 +70,121 @@ stagger_delay: 5
 
 # ─── Performance Profile ──────────────────────────────────────────────────────
 #
-# Choose a preset, or customize individual settings below.
+# Choose a preset. Each profile is opinionated about 43 EQ settings
+# covering FPS, graphics quality, particles, sound, network, and CPU usage.
 #
-#   high     — Full quality, single client (default)
+# Profiles are ordered from highest quality to lowest resource usage:
+#
+#   high     — Full quality, single client, all effects on
+#              Best for: solo play, screenshots, exploring
+#              FPS: 60/30bg, particles: full, spell effects: on
+#
 #   balanced — Good quality, suitable for 2-3 clients
-#   raid     — Optimized for 54-person raids (reduced particles, server filter)
-#   low      — Reduced quality, for background multibox clients (4-6)
-#   minimal  — Stick figures, minimum CPU/GPU, for AFK clients
+#              Best for: casual grouping, moderate multibox
+#              FPS: 45/15bg, particles: half, server filter on
 #
-profile: high
+#   raid     — Optimized for 54-person raids (DEFAULT)
+#              Best for: raiding, crowded zones, combat-heavy content
+#              FPS: 45/10bg, particles: quarter, spell effects OFF,
+#              server filter on, lit batches off, social animations off
+#              LogInterval: 1 (throttled — ~1s trigger delay for parsers)
+#
+#   low      — Reduced quality, for background multibox clients
+#              Best for: 4-6 box army, background toons
+#              FPS: 30/10bg, particles: quarter, effects off
+#
+#   minimal  — Stick figures, minimum CPU/GPU, for AFK clients
+#              Best for: traders, AFK toons, very old hardware
+#              FPS: 15/5bg, no particles, no sound, stick figures on
+#
+# The default is 'raid' because most EQ players raid regularly and the
+# performance optimizations (spell effects off, server filter on) have
+# minimal visual impact in group/raid content while significantly
+# reducing CPU/GPU load.
+#
+profile: raid
 
 # ─── EQ Client Settings ──────────────────────────────────────────────────────
 #
-# These are applied to eqclient.ini. Settings here override the profile preset.
-# Only uncomment and change settings you want to customize.
+# These override the profile preset. Only uncomment settings you want to
+# customize — the profile handles everything else.
+#
+# The profile sets 43 managed keys in eqclient.ini. Settings not listed
+# here (keybinds, UI layout, character-specific options) are never touched.
 #
 
-# FPS Limits
-# max_fps: 60            # Foreground FPS cap (1-150, lower = less GPU heat)
-# max_bg_fps: 30         # Background FPS cap (1-60, lower = more CPU for other clients)
+# ── FPS Limits ──
+# max_fps: 60              # Foreground FPS cap (1-150)
+#                          # Higher = smoother but more GPU heat
+#                          # Set to your monitor refresh rate for best results
+# max_bg_fps: 30           # Background FPS cap (1-60)
+#                          # Lower = more CPU headroom for other clients
+#                          # 10 is good for boxes, 30 for main
 
-# View Distance & Detail
-# clip_plane: 15         # Draw distance (1-30, lower = better performance)
-# lod_bias: 10           # Level of detail bias (1-10)
+# ── View Distance & Detail ──
+# clip_plane: 15           # Draw distance (1-30)
+#                          # 15 = can see most of a zone
+#                          # 10 = good for raids (less to render)
+#                          # 5  = close only (max performance)
+# lod_bias: 10             # Level of detail bias (1-10)
+#                          # Lower = simpler models at distance
 
-# Graphics Toggles
-# post_effects: false    # Screen effects (bloom, etc.) — disable saves ~10% GPU
-# multi_pass_lighting: false  # Extra lighting — disable saves ~5% GPU
-# vertex_shaders: true   # Offloads rendering to GPU (keep enabled)
+# ── Graphics Toggles ──
+# post_effects: false      # Screen effects (bloom, etc.)
+#                          # ~10% GPU savings when disabled
+# multi_pass_lighting: false  # Extra lighting passes
+#                          # ~5% GPU savings when disabled
+# vertex_shaders: true     # Offloads rendering to GPU (keep enabled)
+# use_lit_batches: true    # Lit batch rendering
+#                          # FALSE saves CPU in raids (GPU handles it)
+# show_spell_effects: true # Spell visual effects
+#                          # FALSE = biggest single perf win in raids
+#                          # Hides the particle storm in 54-person encounters
 
-# Particle Effects (0.0 to 1.0, lower = fewer particles = better performance)
-# spell_particles: 1.0   # Spell effect density
+# ── Particle Effects (0.0 to 1.0) ──
+# Lower = fewer particles = better performance in raids
+# spell_particles: 1.0    # Spell effect density
 # environment_particles: 1.0  # Rain, snow, ambient effects
-# actor_particles: 1.0   # Character effect density
+# actor_particles: 1.0    # Character auras, weapon effects
 
-# Sound
-# sound: true            # Master sound toggle
-# music_volume: 10       # Music volume (0-10)
-# sound_volume: 10       # Effects volume (0-10)
+# ── Sound ──
+# sound: true              # Master sound toggle
+# music_volume: 10         # Music volume (0-10)
+# sound_volume: 10         # Effects volume (0-10)
+# combat_music: false      # Combat music toggle
+#                          # Most players disable — loops get repetitive
 
-# UI & Gameplay
-# show_names: 4          # Name display (0=off, 1=mine, 2=targeted, 3=group, 4=all)
-# chat_font_size: 3      # Chat font size (1-5)
-# track_players: true    # Show player tracking window
+# ── Network & Server ──
+# server_filter: false     # Server-side message filtering
+#                          # TRUE reduces network + CPU in crowded zones
+#                          # Recommended for raids and busy servers
 
-# Window Behavior
-# allow_resize: true     # Allow window resizing
-# maximized: true        # Start maximized in virtual desktop
-# always_on_top: false   # Keep window on top (usually not wanted)
+# ── Logging ──
+# log_interval: 1          # Log write throttling (seconds)
+#                          # 1 = throttled (better performance, ~1s trigger delay)
+#                          # 0 = immediate (worse performance, instant triggers)
+#                          # Per April 2024 patch: 0 was fixed to be truly
+#                          # immediate but "could adversely impact performance"
+#                          # Use 1 for raids, 0 only for dedicated parsing
+
+# ── UI & Gameplay ──
+# show_names: 4            # Name display level
+#                          # 0=off, 1=mine, 2=targeted, 3=group, 4=all
+#                          # Use 1 in raids for performance
+# chat_font_size: 3        # Chat font size (1-5)
+# track_players: true      # Show player tracking window
+# social_animations: true  # Social/emote animations
+#                          # FALSE saves CPU (surprising perf drag)
+# stick_figures: false     # Render players as stick figures
+#                          # TRUE = extreme performance mode (minimal profile only)
+# texture_quality: 2       # Texture quality (0=low, 1=medium, 2=high)
+#                          # 0 helps on GPUs with limited VRAM
+
+# ── Window Behavior ──
+# These are always managed by norrath-native:
+#   WindowedMode=TRUE       Required for virtual desktop
+#   UpdateInBackground=1    Keeps unfocused clients responsive
+#   AllowResize=1           Allow window resizing
+#   Maximized=1             Start maximized in virtual desktop
+#   ClientCore0-11=-1       Let Linux scheduler manage CPU affinity
+#   Log=TRUE                Enable logging (required for parsers)
