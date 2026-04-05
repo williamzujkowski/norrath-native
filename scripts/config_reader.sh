@@ -17,12 +17,12 @@ nn_log() {
     printf '[%s] %s\n' "${timestamp}" "$*"
 }
 
-# Detect Wine binary (wine64 or wine)
+# Detect Wine binary (prefer wine, fallback to wine64 for older installs)
 nn_detect_wine() {
-    if command -v wine64 &>/dev/null; then
-        NN_WINE_CMD="wine64"
-    elif command -v wine &>/dev/null; then
+    if command -v wine &>/dev/null; then
         NN_WINE_CMD="wine"
+    elif command -v wine64 &>/dev/null; then
+        NN_WINE_CMD="wine64"
     else
         NN_WINE_CMD=""
     fi
