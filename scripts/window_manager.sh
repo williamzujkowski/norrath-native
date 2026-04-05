@@ -151,7 +151,9 @@ cmd_tile() {
         local hh=$((screen_h / 2))
         local i
         for (( i=0; i<count && i<6; i++ )); do
-            specs+=("$((i%3 * tw)),$((i/3 * hh)),${tw}x${hh}")
+            local col=$((i % 3))
+            local row=$((i / 3))
+            specs+=("$((col * tw)),$((row * hh)),${tw}x${hh}")
         done
     fi
 
