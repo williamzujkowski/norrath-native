@@ -16,39 +16,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* ── List all visible windows ── */
-
-static int g_list_index = 0;
-
-BOOL CALLBACK ListProc(HWND hwnd, LPARAM lParam) {
-    (void)lParam;
-    char title[256] = {0};
-    char cls[256] = {0};
-    RECT rect;
-
-    if (!IsWindowVisible(hwnd)) return TRUE;
-
-    GetWindowTextA(hwnd, title, sizeof(title));
-    GetClassNameA(hwnd, cls, sizeof(cls));
-    GetWindowRect(hwnd, &rect);
-
-    if (title[0] == '\0') return TRUE;
-
-    int w = rect.right - rect.left;
-    int h = rect.bottom - rect.top;
-
-    printf("%d|%p|%s|%s|%d,%d|%dx%d\n",
-        g_list_index, hwnd, title, cls,
-        rect.left, rect.top, w, h);
-
-    g_list_index++;
-    return TRUE;
-}
-
-void cmd_list(void) {
-    EnumWindows(ListProc, 0);
-}
-
 /* ── Find EQ windows ── */
 
 typedef struct {
@@ -185,29 +152,6 @@ void cmd_focus_next(void) {
     printf("Focused window #%d/%d\n", next + 1, eq.count);
 }
 
-/* ── Save window positions ── */
-
-void cmd_save(void) {
-    EqWindows eq = { .count = 0 };
-    EnumWindows(FindEqProc, (LPARAM)&eq);
-
-    int i;
-    for (i = 0; i < eq.count; i++) {
-        WINDOWPLACEMENT wp;
-        wp.length = sizeof(WINDOWPLACEMENT);
-        GetWindowPlacement(eq.windows[i], &wp);
-
-        RECT r;
-        GetWindowRect(eq.windows[i], &r);
-
-        printf("%d|%d,%d,%dx%d|%u\n",
-            i,
-            r.left, r.top,
-            r.right - r.left, r.bottom - r.top,
-            wp.showCmd);
-    }
-}
-
 /* ── Diagnostic dump for each EQ window ── */
 
 void cmd_diag(void) {
@@ -306,28 +250,6 @@ void cmd_map(void) {
     }
 }
 
-/* ── Send text to a window (types characters via WM_CHAR + Enter) ── */
-
-void cmd_send_text(HWND hwnd, const char *text) {
-    /* Focus the window first */
-    SetForegroundWindow(hwnd);
-    Sleep(100);
-
-    /* Send each character via WM_CHAR */
-    const char *p;
-    for (p = text; *p; p++) {
-        PostMessageA(hwnd, WM_CHAR, (WPARAM)(unsigned char)*p, 0);
-        Sleep(10);
-    }
-
-    /* Press Enter (VK_RETURN) */
-    PostMessageA(hwnd, WM_KEYDOWN, VK_RETURN, 0);
-    Sleep(10);
-    PostMessageA(hwnd, WM_KEYUP, VK_RETURN, 0);
-
-    printf("Sent '%s' + Enter to HWND %p\n", text, hwnd);
-}
-
 /* ── Tile by HWND directly ── */
 
 void cmd_tile_hwnd(int argc, char *argv[]) {
@@ -376,7 +298,6 @@ void cmd_tile_hwnd(int argc, char *argv[]) {
 void usage(void) {
     printf("wine_helper.exe <command> [args...]\n\n");
     printf("Commands:\n");
-    printf("  list                  List all visible windows\n");
     printf("  find                  Find EverQuest windows (with PIDs)\n");
     printf("  map                   Map HWNDs to X11 window IDs\n");
     printf("  resize N X Y W H     Resize EQ window by index\n");
@@ -385,16 +306,13 @@ void usage(void) {
     printf("  focus N               Focus EQ window by index\n");
     printf("  focus-hwnd HWND       Focus window by HWND directly\n");
     printf("  focus-next            Cycle focus to next EQ window\n");
-    printf("  save                  Save current window positions\n");
     printf("  diag                  Diagnostic dump (styles, hit tests, focus)\n");
 }
 
 int main(int argc, char *argv[]) {
     if (argc < 2) { usage(); return 1; }
 
-    if (strcmp(argv[1], "list") == 0) {
-        cmd_list();
-    } else if (strcmp(argv[1], "find") == 0) {
+    if (strcmp(argv[1], "find") == 0) {
         cmd_find();
     } else if (strcmp(argv[1], "diag") == 0) {
         cmd_diag();
@@ -407,16 +325,12 @@ int main(int argc, char *argv[]) {
         cmd_tile(argc - 2, argv + 2);
     } else if (strcmp(argv[1], "tile-hwnd") == 0 && argc >= 4) {
         cmd_tile_hwnd(argc - 2, argv + 2);
-    } else if (strcmp(argv[1], "send-text") == 0 && argc >= 4) {
-        cmd_send_text((HWND)(LONG_PTR)strtoull(argv[2], NULL, 0), argv[3]);
     } else if (strcmp(argv[1], "focus") == 0 && argc >= 3) {
         cmd_focus(atoi(argv[2]));
     } else if (strcmp(argv[1], "focus-hwnd") == 0 && argc >= 3) {
         cmd_focus_hwnd((HWND)(LONG_PTR)strtoull(argv[2], NULL, 0));
     } else if (strcmp(argv[1], "focus-next") == 0) {
         cmd_focus_next();
-    } else if (strcmp(argv[1], "save") == 0) {
-        cmd_save();
     } else {
         usage();
         return 1;

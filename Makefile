@@ -1,9 +1,14 @@
-.PHONY: install build prereqs launch-perf launch-safe logs prereqs-dry typecheck lint test test-coverage docs docs-check stats stats-check stats-fix deploy deploy-dry configure configure-dry fix fix-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates resolution resolution-detect adapt adapt-dry profile-save profile-load profile-list setup-all tile tile-grid pip focus-next windows identify status status-json doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
+.PHONY: install build prereqs prereqs-dry typecheck lint test test-coverage docs docs-check stats stats-check stats-fix deploy deploy-dry configure configure-dry fix fix-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates profile-save profile-load profile-list tile tile-set-main tile-grid pip focus-next windows identify status status-json doctor support-bundle launch launch-multi launch-perf launch-safe logs backup-session restore-session maps parser clean purge help
+
+# ─── Setup ────────────────────────────────────────────────────────────────────
+
+prereqs:            ## Install system prerequisites (Wine, Vulkan, etc.)
+	bash scripts/install_prerequisites.sh
 
 install:            ## Install pnpm dependencies
 	pnpm install
 
-build:              ## Compile TypeScript to dist/ and Wine helpers
+build:              ## Compile TypeScript and Wine helper
 	pnpm build
 	@if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then \
 		x86_64-w64-mingw32-gcc -o helpers/wine_helper.exe helpers/wine_helper.c -luser32 2>/dev/null && \
@@ -13,101 +18,73 @@ build:              ## Compile TypeScript to dist/ and Wine helpers
 		echo "  Install: sudo apt install gcc-mingw-w64"; \
 	fi
 
-prereqs:            ## Install system prerequisites (Wine, Vulkan, etc.)
-	bash scripts/install_prerequisites.sh
-
-prereqs-dry:        ## Preview prerequisite installation without changes
-	bash scripts/install_prerequisites.sh --dry-run
-
-typecheck:          ## Run TypeScript strict type checking
-	pnpm typecheck
-
-lint:               ## Run ESLint with project rules
-	pnpm lint
-
-test:               ## Run Vitest test suite
-	pnpm test run
-
-test-coverage:      ## Run tests with coverage report
-	pnpm test run --coverage
-
-docs:               ## Generate API docs, command reference, and check reference
-	bash scripts/generate-docs.sh
-
-docs-check:         ## Verify generated docs are up to date (CI mode)
-	bash scripts/generate-docs.sh --check
-
-stats:              ## Show project statistics from source of truth
-	npx tsx scripts/generate-stats.ts
-
-stats-check:        ## Verify doc numbers match source (CI mode)
-	npx tsx scripts/generate-stats.ts
-
-stats-fix:          ## Fix stale numbers in documentation
-	npx tsx scripts/generate-stats.ts --fix
-
 deploy:             ## Full deployment (prefix + DXVK + EQ install + config)
 	bash scripts/deploy_eq_env.sh
 
-deploy-dry:         ## Preview deployment without making changes
-	bash scripts/deploy_eq_env.sh --dry-run
+# ─── Play ─────────────────────────────────────────────────────────────────────
+
+launch:             ## Launch a single EverQuest instance
+	bash scripts/start_eq.sh
+
+launch-multi:       ## Launch multibox instances (default: 3)
+	bash scripts/start_eq.sh --multi
+
+fix:                ## Fix everything — syncs display, tiles windows or applies config
+	bash scripts/fix.sh
+
+# ─── Window Management ───────────────────────────────────────────────────────
+
+tile:               ## Tile windows — main character gets large window
+	bash scripts/smart_tile.sh auto
+
+tile-set-main:      ## Identify which window is your main character
+	bash scripts/tile_set_main.sh
+
+tile-grid:          ## Equal grid tile (all windows same size)
+	bash scripts/smart_tile.sh equal
+
+pip:                ## Picture-in-picture layout
+	bash scripts/window_manager.sh pip
+
+focus-next:         ## Cycle focus to next EQ window
+	bash scripts/window_manager.sh focus
+
+windows:            ## List all detected EQ windows
+	bash scripts/window_manager.sh list
+
+# ─── Customization ───────────────────────────────────────────────────────────
 
 configure:          ## Apply optimized eqclient.ini settings
 	bash scripts/configure_eq.sh
 
-configure-dry:      ## Preview INI changes without writing
-	bash scripts/configure_eq.sh --dry-run
+colors:             ## Apply WCAG-compliant chat color scheme
+	bash scripts/apply_colors.sh
 
-fix:                ## Fix everything — syncs display, re-tiles or reconfigures as needed
-	bash scripts/fix.sh
-
-fix-dry:            ## Preview what make fix would change
-	bash scripts/fix.sh --dry-run
-
-resolution:         ## Set Wine + EQ resolution to match your monitor (auto-detect)
-	bash scripts/resolution_manager.sh apply
-
-adapt:              ## Auto-adapt to current display (run after plugging/unplugging monitor)
-	bash scripts/adapt_display.sh
-
-adapt-dry:          ## Preview display adaptation without applying
-	bash scripts/adapt_display.sh --dry-run
-
-resolution-detect:  ## Show detected monitor resolution vs current Wine resolution
-	bash scripts/resolution_manager.sh detect
+layout:             ## Apply 4-window chat layout (Social/Combat/Spam/Alerts)
+	bash scripts/apply_layout.sh
 
 TEMPLATE ?=
-
-layout-apply:       ## Apply a layout template (TEMPLATE=name, e.g., multibox-bard-pull)
+layout-apply:       ## Apply a layout template (TEMPLATE=name)
 	@if [ -z "$(TEMPLATE)" ]; then bash scripts/layout_calculator.sh list; else bash scripts/layout_calculator.sh apply "$(TEMPLATE)"; fi
-
-layout-show:        ## Preview a layout template's calculated positions
-	@if [ -z "$(TEMPLATE)" ]; then bash scripts/layout_calculator.sh list; else bash scripts/layout_calculator.sh show "$(TEMPLATE)"; fi
 
 layout-templates:   ## List available layout templates
 	bash scripts/layout_calculator.sh list
 
-PROFILE ?=
+FILE ?=
+maps:               ## Install Brewall's map pack (FILE=path/to/downloaded.zip)
+	@if [ -z "$(FILE)" ]; then bash scripts/install_maps.sh --help; else bash scripts/install_maps.sh --file "$(FILE)"; fi
 
-profile-save:       ## Save current UI layout as a named profile (PROFILE=name)
-	@if [ -z "$(PROFILE)" ]; then echo "Usage: make profile-save PROFILE=my-layout"; exit 1; fi
-	bash scripts/layout_profiles.sh save "$(PROFILE)"
+PARSER_FILE ?=
+parser:             ## Install EQLogParser (PARSER_FILE=path/to/downloaded.zip)
+	@if [ -z "$(PARSER_FILE)" ]; then bash scripts/install_parser.sh; else bash scripts/install_parser.sh --file "$(PARSER_FILE)"; fi
 
-profile-load:       ## Load a saved UI layout profile (PROFILE=name)
-	@if [ -z "$(PROFILE)" ]; then bash scripts/layout_profiles.sh list; exit 1; fi
-	bash scripts/layout_profiles.sh load "$(PROFILE)"
-
-profile-list:       ## List available UI layout profiles
-	bash scripts/layout_profiles.sh list
-
-status:             ## Show diagnostic dashboard (monitor, Wine desktop, EQ windows)
-	bash scripts/status.sh
-
-status-json:        ## Show diagnostic dashboard as JSON
-	bash scripts/status.sh --json
+# ─── Diagnostics ──────────────────────────────────────────────────────────────
 
 doctor:             ## Health check — validate entire installation
 	bash scripts/doctor.sh
+
+status:             ## Show diagnostic dashboard (monitor, windows, config)
+	bash scripts/status.sh
 
 support-bundle:     ## Generate a support bundle for troubleshooting
 	@mkdir -p /tmp/norrath-native-support
@@ -118,55 +95,12 @@ support-bundle:     ## Generate a support bundle for troubleshooting
 	@rm -rf /tmp/norrath-native-support
 	@echo "Support bundle: norrath-native-support.tar.gz"
 
-setup-all:          ## Apply ALL customizations to ALL characters (config + colors + layout + resolution)
-	@echo "=== Applying settings to all characters ==="
-	@echo "Note: colors are safe while running (/loadskin to reload)."
-	@echo "      layout + resolution changes require camping first."
-	@echo ""
-	bash scripts/resolution_manager.sh apply
-	bash scripts/configure_eq.sh
-	bash scripts/apply_colors.sh
-	bash scripts/apply_layout.sh
-	@echo ""
-	@echo "Done. Restart EQ or /loadskin Default to reload UI."
-
-launch:             ## Launch a single EverQuest instance
-	bash scripts/start_eq.sh
-
-launch-perf:        ## Launch with DXVK performance overlay (FPS, GPU, frame times)
-	DXVK_HUD=fps,frametimes,devinfo,gpuload,compiler bash scripts/start_eq.sh
-
-launch-safe:        ## Launch with minimal profile + diagnostics for troubleshooting
-	DXVK_HUD=fps,devinfo DXVK_LOG_LEVEL=info bash scripts/start_eq.sh
-
-logs:               ## Tail all EQ instance logs (color-coded)
+logs:               ## Tail all EQ instance logs
 	@tail -f ~/.local/share/norrath-native/eq-instance-*.log 2>/dev/null || echo "No instance logs found. Launch EQ first."
 
-launch-multi:       ## Launch multibox instances (default: 3, set multibox_instances in config)
-	bash scripts/start_eq.sh --multi
+# ─── Session ──────────────────────────────────────────────────────────────────
 
-tile:               ## Smart tile — main character gets large window
-	bash scripts/smart_tile.sh auto
-
-tile-set-main:      ## Identify which window is your main character (flashes each window)
-	bash scripts/tile_set_main.sh
-
-tile-grid:          ## Equal grid tile (all windows same size)
-	bash scripts/smart_tile.sh equal
-
-pip:                ## Picture-in-picture: main window large, others stacked right
-	bash scripts/window_manager.sh pip
-
-focus-next:         ## Cycle keyboard focus to the next EQ window
-	bash scripts/window_manager.sh focus
-
-windows:            ## List all detected EQ windows
-	bash scripts/window_manager.sh list
-
-identify:           ## Screenshot each EQ window to identify characters
-	bash scripts/window_manager.sh identify
-
-backup-session:     ## Back up launcher login session for disaster recovery
+backup-session:     ## Back up launcher login session
 	@mkdir -p ~/.local/share/norrath-native/backup
 	@cp ~/.wine-eq/drive_c/EverQuest/LaunchPad.libs/LaunchPad.Cache/Cookies \
 		~/.local/share/norrath-native/backup/Cookies 2>/dev/null \
@@ -186,27 +120,7 @@ restore-session:    ## Restore launcher session from backup
 		echo "No backup found. Run make backup-session first."; \
 	fi
 
-colors:             ## Apply optimized chat color scheme for raid readability
-	bash scripts/apply_colors.sh
-
-colors-preview:     ## Preview color scheme changes without applying
-	bash scripts/apply_colors.sh --dry-run
-
-layout:             ## Apply recommended 4-window chat layout (Social/Combat/Spam/Alerts)
-	bash scripts/apply_layout.sh
-
-layout-preview:     ## Preview chat layout changes without applying
-	bash scripts/apply_layout.sh --dry-run
-
-FILE ?=
-
-maps:               ## Install Brewall's map pack (FILE=path/to/downloaded.zip)
-	@if [ -z "$(FILE)" ]; then bash scripts/install_maps.sh --help; else bash scripts/install_maps.sh --file "$(FILE)"; fi
-
-PARSER_FILE ?=
-
-parser:             ## Install EQLogParser DPS meter + trigger system (PARSER_FILE=path/to/downloaded.zip)
-	@if [ -z "$(PARSER_FILE)" ]; then bash scripts/install_parser.sh; else bash scripts/install_parser.sh --file "$(PARSER_FILE)"; fi
+# ─── Maintenance ──────────────────────────────────────────────────────────────
 
 clean:              ## Remove build artifacts and coverage
 	rm -rf dist/ coverage/
@@ -215,8 +129,92 @@ purge:              ## Remove Wine prefix and all EQ data (DESTRUCTIVE)
 	@printf '\033[31mThis will delete ~/.wine-eq and all EQ data. Continue? [y/N] \033[0m'
 	@read -r confirm && [ "$$confirm" = "y" ] && rm -rf ~/.wine-eq ~/.local/share/norrath-native || echo "Cancelled."
 
-help:               ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
+# ─── Development (not shown in help) ─────────────────────────────────────────
+
+typecheck:
+	pnpm typecheck
+
+lint:
+	pnpm lint
+
+test:
+	pnpm test run
+
+test-coverage:
+	pnpm test run --coverage
+
+format:
+	pnpm run format
+
+format-check:
+	pnpm run format:check
+
+docs:
+	bash scripts/generate-docs.sh
+
+docs-check:
+	bash scripts/generate-docs.sh --check
+
+stats:
+	npx tsx scripts/generate-stats.ts
+
+stats-check:
+	npx tsx scripts/generate-stats.ts
+
+stats-fix:
+	npx tsx scripts/generate-stats.ts --fix
+
+status-json:
+	bash scripts/status.sh --json
+
+prereqs-dry:
+	bash scripts/install_prerequisites.sh --dry-run
+
+deploy-dry:
+	bash scripts/deploy_eq_env.sh --dry-run
+
+configure-dry:
+	bash scripts/configure_eq.sh --dry-run
+
+fix-dry:
+	bash scripts/fix.sh --dry-run
+
+colors-preview:
+	bash scripts/apply_colors.sh --dry-run
+
+layout-preview:
+	bash scripts/apply_layout.sh --dry-run
+
+layout-show:
+	@if [ -z "$(TEMPLATE)" ]; then bash scripts/layout_calculator.sh list; else bash scripts/layout_calculator.sh show "$(TEMPLATE)"; fi
+
+identify:
+	bash scripts/window_manager.sh identify
+
+launch-perf:
+	DXVK_HUD=fps,frametimes,devinfo,gpuload,compiler bash scripts/start_eq.sh
+
+launch-safe:
+	DXVK_HUD=fps,devinfo DXVK_LOG_LEVEL=info bash scripts/start_eq.sh
+
+PROFILE ?=
+profile-save:
+	@if [ -z "$(PROFILE)" ]; then echo "Usage: make profile-save PROFILE=my-layout"; exit 1; fi
+	bash scripts/layout_profiles.sh save "$(PROFILE)"
+
+profile-load:
+	@if [ -z "$(PROFILE)" ]; then bash scripts/layout_profiles.sh list; exit 1; fi
+	bash scripts/layout_profiles.sh load "$(PROFILE)"
+
+profile-list:
+	bash scripts/layout_profiles.sh list
+
+# ─── Help ─────────────────────────────────────────────────────────────────────
+
+help:               ## Show available commands
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
+	@printf '\n\033[2mDev targets (not shown): typecheck, lint, test, docs, stats, format\033[0m\n'
+	@printf '\033[2mDry-run variants: prereqs-dry, deploy-dry, configure-dry, fix-dry\033[0m\n'
 
 .DEFAULT_GOAL := help

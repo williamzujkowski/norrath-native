@@ -264,7 +264,7 @@ norrath-native/
   tests/                 — 9 test files
   layouts/               — 4 window layout templates
   helpers/wine_helper.c  — Wine API helper (SetWindowPos, HWND mapping)
-  Makefile               — 57 targets (make help)
+  Makefile               — 29 targets (make help)
 ```
 
 ## Verified Hardware
