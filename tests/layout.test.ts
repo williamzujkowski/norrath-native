@@ -83,23 +83,46 @@ describe("generateChannelMapEntries", () => {
     expect(entries["ChannelMap106"]).toBeDefined();
   });
 
-  it("produces 107 entries", () => {
+  it("produces 107 channel entries plus window config", () => {
     const entries = generateChannelMapEntries();
-    expect(Object.keys(entries).length).toBe(107);
+    const channelEntries = Object.keys(entries).filter((k) =>
+      k.startsWith("ChannelMap"),
+    );
+    expect(channelEntries.length).toBe(107);
+    // Also includes timestamps, window names, NumWindows
+    expect(Object.keys(entries).length).toBeGreaterThan(107);
   });
 
-  it("all keys follow ChannelMapN format", () => {
+  it("all channel keys follow ChannelMapN format", () => {
     const entries = generateChannelMapEntries();
     for (const key of Object.keys(entries)) {
-      expect(key).toMatch(/^ChannelMap\d+$/);
+      if (key.startsWith("ChannelMap")) {
+        expect(key).toMatch(/^ChannelMap\d+$/);
+      }
     }
   });
 
-  it("values are string representations of window indices", () => {
+  it("channel values are string window indices", () => {
     const entries = generateChannelMapEntries();
-    for (const [, value] of Object.entries(entries)) {
-      expect(value).toMatch(/^[0-3]$/);
+    for (const [key, value] of Object.entries(entries)) {
+      if (key.startsWith("ChannelMap")) {
+        expect(value).toMatch(/^[0-3]$/);
+      }
     }
+  });
+
+  it("enables HH:MM:SS timestamps on all windows", () => {
+    const entries = generateChannelMapEntries();
+    expect(entries["ChatWindow0_TimestampFormat"]).toBe("1");
+    expect(entries["ChatWindow1_TimestampFormat"]).toBe("1");
+    expect(entries["ChatWindow2_TimestampFormat"]).toBe("1");
+    expect(entries["ChatWindow3_TimestampFormat"]).toBe("1");
+  });
+
+  it("sets window names", () => {
+    const entries = generateChannelMapEntries();
+    expect(entries["ChatWindow0_Name"]).toBe("Social");
+    expect(entries["NumWindows"]).toBe("4");
   });
 
   it("Tell channel maps to Social window", () => {
