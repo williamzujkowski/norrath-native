@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
-import { injectConfig } from "../src/config-injector.js";
+import { injectConfig, injectSettings } from "../src/config-injector.js";
 import { MANAGED_INI_SETTINGS } from "../src/types/interfaces.js";
 
 let tmpDir: string;
@@ -242,5 +242,93 @@ describe("managed settings completeness", () => {
 
     expect(keys).toContain("Log");
     expect(keys).toHaveLength(16);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// injectSettings — generic section-aware key injection
+// ---------------------------------------------------------------------------
+describe("injectSettings", () => {
+  it("updates existing keys in a section", () => {
+    const iniPath = path.join(tmpDir, "test.ini");
+    fs.writeFileSync(iniPath, "[TextColors]\nUser_1_Red=255\nUser_1_Green=0\n");
+
+    const result = injectSettings(
+      iniPath,
+      { User_1_Red: "128", User_1_Green: "64" },
+      "TextColors",
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.changed).toBe(2);
+
+    const content = fs.readFileSync(iniPath, "utf-8");
+    expect(content).toContain("User_1_Red=128");
+    expect(content).toContain("User_1_Green=64");
+  });
+
+  it("appends missing keys to existing section", () => {
+    const iniPath = path.join(tmpDir, "test.ini");
+    fs.writeFileSync(iniPath, "[ChatManager]\nNumWindows=2\n");
+
+    const result = injectSettings(
+      iniPath,
+      { ChannelMap0: "0", ChannelMap1: "1" },
+      "ChatManager",
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.changed).toBe(2);
+
+    const content = fs.readFileSync(iniPath, "utf-8");
+    expect(content).toContain("ChannelMap0=0");
+    expect(content).toContain("ChannelMap1=1");
+    expect(content).toContain("NumWindows=2");
+  });
+
+  it("creates section if not found", () => {
+    const iniPath = path.join(tmpDir, "test.ini");
+    fs.writeFileSync(iniPath, "[OtherSection]\nFoo=bar\n");
+
+    const result = injectSettings(iniPath, { Key1: "val1" }, "NewSection");
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.changed).toBe(1);
+
+    const content = fs.readFileSync(iniPath, "utf-8");
+    expect(content).toContain("[NewSection]");
+    expect(content).toContain("Key1=val1");
+    expect(content).toContain("[OtherSection]");
+  });
+
+  it("returns 0 changes when all values match", () => {
+    const iniPath = path.join(tmpDir, "test.ini");
+    fs.writeFileSync(iniPath, "[TextColors]\nUser_1_Red=128\n");
+
+    const result = injectSettings(iniPath, { User_1_Red: "128" }, "TextColors");
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.changed).toBe(0);
+  });
+
+  it("handles empty file", () => {
+    const iniPath = path.join(tmpDir, "test.ini");
+    fs.writeFileSync(iniPath, "");
+
+    const result = injectSettings(iniPath, { Key1: "val1" }, "MySection");
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.changed).toBe(1);
+
+    const content = fs.readFileSync(iniPath, "utf-8");
+    expect(content).toContain("[MySection]");
+    expect(content).toContain("Key1=val1");
+  });
+
+  it("preserves keys in other sections", () => {
+    const iniPath = path.join(tmpDir, "test.ini");
+    fs.writeFileSync(iniPath, "[Section1]\nA=1\n[Section2]\nB=2\n");
+
+    const result = injectSettings(iniPath, { A: "99" }, "Section1");
+    expect(result.ok).toBe(true);
+
+    const content = fs.readFileSync(iniPath, "utf-8");
+    expect(content).toContain("A=99");
+    expect(content).toContain("B=2");
   });
 });
