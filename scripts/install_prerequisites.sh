@@ -24,7 +24,9 @@ readonly -a REQUIRED_PACKAGES=(
     # Wine dependencies
     cabextract
     winbind
-    # Download tools
+    # Window management (required for multibox tiling)
+    xdotool
+    # Download and extraction tools
     wget
     tar
 )
@@ -34,8 +36,15 @@ readonly -a OPTIONAL_PACKAGES=(
     # Better font rendering in Wine
     fonts-liberation
     fonts-wine
-    # Debugging tools
+    # Wine tools
     winetricks
+    # Window management extras
+    wmctrl
+    scrot
+    # Database tools (for session inspection)
+    sqlite3
+    # MinGW compiler (only needed for development — wine_helper.exe ships pre-built)
+    gcc-mingw-w64
 )
 
 DRY_RUN=0

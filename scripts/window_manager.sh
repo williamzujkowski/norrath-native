@@ -203,6 +203,16 @@ cmd_pip() {
 }
 
 cmd_focus() {
+    # Use Wine API for reliable focus switching (SetForegroundWindow)
+    local helper="${SCRIPT_DIR}/../helpers/wine_helper.exe"
+    if [[ -f "${helper}" ]]; then
+        local output
+        output="$(WINEPREFIX="${NN_PREFIX}" DISPLAY=:0 wine "${helper}" focus-next 2>/dev/null)"
+        nn_log "Focus → ${output}"
+        return 0
+    fi
+
+    # Fallback: xdotool (less reliable with Wine windows)
     local -a windows=()
     while IFS= read -r wid; do
         windows+=("${wid}")
@@ -214,11 +224,9 @@ cmd_focus() {
         exit 1
     fi
 
-    # Find currently focused window
     local active
     active="$(DISPLAY=:0 xdotool getactivewindow 2>/dev/null || echo '0')"
 
-    # Find its index and go to the next one
     local next_idx=0
     local i
     for (( i=0; i<count; i++ )); do

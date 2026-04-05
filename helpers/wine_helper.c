@@ -125,6 +125,72 @@ void cmd_tile(int argc, char *argv[]) {
     }
 }
 
+/* ── Focus window by index ── */
+
+void cmd_focus(int index) {
+    EqWindows eq = { .count = 0 };
+    EnumWindows(FindEqProc, (LPARAM)&eq);
+
+    if (index >= eq.count) {
+        fprintf(stderr, "Window #%d not found (%d EQ windows)\n", index, eq.count);
+        return;
+    }
+
+    HWND hwnd = eq.windows[index];
+    SetForegroundWindow(hwnd);
+    BringWindowToTop(hwnd);
+    printf("Focused window #%d\n", index);
+}
+
+/* ── Focus next window (cycle) ── */
+
+void cmd_focus_next(void) {
+    EqWindows eq = { .count = 0 };
+    EnumWindows(FindEqProc, (LPARAM)&eq);
+
+    if (eq.count == 0) {
+        fprintf(stderr, "No EQ windows found\n");
+        return;
+    }
+
+    HWND fg = GetForegroundWindow();
+    int next = 0;
+    int i;
+    for (i = 0; i < eq.count; i++) {
+        if (eq.windows[i] == fg) {
+            next = (i + 1) % eq.count;
+            break;
+        }
+    }
+
+    SetForegroundWindow(eq.windows[next]);
+    BringWindowToTop(eq.windows[next]);
+    printf("Focused window #%d/%d\n", next + 1, eq.count);
+}
+
+/* ── Save window positions ── */
+
+void cmd_save(void) {
+    EqWindows eq = { .count = 0 };
+    EnumWindows(FindEqProc, (LPARAM)&eq);
+
+    int i;
+    for (i = 0; i < eq.count; i++) {
+        WINDOWPLACEMENT wp;
+        wp.length = sizeof(WINDOWPLACEMENT);
+        GetWindowPlacement(eq.windows[i], &wp);
+
+        RECT r;
+        GetWindowRect(eq.windows[i], &r);
+
+        printf("%d|%d,%d,%dx%d|%u\n",
+            i,
+            r.left, r.top,
+            r.right - r.left, r.bottom - r.top,
+            wp.showCmd);
+    }
+}
+
 /* ── Main ── */
 
 void usage(void) {
@@ -134,6 +200,9 @@ void usage(void) {
     printf("  find                  Find EverQuest windows\n");
     printf("  resize N X Y W H     Resize EQ window #N\n");
     printf("  tile SPEC [SPEC...]   Tile EQ windows (SPEC: X,Y,WxH)\n");
+    printf("  focus N               Focus EQ window #N\n");
+    printf("  focus-next            Cycle focus to next EQ window\n");
+    printf("  save                  Save current window positions\n");
     printf("\nSPEC format: x,y,wxh  e.g. 0,0,2236x1440\n");
 }
 
@@ -149,6 +218,12 @@ int main(int argc, char *argv[]) {
                    atoi(argv[5]), atoi(argv[6]));
     } else if (strcmp(argv[1], "tile") == 0 && argc >= 3) {
         cmd_tile(argc - 2, argv + 2);
+    } else if (strcmp(argv[1], "focus") == 0 && argc >= 3) {
+        cmd_focus(atoi(argv[2]));
+    } else if (strcmp(argv[1], "focus-next") == 0) {
+        cmd_focus_next();
+    } else if (strcmp(argv[1], "save") == 0) {
+        cmd_save();
     } else {
         usage();
         return 1;
