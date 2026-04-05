@@ -35,6 +35,7 @@ import {
   generateChannelMapEntries,
 } from "./layout.js";
 import { gatherMetadata } from "./metadata.js";
+import { injectSettings } from "./config-injector.js";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -58,9 +59,11 @@ function commands(): Record<string, () => void> {
     "colors:ini": cmdColorsIni,
     "colors:data": cmdColorsData,
     "colors:validate": cmdColorsValidate,
+    "colors:apply": cmdColorsApply,
     "layout:channels": cmdLayoutChannels,
     "layout:ini": cmdLayoutIni,
     "layout:data": cmdLayoutData,
+    "layout:apply": cmdLayoutApply,
     doctor: cmdDoctor,
     "doctor:json": cmdDoctorJson,
     metadata: cmdMetadata,
@@ -176,6 +179,36 @@ function cmdColorsValidate(): void {
   process.stdout.write(`All ${String(results.length)} colors pass WCAG AA\n`);
 }
 
+function cmdColorsApply(): void {
+  const filePath = args[1];
+  if (!filePath) {
+    process.stderr.write("Usage: colors:apply <eqclient.ini path>\n");
+    process.exit(1);
+  }
+  const entries = generateColorIniEntries();
+  const result = injectSettings(filePath, entries, "TextColors");
+  if (!result.ok) {
+    process.stderr.write(`Error: ${result.error.message}\n`);
+    process.exit(1);
+  }
+  printJson(result.value);
+}
+
+function cmdLayoutApply(): void {
+  const filePath = args[1];
+  if (!filePath) {
+    process.stderr.write("Usage: layout:apply <UI_charname_server.ini path>\n");
+    process.exit(1);
+  }
+  const entries = generateChannelMapEntries();
+  const result = injectSettings(filePath, entries, "ChatManager");
+  if (!result.ok) {
+    process.stderr.write(`Error: ${result.error.message}\n`);
+    process.exit(1);
+  }
+  printJson(result.value);
+}
+
 function cmdLayoutChannels(): void {
   const channels: Record<string, { window: number; name: string }> = {};
   for (const [id, windowIndex] of Object.entries(CHANNEL_MAP)) {
@@ -254,9 +287,11 @@ Commands:
   colors:ini               Output INI key=value entries for TextColors
   colors:data              Output color data as "ID R G B" lines (bash-friendly)
   colors:validate [R G B]  Validate WCAG contrast (default bg: 13,13,26)
+  colors:apply FILE        Apply color scheme to eqclient.ini (writes directly)
   layout:channels          Output channel routing as JSON
   layout:ini               Output ChannelMap INI entries
   layout:data              Output channel map as "FILTER_ID WINDOW_ID" lines (bash-friendly)
+  layout:apply FILE        Apply channel map to UI_charname.ini (writes directly)
   doctor                   Run health checks (ANSI text output)
   doctor:json              Run health checks (JSON output)
   doctor --prefix PATH     Override WINEPREFIX to check
