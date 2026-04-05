@@ -120,11 +120,26 @@ create_wineprefix() {
 
     if [[ -d "${PREFIX}" ]]; then
         nn_log "Prefix already exists, skipping init."
-        return 0
+    else
+        run env WINEPREFIX="${PREFIX}" WINEARCH=win64 wineboot --init
+        nn_log "WINEPREFIX created."
     fi
 
-    run env WINEPREFIX="${PREFIX}" WINEARCH=win64 wineboot --init
-    nn_log "WINEPREFIX created."
+    # Install Wine Mono if not present (needed for .NET apps like EQLogParser).
+    # Without this, Wine shows an interactive dialog the first time a .NET app runs.
+    if [[ ! -d "${PREFIX}/drive_c/windows/mono" ]]; then
+        nn_log "Installing Wine Mono (.NET support)..."
+        if command -v winetricks &>/dev/null; then
+            run env WINEPREFIX="${PREFIX}" winetricks -q mono
+        else
+            # Trigger Mono auto-download by running a wineboot update.
+            # DISPLAY="" suppresses the GUI dialog; Wine downloads Mono silently.
+            run env WINEPREFIX="${PREFIX}" DISPLAY="" wineboot --update
+        fi
+        nn_log "Wine Mono installed."
+    else
+        nn_log "Wine Mono already installed."
+    fi
 }
 
 install_dxvk_dlls() {
