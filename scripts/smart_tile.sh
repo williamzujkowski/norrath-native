@@ -206,14 +206,12 @@ main() {
     nn_log "Applying via Wine API..."
     WINEPREFIX="${PREFIX}" DISPLAY=:0 wine "${helper}" tile-hwnd "${tile_args[@]}" 2>/dev/null
 
-    # Focus the main character window so it receives keyboard input.
-    # Use windowactivate (sends _NET_ACTIVE_WINDOW which Wine processes
-    # correctly) but NOT windowfocus (sets X11 focus directly, bypassing
-    # Wine's internal focus tracking — causes keyboard input to go to
-    # the terminal instead of the game window).
-    sleep 0.3
-    local main_x11wid="${x11wid_list[main_idx]}"
-    DISPLAY=:0 xdotool windowactivate --sync "${main_x11wid}" 2>/dev/null || true
+    # NOTE: Do NOT use xdotool windowactivate or windowfocus here.
+    # Wine virtual desktop child windows don't have standard X11
+    # properties (_NET_WM_DESKTOP, _NET_ACTIVE_WINDOW). Calling
+    # xdotool on them disrupts Wine's internal click routing, making
+    # the main window unclickable. Just let Wine handle focus — the
+    # user clicks the window they want.
 
     nn_log ""
     nn_log "Tiling complete. ${char_names[main_idx]} is the main window (focused)."
