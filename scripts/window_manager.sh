@@ -241,23 +241,59 @@ cmd_identify() {
         exit 1
     fi
 
-    nn_log "Taking screenshots of ${count} EQ window(s)..."
+    nn_log "Identifying ${count} EQ window(s) via log file correlation..."
+
+    local eq_dir="${NN_PREFIX}/drive_c/EverQuest"
+    local logs_dir="${eq_dir}/Logs"
+
+    # Build PID→WID mapping sorted by process start time
+    local -a sorted_pids=()
+    for wid in "${windows[@]}"; do
+        local pid
+        pid="$(DISPLAY=:0 xdotool getwindowpid "${wid}" 2>/dev/null || echo '0')"
+        local start
+        start="$(stat -c '%Z' "/proc/${pid}" 2>/dev/null || echo '0')"
+        sorted_pids+=("${start}:${pid}:${wid}")
+    done
+    mapfile -t sorted_pids < <(printf '%s\n' "${sorted_pids[@]}" | sort)
+
+    # Build character login time map from log files
+    local -A char_login_time=()
+    for logfile in "${logs_dir}"/eqlog_*_*.txt; do
+        [[ -f "${logfile}" ]] || continue
+        local charname
+        charname="$(basename "${logfile}" | sed 's/eqlog_//;s/_[^_]*\.txt//')"
+        local login_epoch
+        login_epoch="$(grep 'Welcome to EverQuest' "${logfile}" 2>/dev/null | tail -1 | grep -oP '\[.*?\]' | sed 's/[][]//g' | xargs -I{} date -d "{}" '+%s' 2>/dev/null || echo '0')"
+        char_login_time["${charname}"]="${login_epoch}"
+    done
+
+    # Sort characters by login time
+    local -a sorted_chars=()
+    for charname in "${!char_login_time[@]}"; do
+        sorted_chars+=("${char_login_time[${charname}]}:${charname}")
+    done
+    mapfile -t sorted_chars < <(printf '%s\n' "${sorted_chars[@]}" | sort)
+
+    # Correlate: process N (by start time) → character N (by login time)
+    nn_log ""
+    nn_log "Window → Character mapping (by login order):"
+    nn_log ""
     local i
-    for (( i=0; i<count; i++ )); do
-        local wid="${windows[${i}]}"
-        local outfile="/tmp/eq-identify-$((i+1)).png"
-        DISPLAY=:0 import -window "${wid}" "${outfile}" 2>/dev/null || true
-        nn_log "  Window $((i+1)) (WID ${wid}): ${outfile}"
+    for (( i=0; i<count && i<${#sorted_chars[@]}; i++ )); do
+        local proc_info="${sorted_pids[${i}]}"
+        local char_info="${sorted_chars[${i}]}"
+        local pid="${proc_info#*:}" && pid="${pid%%:*}"
+        local wid="${proc_info##*:}"
+        local charname="${char_info#*:}"
+        local geom
+        geom="$(DISPLAY=:0 xdotool getwindowgeometry "${wid}" 2>/dev/null | grep 'Geometry' | sed 's/.*Geometry: //' || echo '?')"
+        nn_log "  Window $((i+1)): ${charname} (WID ${wid}, PID ${pid}, ${geom})"
     done
 
     nn_log ""
-    nn_log "Check the screenshots to identify which character is in each window."
-    nn_log "Then assign them in your config (norrath-native.yaml) under 'characters:'."
-    nn_log ""
-    nn_log "Login order determines window assignment:"
-    nn_log "  Window 1 = first character you log in (main/puller)"
-    nn_log "  Window 2 = second character (box)"
-    nn_log "  Window 3 = third character (box)"
+    nn_log "This mapping is based on process start time → login timestamp"
+    nn_log "correlation from eqlog_*_*.txt files."
 }
 
 # Parse command
