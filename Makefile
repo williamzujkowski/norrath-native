@@ -1,4 +1,4 @@
-.PHONY: install build prereqs launch-perf launch-safe logs prereqs-dry typecheck lint test test-coverage docs docs-check stats stats-check stats-fix deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates resolution resolution-detect adapt adapt-dry profile-save profile-load profile-list setup-all tile tile-grid pip focus-next windows identify status status-json doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
+.PHONY: install build prereqs launch-perf launch-safe logs prereqs-dry typecheck lint test test-coverage docs docs-check stats stats-check stats-fix deploy deploy-dry configure configure-dry fix fix-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates resolution resolution-detect adapt adapt-dry profile-save profile-load profile-list setup-all tile tile-grid pip focus-next windows identify status status-json doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -57,6 +57,12 @@ configure:          ## Apply optimized eqclient.ini settings
 
 configure-dry:      ## Preview INI changes without writing
 	bash scripts/configure_eq.sh --dry-run
+
+fix:                ## Fix everything — syncs display, re-tiles or reconfigures as needed
+	bash scripts/fix.sh
+
+fix-dry:            ## Preview what make fix would change
+	bash scripts/fix.sh --dry-run
 
 resolution:         ## Set Wine + EQ resolution to match your monitor (auto-detect)
 	bash scripts/resolution_manager.sh apply
