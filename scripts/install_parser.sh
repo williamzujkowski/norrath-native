@@ -168,7 +168,6 @@ else
         exit 1
     fi
 
-    local filename
     filename="$(basename "${local_download_url}")"
     installer_path="$(mktemp --suffix="-${filename}")"
     trap 'rm -f "${installer_path}"' EXIT
