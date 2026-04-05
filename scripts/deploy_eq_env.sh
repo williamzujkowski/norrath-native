@@ -291,6 +291,14 @@ tune_wine_registry() {
         'HKEY_CURRENT_USER\Software\Wine\X11 Driver' \
         /v Managed /d N /f
 
+    # Disable DWM desktop composition — WPF apps (EQLogParser) crash on
+    # minimize when DwmIsCompositionEnabled returns true, because Wine's
+    # dwmapi stubs don't implement the required composition APIs.
+    # See: https://github.com/dotnet/wpf/issues/4166
+    run env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" reg add \
+        'HKEY_CURRENT_USER\Software\Wine\DWM' \
+        /v DisableComposition /d Y /f
+
     # Hint VRAM size for Intel Iris Xe (prevents DX11 fallback paths)
     run env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" reg add \
         'HKEY_CURRENT_USER\Software\Wine\Direct3D' \

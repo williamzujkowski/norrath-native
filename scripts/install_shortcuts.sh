@@ -136,7 +136,7 @@ create_parser_shortcut() {
 [Desktop Entry]
 Name=EQLogParser
 Comment=EverQuest DPS meter and trigger system
-Exec=env WINEPREFIX=${PREFIX} wine "${exe}"
+Exec=env WINEPREFIX=${PREFIX} MONO_THREADS_SUSPEND=preemptive wine "${exe}"
 Type=Application
 Categories=Game;Utility;
 Icon=${icon_path}
