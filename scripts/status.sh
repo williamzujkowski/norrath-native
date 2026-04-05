@@ -50,7 +50,9 @@ eq_windows=0
 window_info=""
 if [[ -f "${helper}" ]]; then
     window_info="$(WINEPREFIX="${PREFIX}" DISPLAY=:0 wine "${helper}" find 2>/dev/null || true)"
-    eq_windows="$(echo "${window_info}" | grep -c '|' || echo '0')"
+    if [[ -n "${window_info}" ]]; then
+        eq_windows="$(echo "${window_info}" | grep -c '|')"
+    fi
 fi
 
 # Main character config
