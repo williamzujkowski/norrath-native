@@ -71,8 +71,13 @@ void cmd_resize(int index, int x, int y, int w, int h) {
 
     HWND hwnd = eq.windows[index];
     SetWindowPos(hwnd, NULL, x, y, w, h, SWP_NOZORDER);
+
+    /* Force EQ to re-render at the new size. InvalidateRect + UpdateWindow
+     * marks the area dirty, and SendMessage WM_SIZE tells the app directly.
+     * Without the explicit WM_SIZE, EQ renders at the old resolution until
+     * the user clicks inside the window. */
     InvalidateRect(hwnd, NULL, TRUE);
-    UpdateWindow(hwnd);
+    SendMessageA(hwnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(w, h));
 
     printf("Resized window #%d to (%d,%d) %dx%d\n", index, x, y, w, h);
 }
@@ -93,6 +98,7 @@ void cmd_tile(int argc, char *argv[]) {
             SetWindowPos(eq.windows[i], NULL, x, y, w, h,
                          SWP_NOZORDER | SWP_NOACTIVATE);
             InvalidateRect(eq.windows[i], NULL, TRUE);
+            SendMessageA(eq.windows[i], WM_SIZE, SIZE_RESTORED, MAKELPARAM(w, h));
             printf("Window %d: (%d,%d) %dx%d\n", i, x, y, w, h);
         }
     }
@@ -282,6 +288,8 @@ void cmd_tile_hwnd(int argc, char *argv[]) {
                      specs[i].x, specs[i].y, specs[i].w, specs[i].h,
                      SWP_NOZORDER | SWP_NOACTIVATE);
         InvalidateRect(specs[i].hwnd, NULL, TRUE);
+        SendMessageA(specs[i].hwnd, WM_SIZE, SIZE_RESTORED,
+                     MAKELPARAM(specs[i].w, specs[i].h));
         printf("HWND %p: (%d,%d) %dx%d\n",
             specs[i].hwnd, specs[i].x, specs[i].y,
             specs[i].w, specs[i].h);
