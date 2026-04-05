@@ -54,10 +54,11 @@ stagger_delay: 5
 #
 # Choose a preset, or customize individual settings below.
 #
-#   high    — Full quality, single client (default)
+#   high     — Full quality, single client (default)
 #   balanced — Good quality, suitable for 2-3 clients
-#   low     — Reduced quality, for background multibox clients (4-6)
-#   minimal — Stick figures, minimum CPU/GPU, for AFK clients
+#   raid     — Optimized for 54-person raids (reduced particles, server filter)
+#   low      — Reduced quality, for background multibox clients (4-6)
+#   minimal  — Stick figures, minimum CPU/GPU, for AFK clients
 #
 profile: high
 

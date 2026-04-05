@@ -27,7 +27,7 @@ export interface NorrathConfig {
   eqSettings: EqSettings;
 }
 
-export type Profile = "high" | "balanced" | "low" | "minimal";
+export type Profile = "high" | "balanced" | "raid" | "low" | "minimal";
 
 export interface EqSettings {
   maxFps: number;
@@ -51,6 +51,9 @@ export interface EqSettings {
   combatMusic: boolean;
   textureQuality: number;
   stickFigures: boolean;
+  logInterval: number;
+  useLitBatches: boolean;
+  showSpellEffects: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -85,6 +88,23 @@ const PROFILES: Record<Profile, Partial<EqSettings>> = {
     combatMusic: false,
     textureQuality: 1,
     stickFigures: false,
+  },
+  raid: {
+    maxFps: 45,
+    maxBgFps: 10,
+    clipPlane: 10,
+    lodBias: 5,
+    spellParticles: 0.25,
+    envParticles: 0.0,
+    actorParticles: 0.25,
+    serverFilter: true,
+    socialAnimations: false,
+    combatMusic: false,
+    textureQuality: 1,
+    stickFigures: false,
+    logInterval: 1,
+    useLitBatches: false,
+    showSpellEffects: false,
   },
   low: {
     maxFps: 30,
@@ -139,6 +159,9 @@ const DEFAULT_SETTINGS: EqSettings = {
   combatMusic: false,
   textureQuality: 2,
   stickFigures: false,
+  logInterval: 1,
+  useLitBatches: true,
+  showSpellEffects: true,
 };
 
 // ---------------------------------------------------------------------------
@@ -213,7 +236,13 @@ function applyYamlOverrides(config: NorrathConfig, content: string): void {
 }
 
 function isProfile(v: string | undefined): v is Profile {
-  return v === "high" || v === "balanced" || v === "low" || v === "minimal";
+  return (
+    v === "high" ||
+    v === "balanced" ||
+    v === "raid" ||
+    v === "low" ||
+    v === "minimal"
+  );
 }
 
 export function resolveConfig(
@@ -281,6 +310,9 @@ export function generateManagedSettings(
     CombatMusic: bool10(s.combatMusic),
     TextureQuality: String(s.textureQuality),
     StickFigures: bool10(s.stickFigures),
+    LogInterval: String(s.logInterval),
+    UseLitBatches: boolTF(s.useLitBatches),
+    ShowSpellEffects: bool10(s.showSpellEffects),
   };
 
   // CPU affinity — always let Linux manage
