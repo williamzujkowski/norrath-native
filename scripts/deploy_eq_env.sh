@@ -285,6 +285,15 @@ tune_wine_registry() {
         'HKEY_CURRENT_USER\Software\Wine\X11 Driver' \
         /v GrabFullscreen /d Y /f
 
+    # Disable WM decorations on virtual desktop — prevents compositor
+    # resize grips from absorbing clicks near window edges/origin
+    run env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" reg add \
+        'HKEY_CURRENT_USER\Software\Wine\X11 Driver' \
+        /v Decorated /d N /f
+    run env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" reg add \
+        'HKEY_CURRENT_USER\Software\Wine\X11 Driver' \
+        /v Managed /d N /f
+
     # Hint VRAM size for Intel Iris Xe (prevents DX11 fallback paths)
     run env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" reg add \
         'HKEY_CURRENT_USER\Software\Wine\Direct3D' \

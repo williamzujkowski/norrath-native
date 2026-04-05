@@ -117,14 +117,31 @@ void cmd_tile(int argc, char *argv[]) {
     EqWindows eq = { .count = 0 };
     EnumWindows(FindEqProc, (LPARAM)&eq);
 
+    /* Parse specs */
+    int tile_count = (argc < eq.count) ? argc : eq.count;
+
+    /* Phase 1: Hide all */
     int i;
-    for (i = 0; i < argc && i < eq.count; i++) {
+    for (i = 0; i < tile_count; i++) {
+        ShowWindow(eq.windows[i], SW_HIDE);
+    }
+    Sleep(50);
+
+    /* Phase 2: Show and position */
+    for (i = 0; i < tile_count; i++) {
         int x, y, w, h;
         if (sscanf(argv[i], "%d,%d,%dx%d", &x, &y, &w, &h) == 4) {
-            SetWindowPos(eq.windows[i], NULL, x, y, w, h, SWP_NOZORDER);
+            ShowWindow(eq.windows[i], SW_SHOW);
+            SetWindowPos(eq.windows[i], NULL, x, y, w, h,
+                         SWP_NOZORDER | SWP_NOACTIVATE);
             InvalidateRect(eq.windows[i], NULL, TRUE);
             printf("Window %d: (%d,%d) %dx%d\n", i, x, y, w, h);
         }
+    }
+
+    /* Phase 3: Focus first */
+    if (tile_count > 0) {
+        SetForegroundWindow(eq.windows[0]);
     }
 }
 
@@ -202,6 +219,80 @@ void cmd_save(void) {
     }
 }
 
+/* ── Diagnostic dump for each EQ window ── */
+
+void cmd_diag(void) {
+    EqWindows eq = { .count = 0 };
+    EnumWindows(FindEqProc, (LPARAM)&eq);
+
+    HWND fg = GetForegroundWindow();
+    HWND active = GetActiveWindow();
+    HWND focus = GetFocus();
+    HWND capture = GetCapture();
+
+    printf("=== Global State ===\n");
+    printf("Foreground:  %p\n", fg);
+    printf("Active:      %p\n", active);
+    printf("Focus:       %p\n", focus);
+    printf("Capture:     %p\n", capture);
+    printf("\n");
+
+    for (int i = 0; i < eq.count; i++) {
+        HWND hwnd = eq.windows[i];
+        RECT r;
+        DWORD pid = 0, style, exstyle;
+        GetWindowRect(hwnd, &r);
+        GetWindowThreadProcessId(hwnd, &pid);
+        style = GetWindowLongA(hwnd, GWL_STYLE);
+        exstyle = GetWindowLongA(hwnd, GWL_EXSTYLE);
+
+        HWND parent = GetParent(hwnd);
+        HWND owner = GetWindow(hwnd, GW_OWNER);
+        BOOL enabled = IsWindowEnabled(hwnd);
+        BOOL visible = IsWindowVisible(hwnd);
+
+        /* Check what window is at the center of this window */
+        int cx = (r.left + r.right) / 2;
+        int cy = (r.top + r.bottom) / 2;
+        HWND at_center = WindowFromPoint((POINT){cx, cy});
+
+        /* Check what window is at top-left corner of this window */
+        HWND at_origin = WindowFromPoint((POINT){r.left + 5, r.top + 5});
+
+        HANDLE x11_wid = GetPropA(hwnd, "__wine_x11_whole_window");
+
+        printf("=== Window %d: HWND %p (PID %lu) ===\n", i, hwnd, (unsigned long)pid);
+        printf("  Position:    %d,%d  Size: %dx%d\n",
+            r.left, r.top, r.right - r.left, r.bottom - r.top);
+        printf("  Style:       0x%08lx  ExStyle: 0x%08lx\n",
+            (unsigned long)style, (unsigned long)exstyle);
+        printf("  Enabled:     %s  Visible: %s\n",
+            enabled ? "yes" : "NO", visible ? "yes" : "NO");
+        printf("  Parent:      %p  Owner: %p\n", parent, owner);
+        printf("  X11 WID:     %lu\n", (unsigned long)(uintptr_t)x11_wid);
+        printf("  IsForeground:%s\n", (hwnd == fg) ? "YES" : "no");
+        printf("  HitTest center (%d,%d): %p %s\n",
+            cx, cy, at_center,
+            (at_center == hwnd) ? "(SELF)" : "(OTHER!)");
+        printf("  HitTest corner (%d,%d): %p %s\n",
+            r.left + 5, r.top + 5, at_origin,
+            (at_origin == hwnd) ? "(SELF)" : "(OTHER!)");
+        printf("\n");
+    }
+
+    /* Also check what's at some key positions */
+    printf("=== Point Hit Tests ===\n");
+    int test_points[][2] = {{25,25}, {100,100}, {500,500}, {2240,5}, {2240,725}};
+    int npts = sizeof(test_points) / sizeof(test_points[0]);
+    for (int j = 0; j < npts; j++) {
+        HWND at = WindowFromPoint((POINT){test_points[j][0], test_points[j][1]});
+        char title[64] = {0};
+        if (at) GetWindowTextA(at, title, sizeof(title));
+        printf("  (%d,%d) -> %p '%s'\n",
+            test_points[j][0], test_points[j][1], at, title);
+    }
+}
+
 /* ── Map HWNDs to X11 window IDs ── */
 /* Wine stores the X11 WID as a window property "__wine_x11_whole_window" */
 
@@ -230,27 +321,57 @@ void cmd_map(void) {
 
 void cmd_tile_hwnd(int argc, char *argv[]) {
     /* Format: HWND X,Y,WxH HWND X,Y,WxH ... */
-    HWND first_hwnd = NULL;
+
+    typedef struct { HWND hwnd; int x, y, w, h; } TileSpec;
+    TileSpec specs[16];
+    int count = 0;
+
+    /* Parse all tile specs first */
     int i;
     for (i = 0; i + 1 < argc; i += 2) {
         HWND hwnd = (HWND)(LONG_PTR)strtoull(argv[i], NULL, 0);
         int x, y, w, h;
         if (sscanf(argv[i+1], "%d,%d,%dx%d", &x, &y, &w, &h) == 4) {
-            SetWindowPos(hwnd, NULL, x, y, w, h, SWP_NOZORDER);
-            InvalidateRect(hwnd, NULL, TRUE);
-            printf("HWND %p: (%d,%d) %dx%d\n", hwnd, x, y, w, h);
-            if (!first_hwnd) first_hwnd = hwnd;
+            if (count < 16) {
+                specs[count].hwnd = hwnd;
+                specs[count].x = x;
+                specs[count].y = y;
+                specs[count].w = w;
+                specs[count].h = h;
+                count++;
+            }
         }
     }
 
-    /* Focus the first (main) window after all windows are positioned.
-     * Without this, Wine's internal focus stays on the last-positioned
-     * window, and the main window at (1,1) won't receive clicks because
-     * the desktop frame intercepts them for unfocused children near the
-     * origin. SetForegroundWindow is a Wine-internal call (not xdotool)
-     * so it correctly updates Windows focus without disrupting X11. */
-    if (first_hwnd) {
-        SetForegroundWindow(first_hwnd);
+    /* Phase 1: Hide all windows.
+     * This forces Wine to unmap the X11 child windows. When re-shown,
+     * they get re-mapped at the top of the X11 sibling stacking order.
+     * Without this, the first-launched EQ process's window gets stuck
+     * at the bottom of the X11 child stack and never receives
+     * click-to-focus events from the compositor. */
+    for (i = 0; i < count; i++) {
+        ShowWindow(specs[i].hwnd, SW_HIDE);
+    }
+    Sleep(50);
+
+    /* Phase 2: Show and position each window.
+     * ShowWindow(SW_SHOW) re-maps the X11 child window (fixes stacking).
+     * SetWindowPos moves/resizes and sends WM_SIZE so EQ re-renders
+     * at the correct resolution inside the window. */
+    for (i = 0; i < count; i++) {
+        ShowWindow(specs[i].hwnd, SW_SHOW);
+        SetWindowPos(specs[i].hwnd, NULL,
+                     specs[i].x, specs[i].y, specs[i].w, specs[i].h,
+                     SWP_NOZORDER | SWP_NOACTIVATE);
+        InvalidateRect(specs[i].hwnd, NULL, TRUE);
+        printf("HWND %p: (%d,%d) %dx%d\n",
+            specs[i].hwnd, specs[i].x, specs[i].y,
+            specs[i].w, specs[i].h);
+    }
+
+    /* Phase 3: Give the first (main) window keyboard focus */
+    if (count > 0) {
+        SetForegroundWindow(specs[0].hwnd);
     }
 }
 
@@ -269,6 +390,7 @@ void usage(void) {
     printf("  focus-hwnd HWND       Focus window by HWND directly\n");
     printf("  focus-next            Cycle focus to next EQ window\n");
     printf("  save                  Save current window positions\n");
+    printf("  diag                  Diagnostic dump (styles, hit tests, focus)\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -278,6 +400,8 @@ int main(int argc, char *argv[]) {
         cmd_list();
     } else if (strcmp(argv[1], "find") == 0) {
         cmd_find();
+    } else if (strcmp(argv[1], "diag") == 0) {
+        cmd_diag();
     } else if (strcmp(argv[1], "map") == 0) {
         cmd_map();
     } else if (strcmp(argv[1], "resize") == 0 && argc >= 7) {
