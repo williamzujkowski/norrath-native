@@ -51,10 +51,22 @@ nn_find_eq_windows() {
 }
 
 # ─── Screen Size Detection ───────────────────────────────────────────────────
-# Returns the primary monitor size via xrandr for tiling calculations.
-# Falls back to 1920x1080 if xrandr is unavailable.
+# Returns usable screen area (excluding GNOME top bar and dock) via
+# _NET_WORKAREA. Falls back to xrandr monitor size, then 1920x1080.
 
 nn_get_screen_size() {
+    # _NET_WORKAREA gives the usable area excluding panels/docks
+    local workarea
+    workarea="$(DISPLAY=:0 xprop -root _NET_WORKAREA 2>/dev/null | grep -oP '\d+, \d+, \d+, \d+' | head -1 || echo '')"
+    if [[ -n "${workarea}" ]]; then
+        local w h
+        w="$(echo "${workarea}" | cut -d',' -f3 | tr -d ' ')"
+        h="$(echo "${workarea}" | cut -d',' -f4 | tr -d ' ')"
+        echo "${w} ${h}"
+        return
+    fi
+
+    # Fallback: raw monitor size
     local res
     res="$(DISPLAY=:0 xrandr 2>/dev/null | grep ' connected primary' | grep -oP '\d+x\d+' | head -1 || true)"
     if [[ -z "${res}" ]]; then
