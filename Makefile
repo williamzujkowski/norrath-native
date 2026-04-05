@@ -1,4 +1,4 @@
-.PHONY: install build prereqs launch-perf launch-safe logs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates resolution resolution-detect profile-save profile-load profile-list setup-all tile pip focus-next windows identify doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
+.PHONY: install build prereqs launch-perf launch-safe logs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates resolution resolution-detect adapt profile-save profile-load profile-list setup-all tile pip focus-next windows identify doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -51,6 +51,12 @@ configure-dry:      ## Preview INI changes without writing
 
 resolution:         ## Set Wine + EQ resolution to match your monitor (auto-detect)
 	bash scripts/resolution_manager.sh apply
+
+adapt:              ## Auto-adapt to current display (run after plugging/unplugging monitor)
+	bash scripts/adapt_display.sh
+
+adapt-dry:          ## Preview display adaptation without applying
+	bash scripts/adapt_display.sh --dry-run
 
 resolution-detect:  ## Show detected monitor resolution vs current Wine resolution
 	bash scripts/resolution_manager.sh detect
