@@ -387,6 +387,12 @@ function eqExtrasChecks(prefix: string, eqDir: string): Check[] {
       "make maps",
     ),
     createFileCheck(
+      "EQ_DXVK_CONF",
+      "DXVK config present (async shaders)",
+      join(eqDir, "dxvk.conf"),
+      "run: make deploy",
+    ),
+    createFileCheck(
       "EQ_PARSER",
       "EQLogParser installed",
       join(prefix, "drive_c/Program Files/EQLogParser/EQLogParser.exe"),

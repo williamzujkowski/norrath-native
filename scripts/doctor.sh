@@ -116,21 +116,6 @@ check_wine_prefix() {
         fail "PREFIX_ARCH" "Prefix is not win64 architecture" "run: make deploy"
     fi
 
-    # Virtual desktop + resolution match
-    if grep -q '"Default"=".*x.*"' "${PREFIX}/user.reg" 2>/dev/null; then
-        local wine_res
-        wine_res="$(grep '"Default"=".*x.*"' "${PREFIX}/user.reg" | head -1 | sed 's/.*"\(.*x.*\)"/\1/')"
-        local monitor_res
-        monitor_res="$(DISPLAY=:0 xrandr 2>/dev/null | grep ' connected primary' | grep -oP '\d+x\d+' | head -1 || true)"
-        if [[ -n "${monitor_res}" ]] && [[ "${wine_res}" != "${monitor_res}" ]]; then
-            warn "PREFIX_VDESKTOP" "Virtual desktop ${wine_res} does not match monitor ${monitor_res}" "run: make resolution"
-        else
-            pass "PREFIX_VDESKTOP" "Virtual desktop: ${wine_res}"
-        fi
-    else
-        warn "PREFIX_VDESKTOP" "Virtual desktop not configured" "run: make deploy"
-    fi
-
     # Microsoft core fonts
     if [[ -f "${PREFIX}/drive_c/windows/Fonts/arial.ttf" ]]; then
         pass "PREFIX_COREFONTS" "Microsoft core fonts installed (arial.ttf present)"
@@ -262,20 +247,19 @@ check_everquest() {
         fi
     fi
 
-    # Check for Brewall maps
-    local maps_dir="${eq_dir}/maps/Brewall"
+    # Check for Good's maps
+    local maps_dir="${eq_dir}/maps"
     if [[ -d "${maps_dir}" ]]; then
         local map_count
         map_count="$(find "${maps_dir}" -maxdepth 1 -name '*.txt' -type f 2>/dev/null | wc -l)"
         if [[ "${map_count}" -gt 100 ]]; then
-            pass "EQ_MAPS" "Brewall maps installed (${map_count} map files)"
+            pass "EQ_MAPS" "Good's maps installed (${map_count} map files)"
         else
-            warn "EQ_MAPS" "Brewall maps directory exists but only ${map_count} .txt files found" \
-                "run: make maps FILE=~/Downloads/Brewalls-Maps.zip"
+            warn "EQ_MAPS" "Maps directory exists but only ${map_count} .txt files found" \
+                "run: make maps"
         fi
     else
-        warn "EQ_MAPS" "Brewall maps not installed" \
-            "download from https://www.eqmaps.info/eq-map-files/ then run: make maps FILE=<path>"
+        warn "EQ_MAPS" "Maps not installed" "run: make maps"
     fi
 
     # Check for EQLogParser (optional — info only)

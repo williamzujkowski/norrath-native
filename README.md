@@ -255,7 +255,7 @@ norrath-native/
     colors.ts            — 91-color WCAG AA-compliant chat scheme
     layout.ts            — 107-channel → 4-window chat routing
     resolution.ts        — Ultrawide detection, 16:9 clamping, tiling
-    doctor.ts            — 28 structured health checks (JSON output)
+    doctor.ts            — 29 structured health checks (JSON output)
     config-injector.ts   — Idempotent INI file manipulation
     dxvk-resolver.ts     — GitHub API DXVK release resolver
     metadata.ts          — Programmatic project stats (self-documenting)
