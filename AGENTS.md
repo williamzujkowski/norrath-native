@@ -28,7 +28,7 @@ pnpm install          # Install dependencies
 pnpm build            # Compile TypeScript to dist/
 pnpm typecheck        # Strict type checking
 pnpm lint             # ESLint (complexity<10, fn<50 lines)
-pnpm run test:run     # Run 165 tests
+pnpm run test:run     # Run test suite
 make deploy           # Deploy Wine/DXVK/EQ environment
 make launch           # Launch EQ (single instance)
 make launch-multi     # Launch multibox instances
