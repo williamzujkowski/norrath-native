@@ -41,17 +41,8 @@ if [[ -z "${monitor_res}" ]]; then
 fi
 monitor_name="$(DISPLAY=:0 xrandr 2>/dev/null | grep ' connected' | head -1 | cut -d' ' -f1 || echo 'unknown')"
 
-# Wine virtual desktop
-wine_desktop="$(grep -oP '"Default"="\K[^"]+' "${PREFIX}/user.reg" 2>/dev/null || echo 'not set')"
-
 # nn_get_screen_size result (what tiling uses)
 tile_size="$(nn_get_screen_size 2>/dev/null | tr ' ' 'x' || echo 'unknown')"
-
-# Mismatch detection
-mismatch="false"
-if [[ "${wine_desktop}" != "not set" ]] && [[ "${wine_desktop}" != "${monitor_res}" ]]; then
-    mismatch="true"
-fi
 
 # EQ windows
 helper="${SCRIPT_DIR}/../helpers/wine_helper.exe"
@@ -77,9 +68,7 @@ if [[ "${JSON_MODE}" -eq 1 ]]; then
     cat <<EOF
 {
   "monitor": { "name": "${monitor_name}", "resolution": "${monitor_res}" },
-  "wine_desktop": "${wine_desktop}",
   "tiling_size": "${tile_size}",
-  "mismatch": ${mismatch},
   "eq_running": ${eq_running},
   "eq_windows": ${eq_windows},
   "main_character": "${main_char}"
@@ -95,15 +84,7 @@ printf '  %s\n' "─────────────────────
 
 # Monitor
 printf '  %-22s %s (%s)\n' "Monitor:" "${monitor_res}" "${monitor_name}"
-printf '  %-22s %s\n' "Wine virtual desktop:" "${wine_desktop}"
 printf '  %-22s %s\n' "Tiling uses:" "${tile_size}"
-
-# Mismatch warning
-if [[ "${mismatch}" == "true" ]]; then
-    printf '\n'
-    printf '  \033[33m⚠ MISMATCH:\033[0m Wine desktop (%s) ≠ monitor (%s)\n' "${wine_desktop}" "${monitor_res}"
-    printf '  Run \033[36mmake adapt\033[0m to sync them.\n'
-fi
 
 printf '\n'
 printf '  %-22s %s\n' "EQ running:" "${eq_running}"

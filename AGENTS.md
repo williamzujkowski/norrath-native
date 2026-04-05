@@ -14,7 +14,7 @@ src/config.ts          — YAML config parsing, profiles, managed settings
 src/colors.ts          — 91-color WCAG-compliant chat color scheme
 src/layout.ts          — 107-channel chat window routing (4-window layout)
 src/resolution.ts      — Ultrawide detection, 16:9 clamping, viewport, tiling
-src/doctor.ts          — 29 structured health checks with JSON output
+src/doctor.ts          — 28 structured health checks with JSON output
 src/config-injector.ts — Idempotent INI file manipulation
 src/dxvk-resolver.ts   — GitHub API DXVK release resolver
 scripts/*.sh           — Thin bash wrappers (call cli_cmd for TS logic)
@@ -32,7 +32,7 @@ pnpm run test:run     # Run test suite
 make deploy           # Deploy Wine/DXVK/EQ environment
 make launch           # Launch EQ (single instance)
 make launch-multi     # Launch multibox instances
-make doctor           # 29-point health check
+make doctor           # 28-point health check
 make setup-all        # Apply all customizations to all characters
 ```
 
