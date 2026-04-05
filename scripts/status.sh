@@ -114,7 +114,7 @@ printf '  %-22s %s\n' "Main character:" "${main_char}"
 if [[ "${eq_windows}" -gt 0 ]] && [[ -n "${window_info}" ]]; then
     printf '\n  %-6s %-18s %-14s %s\n' "Index" "HWND" "Position" "Size"
     printf '  %s\n' "──────────────────────────────────────────────"
-    while IFS='|' read -r idx hwnd pos size pid; do
+    while IFS='|' read -r idx hwnd pos size _pid; do
         printf '  %-6s %-18s %-14s %s\n' "${idx}" "${hwnd}" "${pos}" "${size}"
     done <<< "${window_info}"
 fi
