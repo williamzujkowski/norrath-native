@@ -75,7 +75,7 @@ maps:               ## Install Good's maps (auto-download, or FILE=path/to/custo
 	@if [ -z "$(FILE)" ]; then bash scripts/install_maps.sh; else bash scripts/install_maps.sh --file "$(FILE)"; fi
 
 PARSER_FILE ?=
-parser:             ## Install EQLogParser (PARSER_FILE=path/to/downloaded.zip)
+parser:             ## Install EQLogParser DPS meter (auto-download from GitHub)
 	@if [ -z "$(PARSER_FILE)" ]; then bash scripts/install_parser.sh; else bash scripts/install_parser.sh --file "$(PARSER_FILE)"; fi
 
 # ─── Diagnostics ──────────────────────────────────────────────────────────────

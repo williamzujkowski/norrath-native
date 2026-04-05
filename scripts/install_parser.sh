@@ -6,39 +6,33 @@ set -euo pipefail
 # EQLogParser is a .NET 8 application that replaces GINA on Linux.
 # It requires the .NET 8.0 Desktop Runtime to be installed via Wine.
 #
-# Because winetricks dotnetdesktop8 is fragile, this script takes a
-# manual-assist approach:
-#
-#   Without --file: Print download instructions and the exact Wine
-#                   commands needed to install .NET 8 and EQLogParser.
-#
-#   With --file:    Extract the provided EQLogParser ZIP into the Wine
-#                   prefix's Program Files\EQLogParser\.
+# This script downloads the installer from GitHub and runs it via Wine.
+# The PiperTTS variant is used by default (Windows TTS doesn't work under Wine).
 #
 # Usage:
-#   bash scripts/install_parser.sh                              # print instructions
-#   bash scripts/install_parser.sh --file ~/Downloads/EQLogParser.zip
-#   bash scripts/install_parser.sh --file ~/Downloads/EQLogParser.zip --dry-run
+#   bash scripts/install_parser.sh                  # Download + install
+#   bash scripts/install_parser.sh --file FILE.exe  # Install from local file
+#   bash scripts/install_parser.sh --dotnet         # Install .NET 8 runtime only
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=config_reader.sh
 source "${SCRIPT_DIR}/config_reader.sh"
 
 PREFIX="${NN_PREFIX}"
-ZIP_FILE=""
+LOCAL_FILE=""
 DRY_RUN=0
+DOTNET_ONLY=0
 
-# EQLogParser GitHub releases page (for instructions)
-EQLP_RELEASES="https://github.com/kauffman12/EQLogParser/releases"
-# .NET 8.0 Desktop Runtime download page (for instructions)
-DOTNET8_URL="https://dotnet.microsoft.com/en-us/download/dotnet/8.0"
+EQLP_REPO="kauffman12/EQLogParser"
+PARSER_DEST="${PREFIX}/drive_c/Program Files/EQLogParser"
+PARSER_EXE="${PARSER_DEST}/EQLogParser.exe"
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
-info() { printf '\033[36m[install_parser]\033[0m %s\n' "$*"; }
-ok()   { printf '\033[32m[install_parser] ✓\033[0m %s\n' "$*"; }
-warn() { printf '\033[33m[install_parser] ⚠\033[0m %s\n' "$*" >&2; }
-err()  { printf '\033[31m[install_parser] ✗\033[0m %s\n' "$*" >&2; }
+info() { printf '\033[36m[parser]\033[0m %s\n' "$*"; }
+ok()   { printf '\033[32m[parser] ✓\033[0m %s\n' "$*"; }
+warn() { printf '\033[33m[parser] ⚠\033[0m %s\n' "$*" >&2; }
+err()  { printf '\033[31m[parser] ✗\033[0m %s\n' "$*" >&2; }
 
 usage() {
     cat <<EOF
@@ -46,229 +40,160 @@ Usage: $(basename "$0") [OPTIONS]
 
 Install EQLogParser (DPS meter + trigger system) into the Wine prefix.
 
-EQLogParser requires the .NET 8.0 Desktop Runtime.  Because automated
-.NET 8 installation via winetricks is unreliable, this script provides
-clear manual-installation instructions or handles ZIP extraction when
-you supply a pre-downloaded archive.
+Downloads the latest release from GitHub and runs the installer via Wine.
+Uses the PiperTTS variant (Windows TTS doesn't work under Wine).
 
-  Without --file:
-    Print step-by-step download and Wine installation instructions.
-
-  With --file PATH:
-    Extract the downloaded EQLogParser ZIP into:
-      \${PREFIX}/drive_c/Program Files/EQLogParser/
+Prerequisites: .NET 8.0 Desktop Runtime must be installed first.
+  Run: $(basename "$0") --dotnet
 
 Options:
-  --file PATH     Path to a downloaded EQLogParser ZIP (from GitHub releases)
-  --prefix PATH   Override WINEPREFIX (default from config: ${PREFIX})
+  --file PATH     Install from a local .exe instead of downloading
+  --dotnet        Download and install .NET 8 Desktop Runtime only
+  --update        Force reinstall even if already installed
+  --prefix PATH   Override WINEPREFIX (default: ${PREFIX})
   --dry-run       Show what would be done without making changes
-  -h, --help      Show this help message
+  -h, --help      Show this help
 
-Download links:
-  EQLogParser releases : ${EQLP_RELEASES}
-  .NET 8 Desktop x64   : ${DOTNET8_URL}
-
-Note: On Linux/Wine, Windows TTS is unavailable.  EQLogParser bundles
-Piper TTS as an alternative — enable it in the Triggers configuration.
+Examples:
+  make parser                              # Full auto-install
+  make parser PARSER_FILE=~/Downloads/EQLogParser-install-2.3.49.exe
 EOF
     exit 0
 }
 
 # ─── Argument Parsing ─────────────────────────────────────────────────────────
 
+FORCE_UPDATE=0
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --file)
-            if [[ $# -lt 2 ]]; then
-                err "--file requires a value"
-                exit 1
-            fi
-            ZIP_FILE="$2"
-            shift 2
-            ;;
+            if [[ $# -lt 2 ]]; then err "--file requires a value"; exit 1; fi
+            LOCAL_FILE="$2"; shift 2 ;;
+        --dotnet) DOTNET_ONLY=1; shift ;;
+        --update) FORCE_UPDATE=1; shift ;;
         --prefix)
-            if [[ $# -lt 2 ]]; then
-                err "--prefix requires a value"
-                exit 1
-            fi
-            PREFIX="$2"
-            shift 2
-            ;;
-        --dry-run)
-            DRY_RUN=1
-            shift
-            ;;
-        -h|--help)
-            usage
-            ;;
-        *)
-            err "Unknown option: $1"
-            usage
-            ;;
+            if [[ $# -lt 2 ]]; then err "--prefix requires a value"; exit 1; fi
+            PREFIX="$2"; shift 2 ;;
+        --dry-run) DRY_RUN=1; shift ;;
+        -h|--help) usage ;;
+        *) err "Unknown option: $1"; usage ;;
     esac
 done
 
-# ─── Derive paths ─────────────────────────────────────────────────────────────
+# ─── .NET 8 Runtime Installation ─────────────────────────────────────────────
 
-PARSER_DEST="${PREFIX}/drive_c/Program Files/EQLogParser"
-PARSER_EXE="${PARSER_DEST}/EQLogParser.exe"
+install_dotnet() {
+    info "Checking for .NET 8 Desktop Runtime..."
 
-# ─── Already-installed check ──────────────────────────────────────────────────
+    # Check if already installed
+    if WINEPREFIX="${PREFIX}" wine dotnet --list-runtimes 2>/dev/null | grep -q 'Microsoft.WindowsDesktop.App 8'; then
+        ok ".NET 8 Desktop Runtime already installed"
+        return 0
+    fi
 
-if [[ -f "${PARSER_EXE}" ]]; then
-    ok "EQLogParser is already installed: ${PARSER_EXE}"
-    ok "Nothing to do.  To reinstall, remove '${PARSER_DEST}' and run again."
+    info "Downloading .NET 8.0 Desktop Runtime..."
+    local dotnet_url="https://download.visualstudio.microsoft.com/download/pr/f18288a0-1554-4f3a-966b-c702baa3b9dc/windowsdesktop-runtime-8.0.16-win-x64.exe"
+    local dotnet_file
+    dotnet_file="$(mktemp --suffix=.exe)"
+    trap 'rm -f "${dotnet_file}"' RETURN
+
+    wget -q --show-progress -O "${dotnet_file}" "${dotnet_url}" 2>&1
+
+    info "Installing .NET 8 Desktop Runtime (this may take a few minutes)..."
+    if [[ "${DRY_RUN}" -eq 1 ]]; then
+        info "[DRY-RUN] Would run: wine ${dotnet_file} /quiet /norestart"
+        return 0
+    fi
+
+    WINEPREFIX="${PREFIX}" wine "${dotnet_file}" /quiet /norestart 2>/dev/null || true
+    ok ".NET 8 Desktop Runtime installed"
+}
+
+if [[ "${DOTNET_ONLY}" -eq 1 ]]; then
+    install_dotnet
     exit 0
 fi
 
-# ─── No file supplied — print instructions ────────────────────────────────────
+# ─── Idempotency Check ──────────────────────────────────────────────────────
 
-if [[ -z "${ZIP_FILE}" ]]; then
-    cat <<EOF
-
-EQLogParser is not yet installed.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- Step 1 — Download .NET 8.0 Desktop Runtime (Windows x64 installer)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  ${DOTNET8_URL}
-
-  Select: .NET Desktop Runtime 8.x.x  →  Installers  →  x64 (Windows)
-  File:   windowsdesktop-runtime-8.x.x-win-x64.exe
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- Step 2 — Install .NET 8 into the Wine prefix
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  WINEPREFIX="${PREFIX}" wine ~/Downloads/windowsdesktop-runtime-8.x.x-win-x64.exe /quiet /norestart
-
-  Tip: Run without /quiet first to watch for errors; add /quiet for
-  unattended installs once you confirm it works.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- Step 3 — Download EQLogParser
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  ${EQLP_RELEASES}
-
-  Download the latest ZIP asset (e.g. EQLogParser-X.Y.Z.zip).
-  No installer needed — it is a self-contained directory.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- Step 4 — Extract EQLogParser using this script
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  make parser PARSER_FILE=~/Downloads/EQLogParser-X.Y.Z.zip
-
-  Or directly:
-  bash scripts/install_parser.sh --file ~/Downloads/EQLogParser-X.Y.Z.zip
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- Step 5 — Launch EQLogParser
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  WINEPREFIX="${PREFIX}" wine "${PARSER_EXE}"
-
-  In EQLogParser → Settings → Triggers, enable "Use Piper TTS" so that
-  trigger audio works on Linux (Windows TTS is unavailable under Wine).
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-EOF
+if [[ "${FORCE_UPDATE}" -eq 0 ]] && [[ -f "${PARSER_EXE}" ]]; then
+    ok "EQLogParser already installed at ${PARSER_DEST}"
+    ok "Run with --update to force reinstall."
     exit 0
 fi
 
-# ─── File provided — validate and extract ────────────────────────────────────
-
-# Expand tilde manually (safe alternative to eval)
-ZIP_FILE="${ZIP_FILE/#\~/$HOME}"
-
-if [[ ! -f "${ZIP_FILE}" ]]; then
-    err "ZIP file not found: ${ZIP_FILE}"
-    exit 1
-fi
-
-if ! command -v unzip &>/dev/null; then
-    err "unzip not found — install it with: sudo apt install unzip"
-    exit 1
-fi
-
-eq_dir="${PREFIX}/drive_c/EverQuest"
-if [[ ! -d "${eq_dir}" ]]; then
-    warn "EverQuest directory not found at ${eq_dir}"
-    warn "EQLogParser can still be installed but won't find EQ logs automatically."
-    warn "Run 'make deploy' to set up the Wine prefix and install EQ."
-fi
-
-# Verify the ZIP contains EQLogParser.exe
-if ! unzip -l "${ZIP_FILE}" 2>/dev/null | grep -q 'EQLogParser\.exe'; then
-    err "EQLogParser.exe not found in ${ZIP_FILE}"
-    err "Verify this is a valid EQLogParser ZIP from ${EQLP_RELEASES}"
-    exit 1
-fi
-
-# ─── Dry-Run Mode ─────────────────────────────────────────────────────────────
+# ─── Dry-Run Mode ────────────────────────────────────────────────────────────
 
 if [[ "${DRY_RUN}" -eq 1 ]]; then
     info "DRY RUN — no changes will be made"
-    info "Would create directory: ${PARSER_DEST}"
-    info "Would extract ZIP: ${ZIP_FILE}"
-    file_count="$(unzip -l "${ZIP_FILE}" 2>/dev/null | tail -1 | awk '{print $2}' || true)"
-    info "ZIP contains approximately ${file_count} files"
+    if [[ -n "${LOCAL_FILE}" ]]; then
+        info "Would install from: ${LOCAL_FILE}"
+    else
+        info "Would download latest EQLogParser from: https://github.com/${EQLP_REPO}/releases"
+    fi
+    info "Would install to: ${PARSER_DEST}"
     exit 0
 fi
 
-# ─── Extraction ───────────────────────────────────────────────────────────────
+# ─── Get Installer ───────────────────────────────────────────────────────────
 
-info "Creating destination: ${PARSER_DEST}"
-mkdir -p "${PARSER_DEST}"
+installer_path=""
 
-info "Extracting ${ZIP_FILE} ..."
+if [[ -n "${LOCAL_FILE}" ]]; then
+    LOCAL_FILE="${LOCAL_FILE/#\~/$HOME}"
+    if [[ ! -f "${LOCAL_FILE}" ]]; then
+        err "File not found: ${LOCAL_FILE}"
+        exit 1
+    fi
+    installer_path="${LOCAL_FILE}"
+    info "Using local installer: ${installer_path}"
+else
+    # Download latest release from GitHub (prefer pipertts variant)
+    info "Fetching latest release from GitHub..."
+    local_download_url=""
+    local_download_url="$(gh api "repos/${EQLP_REPO}/releases/latest" \
+        --jq '.assets[] | select(.name | contains("pipertts")) | .browser_download_url' 2>/dev/null || true)"
 
-TMPDIR_EXTRACT="$(mktemp -d)"
-trap 'rm -rf "${TMPDIR_EXTRACT}"' EXIT
+    if [[ -z "${local_download_url}" ]]; then
+        # Fallback to non-pipertts variant
+        local_download_url="$(gh api "repos/${EQLP_REPO}/releases/latest" \
+            --jq '.assets[0].browser_download_url' 2>/dev/null || true)"
+    fi
 
-unzip -q "${ZIP_FILE}" -d "${TMPDIR_EXTRACT}"
+    if [[ -z "${local_download_url}" ]]; then
+        err "Could not find EQLogParser release on GitHub."
+        err "Download manually from: https://github.com/${EQLP_REPO}/releases"
+        err "Then run: make parser PARSER_FILE=~/Downloads/EQLogParser-install-X.Y.Z.exe"
+        exit 1
+    fi
 
-# EQLogParser ZIPs may place files at the root or inside a single top-level
-# directory.  Detect and flatten: find EQLogParser.exe and use its parent.
-src_dir=""
-while IFS= read -r -d '' exe_path; do
-    src_dir="$(dirname "${exe_path}")"
-    break
-done < <(find "${TMPDIR_EXTRACT}" -maxdepth 2 -name 'EQLogParser.exe' -print0)
+    filename="$(basename "${local_download_url}")"
+    installer_path="$(mktemp --suffix="-${filename}")"
+    trap 'rm -f "${installer_path}"' EXIT
 
-if [[ -z "${src_dir}" ]]; then
-    err "EQLogParser.exe not found after extraction — unexpected ZIP layout"
-    exit 1
+    info "Downloading: ${filename}"
+    wget -q --show-progress -O "${installer_path}" "${local_download_url}" 2>&1
 fi
 
-# Copy all files from the detected source directory
-file_count=0
-while IFS= read -r -d '' src_file; do
-    rel_path="${src_file#"${src_dir}/"}"
-    dest_file="${PARSER_DEST}/${rel_path}"
-    dest_subdir="$(dirname "${dest_file}")"
-    mkdir -p "${dest_subdir}"
-    cp "${src_file}" "${dest_file}"
-    file_count=$((file_count + 1))
-done < <(find "${src_dir}" -type f -print0)
+# ─── Install ─────────────────────────────────────────────────────────────────
 
-if [[ "${file_count}" -eq 0 ]]; then
-    err "No files extracted from ${ZIP_FILE}"
-    exit 1
+info "Installing EQLogParser via Wine..."
+info "  (The installer window may appear — follow its prompts)"
+
+WINEPREFIX="${PREFIX}" wine "${installer_path}" 2>/dev/null || true
+
+# Verify installation
+if [[ -f "${PARSER_EXE}" ]]; then
+    ok "EQLogParser installed successfully at ${PARSER_DEST}"
+    info ""
+    info "Launch with:"
+    info "  WINEPREFIX=${PREFIX} wine \"${PARSER_EXE}\""
+    info ""
+    info "In EQLogParser → Settings → Triggers, enable 'Use Piper TTS'"
+    info "for trigger audio (Windows TTS is unavailable under Wine)."
+else
+    warn "EQLogParser.exe not found after installation."
+    warn "The installer may have used a different path."
+    warn "Check: ls '${PREFIX}/drive_c/Program Files/'"
 fi
-
-ok "Extracted ${file_count} files to ${PARSER_DEST}"
-ok "EQLogParser installed successfully."
-nn_log ""
-nn_log "To launch EQLogParser:"
-nn_log "  WINEPREFIX=\"${PREFIX}\" wine \"${PARSER_EXE}\""
-nn_log ""
-nn_log "NOTE: .NET 8.0 Desktop Runtime must be installed separately."
-nn_log "If not yet installed, see instructions:"
-nn_log "  bash scripts/install_parser.sh --help"
-nn_log ""
-nn_log "Piper TTS: Enable in EQLogParser → Settings → Triggers → Use Piper TTS"
-nn_log "(Windows TTS is unavailable under Wine)"
