@@ -101,8 +101,42 @@ main() {
     done
 
     nn_log ""
-    nn_log "Layout applied. In-game: /loadskin to reload UI."
-    nn_log "See docs/chat-layout.md for window descriptions."
+    nn_log "Channel routing and timestamps applied."
+    nn_log ""
+
+    # Check if characters have all 4 chat windows created
+    local needs_setup=0
+    for ui_file in "${ui_files[@]}"; do
+        local num_containers
+        num_containers="$(grep -c 'ContainerIndex=' "${ui_file}" 2>/dev/null || echo '0')"
+        local num_windows
+        num_windows="$(grep '^NumWindows=' "${ui_file}" 2>/dev/null | head -1 | cut -d= -f2 || echo '0')"
+        if [[ "${num_windows}" -lt 4 ]] || [[ "${num_containers}" -lt 4 ]]; then
+            needs_setup=1
+            break
+        fi
+    done
+
+    if [[ "${needs_setup}" -eq 1 ]]; then
+        nn_log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        nn_log " ONE-TIME SETUP: Create chat tabs in-game (once per character)"
+        nn_log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        nn_log ""
+        nn_log "  1. Log in to each character"
+        nn_log "  2. Right-click any chat tab → 'New Window'"
+        nn_log "  3. Name it 'Spam' → OK"
+        nn_log "  4. Right-click again → 'New Window'"
+        nn_log "  5. Name it 'Alerts' → OK"
+        nn_log "  6. Camp out"
+        nn_log "  7. Run: make layout"
+        nn_log "  8. Log back in"
+        nn_log ""
+        nn_log "  This only needs to be done ONCE per character."
+        nn_log "  After that, make layout handles everything automatically."
+        nn_log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    else
+        nn_log "All characters have 4 chat windows configured."
+    fi
 }
 
 main "$@"

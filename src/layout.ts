@@ -12,12 +12,7 @@
  */
 
 /** Window names in display order. */
-export const WINDOW_NAMES: string[] = [
-  "Social",
-  "Combat",
-  "Spam",
-  "Alerts & Loot",
-];
+export const WINDOW_NAMES: string[] = ["Social", "Combat", "Spam", "Alerts"];
 
 /**
  * Human-readable names for each filter ID.
