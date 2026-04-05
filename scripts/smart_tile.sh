@@ -160,14 +160,20 @@ main() {
     nn_log "Main: ${char_names[main_idx]}"
 
     # Build tile specs: main gets 65% left, boxes stack right
+    #
+    # IMPORTANT: Wine virtual desktop frame sits at (0,0). A child window
+    # also at (0,0) won't receive mouse clicks because the desktop frame
+    # intercepts them. Offset by 1px to avoid this.
+    local origin_x=1
+    local origin_y=1
     local -a tile_args=()
 
     if [[ "${count}" -eq 1 ]] || [[ "${TEMPLATE}" == "solo" ]]; then
-        tile_args+=("0x${hwnd_list[0]}" "0,0,${screen_w}x${screen_h}")
+        tile_args+=("0x${hwnd_list[0]}" "${origin_x},${origin_y},$((screen_w - origin_x))x$((screen_h - origin_y))")
     elif [[ "${TEMPLATE}" == "equal" ]]; then
         local hw=$((screen_w / 2))
         local hh=$((screen_h / 2))
-        local positions=("0,0,${hw}x${hh}" "${hw},0,${hw}x${hh}" "0,${hh},${hw}x${hh}" "${hw},${hh},${hw}x${hh}")
+        local positions=("${origin_x},${origin_y},$((hw - origin_x))x$((hh - origin_y))" "${hw},${origin_y},$((hw))x$((hh - origin_y))" "${origin_x},${hh},$((hw - origin_x))x${hh}" "${hw},${hh},${hw}x${hh}")
         for (( i=0; i<count && i<4; i++ )); do
             tile_args+=("0x${hwnd_list[i]}" "${positions[i]}")
         done
@@ -179,9 +185,9 @@ main() {
         if [[ "${box_count}" -lt 1 ]]; then box_count=1; fi
         local box_h=$((screen_h / box_count))
 
-        # Main character gets the big window (prefix HWND with 0x for C parsing)
-        tile_args+=("0x${hwnd_list[main_idx]}" "0,0,${main_w}x${screen_h}")
-        nn_log "  ${char_names[main_idx]}: (0,0) ${main_w}x${screen_h} [MAIN]"
+        # Main character gets the big window, offset 1px from origin
+        tile_args+=("0x${hwnd_list[main_idx]}" "${origin_x},${origin_y},$((main_w - origin_x))x$((screen_h - origin_y))")
+        nn_log "  ${char_names[main_idx]}: (${origin_x},${origin_y}) $((main_w - origin_x))x$((screen_h - origin_y)) [MAIN]"
 
         # Boxes stack on the right
         local box_i=0
