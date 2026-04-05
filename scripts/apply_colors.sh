@@ -43,39 +43,14 @@ EOF
     exit 0
 }
 
-# Color scheme: "ID R G B" per line, sourced from TypeScript (canonical data).
-# ID maps to User_N in [TextColors] section (1-indexed).
-read_color_scheme() {
-    cli_cmd colors:data
-}
-
+# Color application delegated to TypeScript (src/config-injector.ts).
+# cli_cmd colors:apply writes directly to the INI file.
 apply_colors() {
     local ini_file="$1"
-    local changed=0
-
-    while read -r idx r g b; do
-        for component in Red Green Blue; do
-            local key="User_${idx}_${component}"
-            local val
-            case "${component}" in
-                Red)   val="${r}" ;;
-                Green) val="${g}" ;;
-                Blue)  val="${b}" ;;
-            esac
-
-            if grep -q "^${key}=" "${ini_file}" 2>/dev/null; then
-                local current
-                current="$(grep "^${key}=" "${ini_file}" | head -1 | cut -d= -f2)"
-                if [[ "${current}" != "${val}" ]]; then
-                    if [[ "${DRY_RUN}" -eq 0 ]]; then
-                        sed -i "s/^${key}=.*/${key}=${val}/" "${ini_file}"
-                    fi
-                    changed=$((changed + 1))
-                fi
-            fi
-        done
-    done < <(read_color_scheme)
-
+    local result
+    result="$(cli_cmd colors:apply "${ini_file}" 2>/dev/null)"
+    local changed
+    changed="$(echo "${result}" | grep -oP '"changed": \K\d+' || echo '0')"
     printf '%d' "${changed}"
 }
 

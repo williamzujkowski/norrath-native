@@ -41,65 +41,14 @@ EOF
     exit 0
 }
 
-# Channel routing map: filter_id -> window_index, sourced from TypeScript (canonical data).
-# 0=Social, 1=Combat, 2=Spam, 3=Alerts
-build_channel_map() {
-    cli_cmd layout:data
-}
-
+# Layout application delegated to TypeScript (src/config-injector.ts).
+# cli_cmd layout:apply writes directly to the INI file.
 apply_layout() {
     local ui_file="$1"
-    local changed=0
-
-    # Update ChatManager NumWindows
-    if grep -q "^NumWindows=" "${ui_file}"; then
-        local current
-        current="$(grep "^NumWindows=" "${ui_file}" | head -1 | cut -d= -f2)"
-        if [[ "${current}" != "4" ]]; then
-            if [[ "${DRY_RUN}" -eq 0 ]]; then
-                sed -i "s/^NumWindows=.*/NumWindows=4/" "${ui_file}"
-            fi
-            nn_log "  NumWindows: ${current} → 4"
-            changed=$((changed + 1))
-        fi
-    fi
-
-    # Update window names
-    local -a names=("Social" "Combat" "Spam" "Alerts & Loot")
-    for i in 0 1 2 3; do
-        local key="ChatWindow${i}_Name"
-        local val="${names[${i}]}"
-        if grep -q "^${key}=" "${ui_file}"; then
-            if [[ "${DRY_RUN}" -eq 0 ]]; then
-                sed -i "s/^${key}=.*/${key}=${val}/" "${ui_file}"
-            fi
-        else
-            if [[ "${DRY_RUN}" -eq 0 ]]; then
-                sed -i "/\[ChatManager\]/a ${key}=${val}" "${ui_file}"
-            fi
-        fi
-    done
-
-    # Update ChannelMap entries
-    while read -r filter_id window_id; do
-        local key="ChannelMap${filter_id}"
-        if grep -q "^${key}=" "${ui_file}"; then
-            local current
-            current="$(grep "^${key}=" "${ui_file}" | head -1 | cut -d= -f2)"
-            if [[ "${current}" != "${window_id}" ]]; then
-                if [[ "${DRY_RUN}" -eq 0 ]]; then
-                    sed -i "s/^${key}=.*/${key}=${window_id}/" "${ui_file}"
-                fi
-                changed=$((changed + 1))
-            fi
-        else
-            if [[ "${DRY_RUN}" -eq 0 ]]; then
-                sed -i "/\[ChatManager\]/a ${key}=${window_id}" "${ui_file}"
-            fi
-            changed=$((changed + 1))
-        fi
-    done < <(build_channel_map)
-
+    local result
+    result="$(cli_cmd layout:apply "${ui_file}" 2>/dev/null)"
+    local changed
+    changed="$(echo "${result}" | grep -oP '"changed": \K\d+' || echo '0')"
     printf '%d' "${changed}"
 }
 

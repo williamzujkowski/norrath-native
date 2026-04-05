@@ -100,6 +100,89 @@ function validatePath(
 }
 
 /**
+ * Inject arbitrary key-value settings into an INI file section.
+ *
+ * - Updates matching keys in-place, adds missing keys after section header.
+ * - Preserves all other keys.
+ * - Returns count of changes made.
+ */
+/** Append all entries from a map as kv lines to a line array. */
+function appendMapEntries(
+  lines: IniLine[],
+  entries: Map<string, string>,
+): number {
+  let count = 0;
+  for (const [k, v] of entries) {
+    lines.push({ kind: "kv", key: k, value: v });
+    count++;
+  }
+  entries.clear();
+  return count;
+}
+
+/** Update existing keys in a section, returns count of changes. */
+function updateExistingKeys(
+  lines: IniLine[],
+  section: string,
+  pending: Map<string, string>,
+): number {
+  let changed = 0;
+  let inSection = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line === undefined) continue;
+    if (line.kind === "section") {
+      inSection = line.raw.includes(`[${section}]`);
+    } else if (inSection && line.kind === "kv" && pending.has(line.key)) {
+      const newVal = pending.get(line.key) ?? "";
+      if (line.value !== newVal) {
+        lines[i] = { kind: "kv", key: line.key, value: newVal };
+        changed++;
+      }
+      pending.delete(line.key);
+    }
+  }
+  return changed;
+}
+
+/** Ensure a section exists, append any remaining keys. */
+function ensureSectionAndAppend(
+  lines: IniLine[],
+  section: string,
+  remaining: Map<string, string>,
+): number {
+  const sectionExists = lines.some(
+    (l) => l.kind === "section" && l.raw.includes(`[${section}]`),
+  );
+  if (!sectionExists) {
+    lines.push({ kind: "section", raw: `[${section}]` });
+  }
+  return appendMapEntries(lines, remaining);
+}
+
+/**
+ * Inject arbitrary key-value settings into an INI file section.
+ * Returns count of changes made.
+ */
+export function injectSettings(
+  filePath: string,
+  settings: Record<string, string>,
+  section: string,
+): Result<{ changed: number }, Error> {
+  const lines = parseIni(readExistingFile(filePath));
+  const pending = new Map(Object.entries(settings));
+
+  let changed = updateExistingKeys(lines, section, pending);
+  changed += ensureSectionAndAppend(lines, section, pending);
+
+  const writeResult = writeFile(filePath, serializeIni(lines));
+  if (!writeResult.ok) return writeResult;
+
+  return ok({ changed });
+}
+
+/**
  * Inject managed settings into an eqclient.ini file.
  *
  * - Creates the file with baseline settings if it does not exist.
