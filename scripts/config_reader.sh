@@ -55,13 +55,30 @@ nn_find_eq_windows() {
 # _NET_WORKAREA. Falls back to xrandr monitor size, then 1920x1080.
 
 nn_get_screen_size() {
-    # _NET_WORKAREA gives the usable area excluding panels/docks
+    # _NET_WORKAREA gives the usable area excluding panels/docks.
+    # We also subtract the GNOME window title bar height (~37px) since
+    # Wine's SetWindowPos sets the WINDOW size (including frame) but
+    # EQ renders to the CLIENT area (excluding frame).
     local workarea
     workarea="$(DISPLAY=:0 xprop -root _NET_WORKAREA 2>/dev/null | grep -oP '\d+, \d+, \d+, \d+' | head -1 || echo '')"
     if [[ -n "${workarea}" ]]; then
         local w h
         w="$(echo "${workarea}" | cut -d',' -f3 | tr -d ' ')"
         h="$(echo "${workarea}" | cut -d',' -f4 | tr -d ' ')"
+
+        # Detect title bar height from any EQ window, fallback to 37px
+        local frame_top=37
+        local eq_wid
+        eq_wid="$(nn_find_eq_windows 2>/dev/null | head -1)"
+        if [[ -n "${eq_wid}" ]]; then
+            local frame
+            frame="$(DISPLAY=:0 xprop -id "${eq_wid}" _NET_FRAME_EXTENTS 2>/dev/null | grep -oP '\d+, \d+, \d+, \d+' || echo '')"
+            if [[ -n "${frame}" ]]; then
+                frame_top="$(echo "${frame}" | cut -d',' -f3 | tr -d ' ')"
+            fi
+        fi
+
+        h=$((h - frame_top))
         echo "${w} ${h}"
         return
     fi
