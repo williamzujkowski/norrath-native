@@ -117,29 +117,18 @@ void cmd_tile(int argc, char *argv[]) {
     EqWindows eq = { .count = 0 };
     EnumWindows(FindEqProc, (LPARAM)&eq);
 
-    /* Parse specs */
     int tile_count = (argc < eq.count) ? argc : eq.count;
-
-    /* Phase 1: Hide all */
     int i;
-    for (i = 0; i < tile_count; i++) {
-        ShowWindow(eq.windows[i], SW_HIDE);
-    }
-    Sleep(50);
 
-    /* Phase 2: Show and position */
     for (i = 0; i < tile_count; i++) {
         int x, y, w, h;
         if (sscanf(argv[i], "%d,%d,%dx%d", &x, &y, &w, &h) == 4) {
-            ShowWindow(eq.windows[i], SW_SHOW);
             SetWindowPos(eq.windows[i], NULL, x, y, w, h,
                          SWP_NOZORDER | SWP_NOACTIVATE);
             InvalidateRect(eq.windows[i], NULL, TRUE);
             printf("Window %d: (%d,%d) %dx%d\n", i, x, y, w, h);
         }
     }
-
-    /* Phase 3: Focus first */
     if (tile_count > 0) {
         SetForegroundWindow(eq.windows[0]);
     }
@@ -317,6 +306,34 @@ void cmd_map(void) {
     }
 }
 
+/* ── Fix X11 stacking for a window ── */
+/* The first-launched EQ process's X11 child window gets stuck at the
+ * bottom of the Wine desktop's sibling stack. Hide/show forces Wine
+ * to unmap and re-map the X11 child, placing it at the top.
+ * This MUST run as a separate wine process invocation so the Wine
+ * server fully processes the X11 unmap/remap between calls. */
+
+void cmd_fix_stacking(HWND hwnd) {
+    RECT r;
+    GetWindowRect(hwnd, &r);
+    int w = r.right - r.left;
+    int h = r.bottom - r.top;
+
+    printf("fix-stacking: hiding HWND %p\n", hwnd);
+    ShowWindow(hwnd, SW_HIDE);
+    Sleep(200);
+
+    printf("fix-stacking: showing HWND %p\n", hwnd);
+    ShowWindow(hwnd, SW_SHOW);
+    Sleep(200);
+
+    /* Re-apply position to trigger WM_SIZE for correct render */
+    SetWindowPos(hwnd, NULL, r.left, r.top, w, h,
+                 SWP_NOZORDER | SWP_NOACTIVATE);
+    SetForegroundWindow(hwnd);
+    printf("fix-stacking: done (%d,%d %dx%d)\n", r.left, r.top, w, h);
+}
+
 /* ── Tile by HWND directly ── */
 
 void cmd_tile_hwnd(int argc, char *argv[]) {
@@ -343,23 +360,8 @@ void cmd_tile_hwnd(int argc, char *argv[]) {
         }
     }
 
-    /* Phase 1: Hide all windows.
-     * This forces Wine to unmap the X11 child windows. When re-shown,
-     * they get re-mapped at the top of the X11 sibling stacking order.
-     * Without this, the first-launched EQ process's window gets stuck
-     * at the bottom of the X11 child stack and never receives
-     * click-to-focus events from the compositor. */
+    /* Position all windows and send WM_SIZE for re-render */
     for (i = 0; i < count; i++) {
-        ShowWindow(specs[i].hwnd, SW_HIDE);
-    }
-    Sleep(50);
-
-    /* Phase 2: Show and position each window.
-     * ShowWindow(SW_SHOW) re-maps the X11 child window (fixes stacking).
-     * SetWindowPos moves/resizes and sends WM_SIZE so EQ re-renders
-     * at the correct resolution inside the window. */
-    for (i = 0; i < count; i++) {
-        ShowWindow(specs[i].hwnd, SW_SHOW);
         SetWindowPos(specs[i].hwnd, NULL,
                      specs[i].x, specs[i].y, specs[i].w, specs[i].h,
                      SWP_NOZORDER | SWP_NOACTIVATE);
@@ -369,7 +371,7 @@ void cmd_tile_hwnd(int argc, char *argv[]) {
             specs[i].w, specs[i].h);
     }
 
-    /* Phase 3: Give the first (main) window keyboard focus */
+    /* Focus the main window */
     if (count > 0) {
         SetForegroundWindow(specs[0].hwnd);
     }
@@ -411,6 +413,8 @@ int main(int argc, char *argv[]) {
         cmd_tile(argc - 2, argv + 2);
     } else if (strcmp(argv[1], "tile-hwnd") == 0 && argc >= 4) {
         cmd_tile_hwnd(argc - 2, argv + 2);
+    } else if (strcmp(argv[1], "fix-stacking") == 0 && argc >= 3) {
+        cmd_fix_stacking((HWND)(LONG_PTR)strtoull(argv[2], NULL, 0));
     } else if (strcmp(argv[1], "focus") == 0 && argc >= 3) {
         cmd_focus(atoi(argv[2]));
     } else if (strcmp(argv[1], "focus-hwnd") == 0 && argc >= 3) {
