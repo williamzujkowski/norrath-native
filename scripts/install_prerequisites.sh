@@ -5,6 +5,10 @@ set -euo pipefail
 # Requires: Ubuntu 24.04 LTS, sudo access
 # Idempotent: safe to run multiple times
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=config_reader.sh
+source "${SCRIPT_DIR}/config_reader.sh"
+
 SCRIPT_NAME="$(basename "$0")"
 readonly SCRIPT_NAME
 readonly LOG_DIR="${HOME}/.local/share/norrath-native"
