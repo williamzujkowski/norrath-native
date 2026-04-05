@@ -127,14 +127,13 @@ main() {
     nn_log "  Use 'make tile-set-main' after visually identifying your main character."
 
     # Build tile specs.
-    # For ultrawide monitors, clamp the main window to 16:9 aspect ratio
-    # (EQ's max). Remaining space goes to box windows.
+    # Use TypeScript resolution logic (src/resolution.ts) for ultrawide detection.
     local main_w
-    local aspect_ratio
-    aspect_ratio="$(echo "${screen_w} ${screen_h}" | awk '{printf "%.2f", $1/$2}')"
-    if awk "BEGIN {exit !(${aspect_ratio} > 1.78)}" 2>/dev/null; then
-        # Ultrawide: main gets 16:9 clamped width
-        main_w=$((screen_h * 16 / 9))
+    local res_info
+    res_info="$(cli_cmd resolution:detect "${screen_w}" "${screen_h}" 2>/dev/null || echo '{}')"
+    if echo "${res_info}" | grep -q '"isUltrawide": true'; then
+        # Ultrawide: main gets 16:9 clamped width from TypeScript
+        main_w="$(echo "${res_info}" | grep -oP '"width": \K\d+' | head -1)"
         nn_log "Ultrawide detected — main window clamped to ${main_w}x${screen_h} (16:9)"
     else
         # Standard: main gets 65%

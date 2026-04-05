@@ -49,26 +49,37 @@ detect_display() {
     printf '%s' "${res}"
 }
 
-get_current_wine_res() {
-    grep '"Default"=' "${PREFIX}/user.reg" 2>/dev/null | grep -oP '\d+x\d+' | head -1 || echo 'unknown'
+# Resolution logic delegated to TypeScript (src/resolution.ts) via cli_cmd.
+# This eliminates duplication — ultrawide detection, 16:9 clamping, and
+# viewport calculation all live in one place with tests.
+
+get_resolution_info() {
+    local res="$1"
+    local w="${res%%x*}"
+    local h="${res##*x}"
+    cli_cmd resolution:detect "${w}" "${h}" 2>/dev/null
 }
 
 is_ultrawide() {
     local res="$1"
     local w="${res%%x*}"
     local h="${res##*x}"
-    local ratio
-    ratio="$(echo "${w} ${h}" | awk '{printf "%.2f", $1/$2}')"
-    awk "BEGIN {exit !(${ratio} > 1.78)}" 2>/dev/null
+    local info
+    info="$(cli_cmd resolution:detect "${w}" "${h}" 2>/dev/null)"
+    echo "${info}" | grep -q '"isUltrawide": true'
 }
 
 clamp_16x9() {
     local res="$1"
     local w="${res%%x*}"
     local h="${res##*x}"
-    if is_ultrawide "${res}"; then
-        local clamped=$((h * 16 / 9))
-        printf '%dx%d' "${clamped}" "${h}"
+    local info
+    info="$(cli_cmd resolution:detect "${w}" "${h}" 2>/dev/null)"
+    local cw ch
+    cw="$(echo "${info}" | grep -oP '"width": \K\d+' | head -1)"
+    ch="$(echo "${info}" | grep -oP '"height": \K\d+' | head -1)"
+    if [[ -n "${cw}" ]] && [[ -n "${ch}" ]]; then
+        printf '%dx%d' "${cw}" "${ch}"
     else
         printf '%s' "${res}"
     fi
