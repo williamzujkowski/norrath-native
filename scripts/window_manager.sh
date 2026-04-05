@@ -35,20 +35,18 @@ EOF
     exit 0
 }
 
-# Find all EverQuest windows (Wine virtual desktops running EQ)
+# Move and resize a window using xdotool (works with Wine child windows)
+# wmctrl only handles top-level X11 windows; Wine EQ windows are children
+# of the Wine virtual desktop, so xdotool is required.
+move_window() {
+    local wid="$1" x="$2" y="$3" w="$4" h="$5"
+    DISPLAY=:0 xdotool windowmove "${wid}" "${x}" "${y}" 2>/dev/null || true
+    DISPLAY=:0 xdotool windowsize "${wid}" "${w}" "${h}" 2>/dev/null || true
+}
+
+# Find EQ game windows (excludes the Wine virtual desktop container)
 find_eq_windows() {
-    local -a windows=()
-    while IFS= read -r wid; do
-        windows+=("${wid}")
-    done < <(DISPLAY=:0 xdotool search --name "Default - Wine desktop" 2>/dev/null || true)
-
-    # Also check for direct EQ windows
-    while IFS= read -r wid; do
-        windows+=("${wid}")
-    done < <(DISPLAY=:0 xdotool search --name "EverQuest" 2>/dev/null || true)
-
-    # Deduplicate
-    printf '%s\n' "${windows[@]}" | sort -u
+    DISPLAY=:0 xdotool search --name "EverQuest" 2>/dev/null || true
 }
 
 cmd_list() {
@@ -89,17 +87,14 @@ cmd_tile() {
     nn_log "Tiling ${count} window(s) on ${screen_w}x${screen_h} display..."
 
     if [[ "${count}" -eq 1 ]]; then
-        # Single window: maximize
-        DISPLAY=:0 wmctrl -i -r "${windows[0]}" -e "0,0,0,${screen_w},${screen_h}" 2>/dev/null
+        move_window "${windows[0]}" 0 0 "${screen_w}" "${screen_h}"
         nn_log "  Window maximized."
     elif [[ "${count}" -eq 2 ]]; then
-        # Two windows: side by side
         local half_w=$((screen_w / 2))
-        DISPLAY=:0 wmctrl -i -r "${windows[0]}" -e "0,0,0,${half_w},${screen_h}" 2>/dev/null
-        DISPLAY=:0 wmctrl -i -r "${windows[1]}" -e "0,${half_w},0,${half_w},${screen_h}" 2>/dev/null
+        move_window "${windows[0]}" 0 0 "${half_w}" "${screen_h}"
+        move_window "${windows[1]}" "${half_w}" 0 "${half_w}" "${screen_h}"
         nn_log "  2 windows: side-by-side."
     elif [[ "${count}" -le 4 ]]; then
-        # 3-4 windows: 2x2 grid
         local half_w=$((screen_w / 2))
         local half_h=$((screen_h / 2))
         local positions=("0,0" "${half_w},0" "0,${half_h}" "${half_w},${half_h}")
@@ -108,11 +103,10 @@ cmd_tile() {
             local x y
             x="$(echo "${positions[${i}]}" | cut -d, -f1)"
             y="$(echo "${positions[${i}]}" | cut -d, -f2)"
-            DISPLAY=:0 wmctrl -i -r "${windows[${i}]}" -e "0,${x},${y},${half_w},${half_h}" 2>/dev/null
+            move_window "${windows[${i}]}" "${x}" "${y}" "${half_w}" "${half_h}"
         done
         nn_log "  ${count} windows: 2x2 grid."
     else
-        # 5-6 windows: 3x2 grid
         local third_w=$((screen_w / 3))
         local half_h=$((screen_h / 2))
         local i
@@ -121,7 +115,7 @@ cmd_tile() {
             local row=$((i / 3))
             local x=$((col * third_w))
             local y=$((row * half_h))
-            DISPLAY=:0 wmctrl -i -r "${windows[${i}]}" -e "0,${x},${y},${third_w},${half_h}" 2>/dev/null
+            move_window "${windows[${i}]}" "${x}" "${y}" "${third_w}" "${half_h}"
         done
         nn_log "  ${count} windows: 3x2 grid."
     fi
@@ -147,7 +141,7 @@ cmd_pip() {
 
     # Main window: 75% of screen
     local main_w=$((screen_w * 3 / 4))
-    DISPLAY=:0 wmctrl -i -r "${windows[0]}" -e "0,0,0,${main_w},${screen_h}" 2>/dev/null
+    move_window "${windows[0]}" 0 0 "${main_w}" "${screen_h}"
 
     # Others: stacked in the right 25%
     local pip_w=$((screen_w - main_w))
@@ -155,7 +149,7 @@ cmd_pip() {
     local i
     for (( i=1; i<count; i++ )); do
         local y=$(( (i - 1) * pip_h ))
-        DISPLAY=:0 wmctrl -i -r "${windows[${i}]}" -e "0,${main_w},${y},${pip_w},${pip_h}" 2>/dev/null
+        move_window "${windows[${i}]}" "${main_w}" "${y}" "${pip_w}" "${pip_h}"
     done
 
     nn_log "PiP: main window + ${count} side panels."

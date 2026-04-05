@@ -72,27 +72,11 @@ apply_tiling() {
 
     nn_log "Wine desktop: ${desktop_w}x${desktop_h}"
 
-    # Find EQ windows
-    local -a windows=()
-    while IFS= read -r wid; do
-        windows+=("${wid}")
-    done < <(DISPLAY=:0 xdotool search --name "EverQuest" 2>/dev/null | head -6 || true)
-
-    # Also find Wine desktop windows
-    while IFS= read -r wid; do
-        windows+=("${wid}")
-    done < <(DISPLAY=:0 xdotool search --name "Default - Wine desktop" 2>/dev/null | head -6 || true)
-
-    # Deduplicate and get unique larger windows (skip tiny ones)
+    # Find EQ game windows (excludes Wine desktop container)
     local -a real_windows=()
-    for wid in "${windows[@]}"; do
-        local geom
-        geom="$(DISPLAY=:0 xdotool getwindowgeometry "${wid}" 2>/dev/null | grep 'Geometry' | grep -oP '\d+x\d+' || true)"
-        local gw="${geom%%x*}"
-        if [[ -n "${gw}" ]] && [[ "${gw}" -gt 100 ]]; then
-            real_windows+=("${wid}")
-        fi
-    done
+    while IFS= read -r wid; do
+        real_windows+=("${wid}")
+    done < <(DISPLAY=:0 xdotool search --name "EverQuest" 2>/dev/null | head -6 || true)
 
     local i=1
     while true; do
@@ -111,7 +95,8 @@ apply_tiling() {
         if [[ "${idx}" -lt "${#real_windows[@]}" ]]; then
             local wid="${real_windows[${idx}]}"
             if [[ "${DRY_RUN}" -eq 0 ]]; then
-                DISPLAY=:0 wmctrl -i -r "${wid}" -e "0,${px},${py},${pw},${ph}" 2>/dev/null || true
+                DISPLAY=:0 xdotool windowmove "${wid}" "${px}" "${py}" 2>/dev/null || true
+                DISPLAY=:0 xdotool windowsize "${wid}" "${pw}" "${ph}" 2>/dev/null || true
             fi
             nn_log "  Window ${i}: ${px},${py} ${pw}x${ph}"
         else
