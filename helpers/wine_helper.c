@@ -334,6 +334,28 @@ void cmd_fix_stacking(HWND hwnd) {
     printf("fix-stacking: done (%d,%d %dx%d)\n", r.left, r.top, w, h);
 }
 
+/* ── Send text to a window (types characters via WM_CHAR + Enter) ── */
+
+void cmd_send_text(HWND hwnd, const char *text) {
+    /* Focus the window first */
+    SetForegroundWindow(hwnd);
+    Sleep(100);
+
+    /* Send each character via WM_CHAR */
+    const char *p;
+    for (p = text; *p; p++) {
+        PostMessageA(hwnd, WM_CHAR, (WPARAM)(unsigned char)*p, 0);
+        Sleep(10);
+    }
+
+    /* Press Enter (VK_RETURN) */
+    PostMessageA(hwnd, WM_KEYDOWN, VK_RETURN, 0);
+    Sleep(10);
+    PostMessageA(hwnd, WM_KEYUP, VK_RETURN, 0);
+
+    printf("Sent '%s' + Enter to HWND %p\n", text, hwnd);
+}
+
 /* ── Tile by HWND directly ── */
 
 void cmd_tile_hwnd(int argc, char *argv[]) {
@@ -415,6 +437,8 @@ int main(int argc, char *argv[]) {
         cmd_tile_hwnd(argc - 2, argv + 2);
     } else if (strcmp(argv[1], "fix-stacking") == 0 && argc >= 3) {
         cmd_fix_stacking((HWND)(LONG_PTR)strtoull(argv[2], NULL, 0));
+    } else if (strcmp(argv[1], "send-text") == 0 && argc >= 4) {
+        cmd_send_text((HWND)(LONG_PTR)strtoull(argv[2], NULL, 0), argv[3]);
     } else if (strcmp(argv[1], "focus") == 0 && argc >= 3) {
         cmd_focus(atoi(argv[2]));
     } else if (strcmp(argv[1], "focus-hwnd") == 0 && argc >= 3) {
