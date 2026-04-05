@@ -93,7 +93,8 @@ install_dotnet() {
     fi
 
     info "Downloading .NET 8.0 Desktop Runtime..."
-    local dotnet_url="https://download.visualstudio.microsoft.com/download/pr/f18288a0-1554-4f3a-966b-c702baa3b9dc/windowsdesktop-runtime-8.0.16-win-x64.exe"
+    # aka.ms redirect always points to the latest .NET 8.x patch release
+    local dotnet_url="https://aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x64.exe"
     local dotnet_file
     dotnet_file="$(mktemp --suffix=.exe)"
     trap 'rm -f "${dotnet_file}"' RETURN
