@@ -109,6 +109,11 @@ main() {
 
     nn_log "Applying settings (profile: ${NN_PROFILE}) to ${ini_file}"
 
+    # Temporarily make writable (may be read-only from previous configure)
+    if [[ -f "${ini_file}" ]] && [[ "${DRY_RUN}" -eq 0 ]]; then
+        chmod 644 "${ini_file}" 2>/dev/null || true
+    fi
+
     if [[ ! -f "${ini_file}" ]]; then
         if [[ "${DRY_RUN}" -eq 1 ]]; then
             nn_log "[DRY-RUN] Would create ${ini_file}"
@@ -127,6 +132,15 @@ main() {
         nn_log "All settings already correct (no changes needed)."
     else
         nn_log "Applied ${total} change(s)."
+    fi
+
+    # Make eqclient.ini read-only to prevent race condition when
+    # multiple EQ instances exit simultaneously. The last instance
+    # to exit would overwrite settings from other instances.
+    # make configure temporarily makes it writable for updates.
+    if [[ "${DRY_RUN}" -eq 0 ]]; then
+        chmod 444 "${ini_file}"
+        nn_log "Set ${ini_file} read-only (prevents multibox exit race)."
     fi
 }
 
