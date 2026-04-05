@@ -256,6 +256,26 @@ export function generateChannelMapEntries(): Record<string, string> {
   for (const [id, windowIndex] of Object.entries(CHANNEL_MAP)) {
     entries[`ChannelMap${id}`] = String(windowIndex);
   }
+
+  // Enable HH:MM:SS timestamps on all chat windows by default.
+  // Format: 0=off, 1=HH:MM:SS, 2=HH.MM, 3=MM.SS
+  // Timestamps are essential for log parsing, raid timing, and debugging.
+  for (let w = 0; w < WINDOW_NAMES.length; w++) {
+    entries[`ChatWindow${String(w)}_TimestampFormat`] = "1";
+    entries[`ChatWindow${String(w)}_TimestampMatchChatColor`] = "1";
+  }
+
+  // Set window names
+  for (let w = 0; w < WINDOW_NAMES.length; w++) {
+    const name = WINDOW_NAMES[w];
+    if (name !== undefined) {
+      entries[`ChatWindow${String(w)}_Name`] = name;
+    }
+  }
+
+  // Set NumWindows
+  entries["NumWindows"] = String(WINDOW_NAMES.length);
+
   return entries;
 }
 
