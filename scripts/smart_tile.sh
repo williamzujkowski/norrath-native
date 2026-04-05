@@ -57,11 +57,11 @@ main() {
         exit 1
     fi
 
-    # Get screen size
+    # Get screen size — uses Wine virtual desktop if configured.
+    # EQ windows are constrained to the virtual desktop, not the physical monitor.
     local screen_w screen_h
-    screen_w="$(DISPLAY=:0 xdotool getdisplaygeometry 2>/dev/null | cut -d' ' -f1)"
-    screen_h="$(DISPLAY=:0 xdotool getdisplaygeometry 2>/dev/null | cut -d' ' -f2)"
-    nn_log "Screen: ${screen_w}x${screen_h}"
+    read -r screen_w screen_h <<< "$(nn_get_screen_size)"
+    nn_log "Tiling area: ${screen_w}x${screen_h}"
 
     # Get HWND→X11 WID mapping from Wine
     nn_log "Mapping windows via Wine API..."

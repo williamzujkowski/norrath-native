@@ -122,10 +122,9 @@ cmd_tile() {
         exit 1
     fi
 
-    # Get screen dimensions
+    # Get screen dimensions (uses Wine virtual desktop if configured)
     local screen_w screen_h
-    screen_w="$(DISPLAY=:0 xdotool getdisplaygeometry 2>/dev/null | cut -d' ' -f1)"
-    screen_h="$(DISPLAY=:0 xdotool getdisplaygeometry 2>/dev/null | cut -d' ' -f2)"
+    read -r screen_w screen_h <<< "$(nn_get_screen_size)"
 
     # Detect XWayland coordinate scaling
     XWAYLAND_SCALE="$(detect_xwayland_scale "${windows[0]}")"
@@ -182,8 +181,7 @@ cmd_pip() {
     fi
 
     local screen_w screen_h
-    screen_w="$(DISPLAY=:0 xdotool getdisplaygeometry 2>/dev/null | cut -d' ' -f1)"
-    screen_h="$(DISPLAY=:0 xdotool getdisplaygeometry 2>/dev/null | cut -d' ' -f2)"
+    read -r screen_w screen_h <<< "$(nn_get_screen_size)"
 
     local main_w=$((screen_w * 3 / 4))
     local pip_w=$((screen_w - main_w))
