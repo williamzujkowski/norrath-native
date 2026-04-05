@@ -48,7 +48,7 @@ Initial pre-release. Full-featured but actively evolving.
 
 ### Tools & Diagnostics
 
-- 30+ structured doctor health checks with JSON output
+- 29 structured doctor health checks with JSON output
 - Support bundle generation
 - Wine API helper (list/find/map/resize/tile/focus/save)
 - Session backup/restore
@@ -57,10 +57,9 @@ Initial pre-release. Full-featured but actively evolving.
 
 ### Developer Experience
 
-- TypeScript-first architecture (2100 lines src, 1750 lines tests)
-- 165 tests across 8 files
+- TypeScript-first architecture with full test coverage
 - Pre-commit hooks (husky + lint-staged)
-- CI: typecheck + build + lint + test + TypeDoc + ShellCheck
+- CI: typecheck + build + lint + format + test + TypeDoc + ShellCheck + stats verification
 - OpenSSF Scorecard workflow
 - Dependabot for dependency updates
 - CODING_STANDARDS.md compliance (ES2024, noUncheckedIndexedAccess)

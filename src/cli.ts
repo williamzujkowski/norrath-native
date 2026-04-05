@@ -34,6 +34,7 @@ import {
   CHANNEL_NAMES,
   generateChannelMapEntries,
 } from "./layout.js";
+import { gatherMetadata } from "./metadata.js";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -62,6 +63,7 @@ function commands(): Record<string, () => void> {
     "layout:data": cmdLayoutData,
     doctor: cmdDoctor,
     "doctor:json": cmdDoctorJson,
+    metadata: cmdMetadata,
     help: cmdHelp,
   };
 }
@@ -233,6 +235,10 @@ function cmdDoctorJson(): void {
   }
 }
 
+function cmdMetadata(): void {
+  printJson(gatherMetadata());
+}
+
 function cmdHelp(): void {
   process.stdout.write(`norrath-native CLI
 
@@ -254,6 +260,7 @@ Commands:
   doctor                   Run health checks (ANSI text output)
   doctor:json              Run health checks (JSON output)
   doctor --prefix PATH     Override WINEPREFIX to check
+  metadata                 Output project metadata (counts from source of truth)
 
 Usage from bash:
   node dist/cli.js config | jq '.prefix'

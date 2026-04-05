@@ -9,6 +9,7 @@
     "src/resolution.ts",
     "src/doctor.ts",
     "src/dxvk-resolver.ts",
+    "src/metadata.ts",
     "src/types/interfaces.ts"
   ],
   "out": "docs/api",

@@ -20,6 +20,8 @@ jobs:
       - run: pnpm lint
       - run: pnpm run format:check
       - run: pnpm run test:run
+      - name: Verify doc stats match source
+        run: npx tsx scripts/generate-stats.ts
       - name: TypeDoc build check
         run: npx typedoc --logLevel Warn
       - name: ShellCheck bash scripts

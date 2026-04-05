@@ -21,7 +21,7 @@ _The Daybreak Launcher rendering correctly inside a Wine Virtual Desktop on Ubun
 | Wine           | 9.0 (stable)        | 64-bit prefix, auto-detected as `wine` or `wine64` |
 | Vulkan drivers | mesa-vulkan-drivers | GPU must support Vulkan (Intel, AMD, NVIDIA)       |
 | Node.js        | 22.x LTS            | TypeScript config tooling                          |
-| pnpm           | 9.x                 | Package manager                                    |
+| pnpm           | 10.x                | Package manager                                    |
 
 Don't worry about installing these manually — `make prereqs` handles everything.
 
@@ -249,24 +249,26 @@ make deploy  # Rebuild from scratch
 
 ## Project Structure
 
+<!-- Counts verified by: npx tsx scripts/generate-stats.ts -->
+
 ```
 norrath-native/
-  scripts/
-    install_prerequisites.sh  # System dependency installer
-    deploy_eq_env.sh          # Wine prefix + DXVK + EQ (idempotent)
-    configure_eq.sh           # eqclient.ini manager
-    start_eq.sh               # Launch wrapper (multibox, graceful shutdown)
-    doctor.sh                 # Health check (18 validation checks)
   src/
-    config-injector.ts        # INI file manager (idempotent, path-safe)
-    dxvk-resolver.ts          # GitHub API DXVK release fetcher
-    types/
-      interfaces.ts           # TypeScript contract definitions
-  tests/
-    config-injector.test.ts   # 14 tests covering all critical paths
-  docs/
-    launcher-screenshot.png   # E2E verified launcher rendering
-  Makefile                    # Unified task runner (make help for all commands)
+    cli.ts               — Unified CLI entry point (19 commands)
+    config.ts            — YAML config, 5 profiles, 43 managed settings
+    colors.ts            — 91-color WCAG AA-compliant chat scheme
+    layout.ts            — 107-channel → 4-window chat routing
+    resolution.ts        — Ultrawide detection, 16:9 clamping, tiling
+    doctor.ts            — 29 structured health checks (JSON output)
+    config-injector.ts   — Idempotent INI file manipulation
+    dxvk-resolver.ts     — GitHub API DXVK release resolver
+    metadata.ts          — Programmatic project stats (self-documenting)
+    types/interfaces.ts  — Core TypeScript contracts
+  scripts/               — 17 bash scripts (thin system wrappers)
+  tests/                 — 9 test files
+  layouts/               — 4 window layout templates
+  helpers/wine_helper.c  — Wine API helper (SetWindowPos, HWND mapping)
+  Makefile               — 52 targets (make help)
 ```
 
 ## Verified Hardware

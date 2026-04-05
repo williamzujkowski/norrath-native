@@ -17,6 +17,9 @@
     "docs": "typedoc",
     "format": "prettier --write 'src/**/*.ts' 'tests/**/*.ts' '*.{json,md,yaml,yml}'",
     "format:check": "prettier --check 'src/**/*.ts' 'tests/**/*.ts' '*.{json,md,yaml,yml}'",
+    "stats": "npx tsx scripts/generate-stats.ts",
+    "stats:check": "npx tsx scripts/generate-stats.ts",
+    "stats:fix": "npx tsx scripts/generate-stats.ts --fix",
     "docs:check": "bash scripts/generate-docs.sh --check",
     "prepare": "husky"
   },
@@ -29,6 +32,7 @@
     "husky": "9.1.7",
     "lint-staged": "16.4.0",
     "prettier": "3.8.1",
+    "tsx": "^4.21.0",
     "typedoc": "0.28.18",
     "typescript": "6.0.2",
     "vitest": "4.1.2"

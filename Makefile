@@ -1,4 +1,4 @@
-.PHONY: install build prereqs launch-perf launch-safe logs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates resolution resolution-detect adapt profile-save profile-load profile-list setup-all tile pip focus-next windows identify doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
+.PHONY: install build prereqs launch-perf launch-safe logs prereqs-dry typecheck lint test test-coverage docs docs-check stats stats-check stats-fix deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates resolution resolution-detect adapt adapt-dry profile-save profile-load profile-list setup-all tile tile-grid pip focus-next windows identify doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -36,6 +36,15 @@ docs:               ## Generate API docs, command reference, and check reference
 
 docs-check:         ## Verify generated docs are up to date (CI mode)
 	bash scripts/generate-docs.sh --check
+
+stats:              ## Show project statistics from source of truth
+	npx tsx scripts/generate-stats.ts
+
+stats-check:        ## Verify doc numbers match source (CI mode)
+	npx tsx scripts/generate-stats.ts
+
+stats-fix:          ## Fix stale numbers in documentation
+	npx tsx scripts/generate-stats.ts --fix
 
 deploy:             ## Full deployment (prefix + DXVK + EQ install + config)
 	bash scripts/deploy_eq_env.sh
