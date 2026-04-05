@@ -24,8 +24,8 @@ readonly -a REQUIRED_PACKAGES=(
     # Wine dependencies
     cabextract
     winbind
-    # Window management (required for multibox tiling)
-    xdotool
+    # X11 utilities (xprop for PID lookup, xrandr for display detection)
+    x11-utils
     # Download and extraction tools
     wget
     tar

@@ -72,24 +72,18 @@ apply_tiling() {
 
     nn_log "Wine desktop: ${desktop_w}x${desktop_h}"
 
-    # Find EQ game windows (exact title match, excludes Discord etc.)
-    local -a real_windows=()
-    while IFS= read -r wid; do
-        real_windows+=("${wid}")
-    done < <(nn_find_eq_windows | head -6)
-
-    # Detect XWayland coordinate scaling (positions doubled on some compositors)
-    local xw_scale=1
-    if [[ ${#real_windows[@]} -gt 0 ]]; then
-        DISPLAY=:0 xdotool windowmove "${real_windows[0]}" 100 100 2>/dev/null || true
-        local reported_x
-        reported_x="$(DISPLAY=:0 xdotool getwindowgeometry "${real_windows[0]}" 2>/dev/null | grep 'Position' | grep -oP '\d+' | head -1 || echo '100')"
-        if [[ "${reported_x}" -eq 200 ]]; then
-            xw_scale=2
-            nn_log "  XWayland coordinate doubling detected (compensating)."
-        fi
+    # Get EQ window count via Wine API
+    local helper="${SCRIPT_DIR}/../helpers/wine_helper.exe"
+    if [[ ! -f "${helper}" ]]; then
+        nn_log "ERROR: helpers/wine_helper.exe not found. Run: make build"
+        return 1
     fi
 
+    local eq_count
+    eq_count="$(WINEPREFIX="${PREFIX}" DISPLAY=:0 wine "${helper}" find 2>/dev/null | wc -l)"
+
+    # Build tile specs from template and apply via Wine API
+    local -a specs=()
     local i=1
     while true; do
         local var_x="TILE_${i}_X" var_y="TILE_${i}_Y" var_w="TILE_${i}_W" var_h="TILE_${i}_H"
@@ -102,29 +96,24 @@ apply_tiling() {
         pw="$(calc "${tw}" "${desktop_w}")"
         ph="$(calc "${th}" "${desktop_h}")"
 
-        # Compensate for XWayland position doubling
-        local move_x=$((px / xw_scale))
-        local move_y=$((py / xw_scale))
+        # Offset windows at origin to avoid Wine desktop click interception
+        if [[ "${px}" -eq 0 ]] && [[ "${py}" -eq 0 ]]; then
+            px=1; py=1; pw=$((pw - 1)); ph=$((ph - 1))
+        fi
 
         local idx=$((i - 1))
-        if [[ "${idx}" -lt "${#real_windows[@]}" ]]; then
-            if [[ "${DRY_RUN}" -eq 0 ]]; then
-                local helper="${SCRIPT_DIR}/../helpers/wine_resize.exe"
-                if [[ -f "${helper}" ]]; then
-                    # Use Wine's SetWindowPos API (triggers proper WM_SIZE for re-render)
-                    WINEPREFIX="${PREFIX}" DISPLAY=:0 wine "${helper}" "${idx}" "${px}" "${py}" "${pw}" "${ph}" 2>/dev/null || true
-                else
-                    # Fallback to xdotool (positions but doesn't trigger re-render)
-                    DISPLAY=:0 xdotool windowmove "${real_windows[${idx}]}" "${move_x}" "${move_y}" 2>/dev/null || true
-                    DISPLAY=:0 xdotool windowsize "${real_windows[${idx}]}" "${pw}" "${ph}" 2>/dev/null || true
-                fi
-            fi
+        if [[ "${idx}" -lt "${eq_count}" ]]; then
+            specs+=("${px},${py},${pw}x${ph}")
             nn_log "  Window ${i}: ${px},${py} ${pw}x${ph}"
         else
             nn_log "  Window ${i}: ${px},${py} ${pw}x${ph} (no window to tile)"
         fi
         i=$((i + 1))
     done
+
+    if [[ "${DRY_RUN}" -eq 0 ]] && [[ ${#specs[@]} -gt 0 ]]; then
+        WINEPREFIX="${PREFIX}" DISPLAY=:0 wine "${helper}" tile "${specs[@]}" 2>/dev/null
+    fi
 }
 
 # Apply EQ internal UI positions to a character's INI

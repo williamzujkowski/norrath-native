@@ -32,25 +32,28 @@ nn_detect_wine() {
 nn_detect_wine
 
 # ─── EQ Window Detection ─────────────────────────────────────────────────────
-# Find EQ windows by exact title match. xdotool --name is a substring match,
-# so "EverQuest" also matches Discord channels like "#everquest-news".
-# This filters to windows whose title is exactly "EverQuest".
+# Find EQ windows using Wine API (exact title match via strcmp).
+# Returns one X11 window ID per line. Uses wine_helper.exe find which
+# only matches windows titled exactly "EverQuest".
 
 nn_find_eq_windows() {
-    local wid
-    while IFS= read -r wid; do
-        local title
-        title="$(DISPLAY=:0 xdotool getwindowname "${wid}" 2>/dev/null || echo '')"
-        if [[ "${title}" == "EverQuest" ]]; then
-            echo "${wid}"
-        fi
-    done < <(DISPLAY=:0 xdotool search --name "EverQuest" 2>/dev/null || true)
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local helper="${script_dir}/../helpers/wine_helper.exe"
+    local prefix="${NN_PREFIX:-${HOME}/.wine-eq}"
+
+    if [[ -f "${helper}" ]]; then
+        # Wine API: exact strcmp match, returns PIDs we can map to X11 WIDs
+        WINEPREFIX="${prefix}" DISPLAY=:0 wine "${helper}" map 2>/dev/null | while IFS='|' read -r _idx _hwnd _pos _size _wpid x11wid; do
+            echo "${x11wid}"
+        done
+    fi
 }
 
 # ─── Wine Desktop Size Detection ─────────────────────────────────────────────
 # Returns the Wine virtual desktop size if configured, otherwise the physical
-# monitor size. EQ windows are constrained to the virtual desktop — tiling
-# must use this size, not the monitor size.
+# monitor size via xrandr. EQ windows are constrained to the virtual desktop —
+# tiling must use this size, not the monitor size.
 
 nn_get_screen_size() {
     local prefix="${NN_PREFIX:-${HOME}/.wine-eq}"
@@ -59,7 +62,13 @@ nn_get_screen_size() {
     if [[ "${vdesktop}" =~ ^[0-9]+x[0-9]+$ ]]; then
         echo "${vdesktop%%x*} ${vdesktop##*x}"
     else
-        DISPLAY=:0 xdotool getdisplaygeometry 2>/dev/null
+        # Fallback: physical monitor via xrandr
+        local res
+        res="$(DISPLAY=:0 xrandr 2>/dev/null | grep ' connected primary' | grep -oP '\d+x\d+' | head -1 || true)"
+        if [[ -z "${res}" ]]; then
+            res="$(DISPLAY=:0 xrandr 2>/dev/null | grep ' connected' | grep -oP '\d+x\d+' | head -1 || echo '1920x1080')"
+        fi
+        echo "${res%%x*} ${res##*x}"
     fi
 }
 
@@ -263,7 +272,7 @@ _nn_read_config
 # ─── TypeScript CLI Helper ────────────────────────────────────────────────────
 # Call the compiled TypeScript CLI for all data/calculation tasks.
 # Bash scripts should use this for configuration, color data, layout data, etc.
-# Bash handles only system interaction (wine, apt, wmctrl, xdotool).
+# Bash handles only system interaction (wine, apt, xrandr, xprop).
 #
 # Usage: cli_cmd <command> [args...]
 #   cli_cmd config:settings:ini

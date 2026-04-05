@@ -63,12 +63,15 @@ main() {
     read -r screen_w screen_h <<< "$(nn_get_screen_size)"
 
     # Log diagnostic info for troubleshooting dock/undock issues
-    local phys_w phys_h
-    read -r phys_w phys_h <<< "$(DISPLAY=:0 xdotool getdisplaygeometry 2>/dev/null)"
-    nn_log "Monitor: ${phys_w}x${phys_h}"
+    local monitor_res
+    monitor_res="$(DISPLAY=:0 xrandr 2>/dev/null | grep ' connected primary' | grep -oP '\d+x\d+' | head -1 || true)"
+    if [[ -z "${monitor_res}" ]]; then
+        monitor_res="$(DISPLAY=:0 xrandr 2>/dev/null | grep ' connected' | grep -oP '\d+x\d+' | head -1 || echo 'unknown')"
+    fi
+    nn_log "Monitor: ${monitor_res}"
     nn_log "Tiling area: ${screen_w}x${screen_h} (Wine virtual desktop)"
-    if [[ "${screen_w}x${screen_h}" != "${phys_w}x${phys_h}" ]]; then
-        nn_log "  ⚠ Wine desktop ≠ monitor. Run 'make adapt' to sync."
+    if [[ "${screen_w}x${screen_h}" != "${monitor_res}" ]]; then
+        nn_log "  ⚠ Wine desktop ≠ monitor. Run 'make adapt' or 'make fix' to sync."
     fi
 
     # Get HWND→X11 WID mapping from Wine
@@ -103,7 +106,7 @@ main() {
     for (( i=0; i<count; i++ )); do
         local x11wid="${x11wid_list[i]}"
         local pid
-        pid="$(DISPLAY=:0 xdotool getwindowpid "${x11wid}" 2>/dev/null || echo '0')"
+        pid="$(DISPLAY=:0 xprop -id "${x11wid}" _NET_WM_PID 2>/dev/null | grep -oP '\d+$' || echo '0')"
         local proc_start
         proc_start="$(stat -c '%Z' "/proc/${pid}" 2>/dev/null || echo '0')"
         proc_entries+=("${proc_start}:${i}")
@@ -206,12 +209,8 @@ main() {
     nn_log "Applying via Wine API..."
     WINEPREFIX="${PREFIX}" DISPLAY=:0 wine "${helper}" tile-hwnd "${tile_args[@]}" 2>/dev/null
 
-    # NOTE: Do NOT use xdotool windowactivate or windowfocus here.
-    # Wine virtual desktop child windows don't have standard X11
-    # properties (_NET_WM_DESKTOP, _NET_ACTIVE_WINDOW). Calling
-    # xdotool on them disrupts Wine's internal click routing, making
-    # the main window unclickable. Just let Wine handle focus — the
-    # user clicks the window they want.
+    # Focus is handled by SetForegroundWindow inside wine_helper.exe tile-hwnd.
+    # Do NOT use xdotool here — it disrupts Wine's internal input routing.
 
     nn_log ""
     nn_log "Tiling complete. ${char_names[main_idx]} is the main window (focused)."
