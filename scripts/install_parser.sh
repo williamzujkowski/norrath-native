@@ -232,13 +232,26 @@ WINEPREFIX="${PARSER_PREFIX}" wine "${installer_path}" \
 if [[ -f "${PARSER_EXE}" ]]; then
     ok "EQLogParser installed successfully at ${PARSER_DEST}"
 
+    # Symlink EQ directory into parser prefix so EQLogParser can find logs.
+    # EQLogParser looks for logs at C:\EverQuest\Logs\ — the symlink makes
+    # the EQ prefix's game files visible in the parser prefix.
+    eq_dir="${NN_PREFIX}/drive_c/EverQuest"
+    parser_eq_link="${PARSER_PREFIX}/drive_c/EverQuest"
+    if [[ -d "${eq_dir}" ]] && [[ ! -e "${parser_eq_link}" ]]; then
+        ln -sfn "${eq_dir}" "${parser_eq_link}"
+        ok "Linked EQ logs into parser prefix (C:\\EverQuest\\Logs\\)"
+    fi
+
     # Create desktop shortcut and pin to taskbar
     bash "${SCRIPT_DIR}/install_shortcuts.sh" --parser-only 2>/dev/null || true
 
     info ""
-    info "EQLogParser pinned to your taskbar. Tips:"
-    info "  In Settings → Triggers, enable 'Use Piper TTS'"
-    info "  (Windows TTS is unavailable under Wine)"
+    info "EQLogParser pinned to your taskbar."
+    info ""
+    info "First launch setup:"
+    info "  1. File → Open → navigate to C:\\EverQuest\\Logs\\"
+    info "  2. Select eqlog_${NN_MAIN_CHARACTER:-YourCharacter}_*.txt"
+    info "  3. Settings → Triggers → enable 'Use Piper TTS'"
 else
     warn "EQLogParser.exe not found after installation."
     warn "The installer may have used a different path."

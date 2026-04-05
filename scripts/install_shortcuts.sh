@@ -68,12 +68,20 @@ install_parser_icon() {
     fi
 
     # Try to extract icon from the .exe via icoutils
-    local exe="${PREFIX}/drive_c/Program Files/EQLogParser/EQLogParser.exe"
+    local parser_prefix="${HOME}/.wine-eqlogparser"
+    local exe="${parser_prefix}/drive_c/Program Files/EQLogParser/EQLogParser.exe"
+    # Fallback to EQ prefix for old installs
+    if [[ ! -f "${exe}" ]]; then
+        exe="${PREFIX}/drive_c/Program Files/EQLogParser/EQLogParser.exe"
+    fi
+
     if [[ -f "${exe}" ]] && command -v wrestool &>/dev/null && command -v icotool &>/dev/null; then
         local tmp_ico
         tmp_ico="$(mktemp --suffix=.ico)"
         wrestool -x -t 14 "${exe}" > "${tmp_ico}" 2>/dev/null || true
         if [[ -s "${tmp_ico}" ]]; then
+            # Extract the largest icon layer
+            icotool -x -w 48 -o "${icon_dest}" "${tmp_ico}" 2>/dev/null || \
             icotool -x -o "${icon_dest}" "${tmp_ico}" 2>/dev/null || true
         fi
         rm -f "${tmp_ico}"
