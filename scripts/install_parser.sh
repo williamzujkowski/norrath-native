@@ -214,10 +214,13 @@ fi
 
 # ─── Install ─────────────────────────────────────────────────────────────────
 
-info "Installing EQLogParser via Wine..."
-info "  (The installer window may appear — follow its prompts)"
+info "Installing EQLogParser via Wine (silent)..."
 
-WINEPREFIX="${PARSER_PREFIX}" wine "${installer_path}" 2>/dev/null || true
+# Inno Setup flags: /VERYSILENT suppresses UI, /SUPPRESSMSGBOXES skips prompts,
+# /DIR= sets install path within the parser prefix
+WINEPREFIX="${PARSER_PREFIX}" wine "${installer_path}" \
+    /VERYSILENT /SUPPRESSMSGBOXES /NORESTART \
+    /DIR="C:\\Program Files\\EQLogParser" 2>/dev/null || true
 
 # Verify installation
 if [[ -f "${PARSER_EXE}" ]]; then
