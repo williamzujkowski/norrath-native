@@ -135,38 +135,33 @@ cmd_tile() {
 
     nn_log "Tiling ${count} window(s) on ${screen_w}x${screen_h} display..."
 
+    # Build tile specs for Wine API
+    local -a specs=()
     if [[ "${count}" -eq 1 ]]; then
-        move_window "${windows[0]}" 0 0 "${screen_w}" "${screen_h}"
-        nn_log "  Window maximized."
+        specs=("0,0,${screen_w}x${screen_h}")
     elif [[ "${count}" -eq 2 ]]; then
-        local half_w=$((screen_w / 2))
-        move_window "${windows[0]}" 0 0 "${half_w}" "${screen_h}"
-        move_window "${windows[1]}" "${half_w}" 0 "${half_w}" "${screen_h}"
-        nn_log "  2 windows: side-by-side."
+        local hw=$((screen_w / 2))
+        specs=("0,0,${hw}x${screen_h}" "${hw},0,${hw}x${screen_h}")
     elif [[ "${count}" -le 4 ]]; then
-        local half_w=$((screen_w / 2))
-        local half_h=$((screen_h / 2))
-        local positions=("0,0" "${half_w},0" "0,${half_h}" "${half_w},${half_h}")
-        local i
-        for (( i=0; i<count; i++ )); do
-            local x y
-            x="$(echo "${positions[${i}]}" | cut -d, -f1)"
-            y="$(echo "${positions[${i}]}" | cut -d, -f2)"
-            move_window "${windows[${i}]}" "${x}" "${y}" "${half_w}" "${half_h}"
-        done
-        nn_log "  ${count} windows: 2x2 grid."
+        local hw=$((screen_w / 2))
+        local hh=$((screen_h / 2))
+        specs=("0,0,${hw}x${hh}" "${hw},0,${hw}x${hh}" "0,${hh},${hw}x${hh}" "${hw},${hh},${hw}x${hh}")
     else
-        local third_w=$((screen_w / 3))
-        local half_h=$((screen_h / 2))
+        local tw=$((screen_w / 3))
+        local hh=$((screen_h / 2))
         local i
-        for (( i=0; i<count; i++ )); do
-            local col=$((i % 3))
-            local row=$((i / 3))
-            local x=$((col * third_w))
-            local y=$((row * half_h))
-            move_window "${windows[${i}]}" "${x}" "${y}" "${third_w}" "${half_h}"
+        for (( i=0; i<count && i<6; i++ )); do
+            specs+=("$((i%3 * tw)),$((i/3 * hh)),${tw}x${hh}")
         done
-        nn_log "  ${count} windows: 3x2 grid."
+    fi
+
+    # Use Wine API for proper resize + re-render
+    local helper="${SCRIPT_DIR}/../helpers/wine_helper.exe"
+    if [[ -f "${helper}" ]]; then
+        WINEPREFIX="${NN_PREFIX}" DISPLAY=:0 wine "${helper}" tile "${specs[@]:0:${count}}" 2>/dev/null
+        nn_log "  ${count} windows tiled via Wine API."
+    else
+        nn_log "  ERROR: helpers/wine_helper.exe not found. Run: make build"
     fi
 
     nn_log "Done. Use 'make focus-next' to cycle between windows."
@@ -188,22 +183,23 @@ cmd_pip() {
     screen_w="$(DISPLAY=:0 xdotool getdisplaygeometry 2>/dev/null | cut -d' ' -f1)"
     screen_h="$(DISPLAY=:0 xdotool getdisplaygeometry 2>/dev/null | cut -d' ' -f2)"
 
-    XWAYLAND_SCALE="$(detect_xwayland_scale "${windows[0]}")"
-
-    # Main window: 75% of screen
     local main_w=$((screen_w * 3 / 4))
-    move_window "${windows[0]}" 0 0 "${main_w}" "${screen_h}"
-
-    # Others: stacked in the right 25%
     local pip_w=$((screen_w - main_w))
     local pip_h=$((screen_h / (count - 1)))
+
+    local -a specs=("0,0,${main_w}x${screen_h}")
     local i
     for (( i=1; i<count; i++ )); do
         local y=$(( (i - 1) * pip_h ))
-        move_window "${windows[${i}]}" "${main_w}" "${y}" "${pip_w}" "${pip_h}"
+        specs+=("${main_w},${y},${pip_w}x${pip_h}")
     done
 
-    nn_log "PiP: main window + ${count} side panels."
+    local helper="${SCRIPT_DIR}/../helpers/wine_helper.exe"
+    if [[ -f "${helper}" ]]; then
+        WINEPREFIX="${NN_PREFIX}" DISPLAY=:0 wine "${helper}" tile "${specs[@]}" 2>/dev/null
+    fi
+
+    nn_log "PiP: main window + $((count - 1)) side panels."
 }
 
 cmd_focus() {

@@ -6,8 +6,11 @@ install:            ## Install pnpm dependencies
 build:              ## Compile TypeScript to dist/ and Wine helpers
 	pnpm build
 	@if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then \
-		x86_64-w64-mingw32-gcc -o helpers/wine_resize.exe helpers/wine_resize.c -luser32 2>/dev/null && \
-		echo "Built helpers/wine_resize.exe"; \
+		x86_64-w64-mingw32-gcc -o helpers/wine_helper.exe helpers/wine_helper.c -luser32 2>/dev/null && \
+		echo "Built helpers/wine_helper.exe"; \
+	else \
+		echo "WARNING: gcc-mingw-w64 not installed, Wine helper not built"; \
+		echo "  Install: sudo apt install gcc-mingw-w64"; \
 	fi
 
 prereqs:            ## Install system prerequisites (Wine, Vulkan, etc.)
