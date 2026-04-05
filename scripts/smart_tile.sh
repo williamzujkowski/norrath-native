@@ -57,22 +57,10 @@ main() {
         exit 1
     fi
 
-    # Get screen size — uses Wine virtual desktop if configured.
-    # EQ windows are constrained to the virtual desktop, not the physical monitor.
+    # Get screen size (physical monitor — no virtual desktop)
     local screen_w screen_h
     read -r screen_w screen_h <<< "$(nn_get_screen_size)"
-
-    # Log diagnostic info for troubleshooting dock/undock issues
-    local monitor_res
-    monitor_res="$(DISPLAY=:0 xrandr 2>/dev/null | grep ' connected primary' | grep -oP '\d+x\d+' | head -1 || true)"
-    if [[ -z "${monitor_res}" ]]; then
-        monitor_res="$(DISPLAY=:0 xrandr 2>/dev/null | grep ' connected' | grep -oP '\d+x\d+' | head -1 || echo 'unknown')"
-    fi
-    nn_log "Monitor: ${monitor_res}"
-    nn_log "Tiling area: ${screen_w}x${screen_h} (Wine virtual desktop)"
-    if [[ "${screen_w}x${screen_h}" != "${monitor_res}" ]]; then
-        nn_log "  ⚠ Wine desktop ≠ monitor. Run 'make adapt' or 'make fix' to sync."
-    fi
+    nn_log "Screen: ${screen_w}x${screen_h}"
 
     # Get HWND→X11 WID mapping from Wine
     nn_log "Mapping windows via Wine API..."
@@ -164,20 +152,15 @@ main() {
 
     # Build tile specs: main gets 65% left, boxes stack right
     #
-    # IMPORTANT: Wine virtual desktop + XWayland compositor edge detection.
-    # Windows near (0,0) lose click-to-focus because the compositor's
-    # invisible resize grip (~10-20px) absorbs clicks before they reach
-    # Wine's child window hit-testing. A 20px offset clears this zone.
-    local origin_x=20
-    local origin_y=20
+    # Build tile specs: main gets 65% left, boxes stack right
     local -a tile_args=()
 
     if [[ "${count}" -eq 1 ]] || [[ "${TEMPLATE}" == "solo" ]]; then
-        tile_args+=("0x${hwnd_list[0]}" "${origin_x},${origin_y},$((screen_w - origin_x))x$((screen_h - origin_y))")
+        tile_args+=("0x${hwnd_list[0]}" "0,0,${screen_w}x${screen_h}")
     elif [[ "${TEMPLATE}" == "equal" ]]; then
         local hw=$((screen_w / 2))
         local hh=$((screen_h / 2))
-        local positions=("${origin_x},${origin_y},$((hw - origin_x))x$((hh - origin_y))" "${hw},${origin_y},$((hw))x$((hh - origin_y))" "${origin_x},${hh},$((hw - origin_x))x${hh}" "${hw},${hh},${hw}x${hh}")
+        local positions=("0,0,${hw}x${hh}" "${hw},0,${hw}x${hh}" "0,${hh},${hw}x${hh}" "${hw},${hh},${hw}x${hh}")
         for (( i=0; i<count && i<4; i++ )); do
             tile_args+=("0x${hwnd_list[i]}" "${positions[i]}")
         done
@@ -189,9 +172,9 @@ main() {
         if [[ "${box_count}" -lt 1 ]]; then box_count=1; fi
         local box_h=$((screen_h / box_count))
 
-        # Main character gets the big window, offset 1px from origin
-        tile_args+=("0x${hwnd_list[main_idx]}" "${origin_x},${origin_y},$((main_w - origin_x))x$((screen_h - origin_y))")
-        nn_log "  ${char_names[main_idx]}: (${origin_x},${origin_y}) $((main_w - origin_x))x$((screen_h - origin_y)) [MAIN]"
+        # Main character gets the big window
+        tile_args+=("0x${hwnd_list[main_idx]}" "0,0,${main_w}x${screen_h}")
+        nn_log "  ${char_names[main_idx]}: (0,0) ${main_w}x${screen_h} [MAIN]"
 
         # Boxes stack on the right
         local box_i=0
@@ -205,16 +188,13 @@ main() {
         done
     fi
 
-    # Apply via Wine API (SetWindowPos + SetForegroundWindow for each HWND)
+    # Step 1: Position all windows via Wine API
     nn_log ""
-    nn_log "Applying via Wine API..."
-    WINEPREFIX="${PREFIX}" DISPLAY=:0 wine "${helper}" tile-hwnd "${tile_args[@]}" 2>/dev/null
-
-    # Focus is handled by SetForegroundWindow inside wine_helper.exe tile-hwnd.
-    # Do NOT use xdotool here — it disrupts Wine's internal input routing.
+    nn_log "Step 1: Positioning windows..."
+    WINEPREFIX="${PREFIX}" DISPLAY=:0 wine "${helper}" tile-hwnd "${tile_args[@]}"
 
     nn_log ""
-    nn_log "Tiling complete. ${char_names[main_idx]} is the main window (focused)."
+    nn_log "Tiling complete. ${char_names[main_idx]} is the main window."
 }
 
 TEMPLATE="${1:-auto}"

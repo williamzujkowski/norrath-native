@@ -237,8 +237,11 @@ launch_instances() {
             nn_log "Starting instance ${i}/${INSTANCES} (main)..."
         fi
 
+        # Launch EQ as a top-level XWayland window (no virtual desktop).
+        # Each instance gets native window manager focus handling,
+        # eliminating Wine desktop X11 stacking bugs.
         # shellcheck disable=SC2086
-        ${priority_prefix} env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" explorer "/desktop=Default,${NN_RESOLUTION}" \
+        ${priority_prefix} env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" \
             "${EQ_DIR}/${EQ_EXECUTABLE}" --disable-gpu \
             >> "${instance_log}" 2>&1 &
 

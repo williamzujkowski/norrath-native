@@ -251,22 +251,18 @@ configure_dxvk_overrides() {
     nn_log "DLL overrides configured."
 }
 
-enable_virtual_desktop() {
-    nn_log "Enabling virtual desktop at ${RESOLUTION}..."
+disable_virtual_desktop() {
+    nn_log "Disabling virtual desktop (using native window management)..."
 
-    local width height
-    width="${RESOLUTION%%x*}"
-    height="${RESOLUTION##*x}"
+    # Remove the virtual desktop entries so Wine doesn't create one
+    run env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" reg delete \
+        'HKEY_CURRENT_USER\Software\Wine\Explorer\Desktops' \
+        /v Default /f 2>/dev/null || true
+    run env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" reg delete \
+        'HKEY_CURRENT_USER\Software\Wine\Explorer' \
+        /v Desktop /f 2>/dev/null || true
 
-    local desktop_key='HKEY_CURRENT_USER\Software\Wine\Explorer\Desktops'
-    run env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" reg add "${desktop_key}" \
-        /v Default /d "${width}x${height}" /f
-
-    local explorer_key='HKEY_CURRENT_USER\Software\Wine\Explorer'
-    run env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" reg add "${explorer_key}" \
-        /v Desktop /d Default /f
-
-    nn_log "Virtual desktop enabled (${RESOLUTION})."
+    nn_log "Virtual desktop disabled. EQ windows will be native XWayland windows."
 }
 
 fix_mouse_capture() {
@@ -475,7 +471,7 @@ main() {
     install_corefonts
     download_and_install_dxvk
     configure_dxvk_overrides
-    enable_virtual_desktop
+    disable_virtual_desktop
     fix_mouse_capture
     tune_wine_registry
     install_everquest
