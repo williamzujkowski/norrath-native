@@ -27,7 +27,7 @@
     "husky": "9.1.7",
     "lint-staged": "16.4.0",
     "typedoc": "0.28.18",
-    "typescript": "5.9.3",
+    "typescript": "6.0.2",
     "vitest": "3.2.4"
   },
   "repository": {
