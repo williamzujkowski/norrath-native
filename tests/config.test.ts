@@ -145,13 +145,13 @@ describe('generateManagedSettings', () => {
     expect(settings['MultiPassLighting']).toBe('FALSE');
   });
 
-  it('generates 35 total managed settings (high profile)', () => {
+  it('generates 40 total managed settings (high profile)', () => {
     const result = resolveConfig();
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
     const settings = generateManagedSettings(result.value);
-    expect(Object.keys(settings).length).toBe(35);
+    expect(Object.keys(settings).length).toBe(40);
   });
 
   it('reflects profile in FPS values', () => {

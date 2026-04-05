@@ -209,6 +209,13 @@ check_everquest() {
         fail "EQ_LAUNCHER" "LaunchPad.exe not found" "run: make deploy"
     fi
 
+    # Check for dxvk.conf
+    if [[ -f "${eq_dir}/dxvk.conf" ]]; then
+        pass "EQ_DXVK_CONF" "dxvk.conf present (async shaders + frame latency tuned)"
+    else
+        warn "EQ_DXVK_CONF" "dxvk.conf not found — DXVK will use defaults" "run: make deploy"
+    fi
+
     # Check for eqclient.ini
     if [[ -f "${eq_dir}/eqclient.ini" ]]; then
         local managed_ok=true

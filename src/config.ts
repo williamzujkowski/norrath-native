@@ -46,6 +46,11 @@ export interface EqSettings {
   showNames: number;
   chatFontSize: number;
   trackPlayers: boolean;
+  serverFilter: boolean;
+  socialAnimations: boolean;
+  combatMusic: boolean;
+  textureQuality: number;
+  stickFigures: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -61,6 +66,11 @@ const PROFILES: Record<Profile, Partial<EqSettings>> = {
     spellParticles: 1.0,
     envParticles: 1.0,
     actorParticles: 1.0,
+    serverFilter: false,
+    socialAnimations: true,
+    combatMusic: false,
+    textureQuality: 2,
+    stickFigures: false,
   },
   balanced: {
     maxFps: 45,
@@ -70,6 +80,11 @@ const PROFILES: Record<Profile, Partial<EqSettings>> = {
     spellParticles: 0.5,
     envParticles: 0.5,
     actorParticles: 0.5,
+    serverFilter: true,
+    socialAnimations: false,
+    combatMusic: false,
+    textureQuality: 1,
+    stickFigures: false,
   },
   low: {
     maxFps: 30,
@@ -79,6 +94,11 @@ const PROFILES: Record<Profile, Partial<EqSettings>> = {
     spellParticles: 0.25,
     envParticles: 0.0,
     actorParticles: 0.25,
+    serverFilter: true,
+    socialAnimations: false,
+    combatMusic: false,
+    textureQuality: 0,
+    stickFigures: false,
   },
   minimal: {
     maxFps: 15,
@@ -89,6 +109,11 @@ const PROFILES: Record<Profile, Partial<EqSettings>> = {
     envParticles: 0.0,
     actorParticles: 0.0,
     sound: false,
+    serverFilter: true,
+    socialAnimations: false,
+    combatMusic: false,
+    textureQuality: 0,
+    stickFigures: true,
   },
 };
 
@@ -109,6 +134,11 @@ const DEFAULT_SETTINGS: EqSettings = {
   showNames: 4,
   chatFontSize: 3,
   trackPlayers: true,
+  serverFilter: false,
+  socialAnimations: true,
+  combatMusic: false,
+  textureQuality: 2,
+  stickFigures: false,
 };
 
 // ---------------------------------------------------------------------------
@@ -216,6 +246,14 @@ export function resolveConfig(
   return ok(config);
 }
 
+/** Boolean → INI string converters */
+function boolTF(v: boolean): string {
+  return v ? 'TRUE' : 'FALSE';
+}
+function bool10(v: boolean): string {
+  return v ? '1' : '0';
+}
+
 /**
  * Generate the managed INI settings map from resolved config.
  * This is the canonical source of truth for what gets written
@@ -235,22 +273,25 @@ export function generateManagedSettings(
     Maximized: '1',
     AlwaysOnTop: '0',
     MaxBGFPS: String(s.maxBgFps),
-    PostEffects: s.postEffects ? 'TRUE' : 'FALSE',
-    MultiPassLighting: s.multiPassLighting
-      ? 'TRUE'
-      : 'FALSE',
-    VertexShaders: s.vertexShaders ? 'TRUE' : 'FALSE',
+    PostEffects: boolTF(s.postEffects),
+    MultiPassLighting: boolTF(s.multiPassLighting),
+    VertexShaders: boolTF(s.vertexShaders),
     SpellParticleOpacity: s.spellParticles.toFixed(6),
     EnvironmentParticleOpacity: s.envParticles.toFixed(6),
     ActorParticleOpacity: s.actorParticles.toFixed(6),
-    Sound: s.sound ? '1' : '0',
+    Sound: bool10(s.sound),
     Music: String(s.musicVolume),
     SoundVolume: String(s.soundVolume),
     ShowNamesLevel: String(s.showNames),
     ChatFontSize: String(s.chatFontSize),
-    TrackPlayers: s.trackPlayers ? '1' : '0',
+    TrackPlayers: bool10(s.trackPlayers),
     ClipPlane: String(s.clipPlane),
     LODBias: String(s.lodBias),
+    ServerFilter: bool10(s.serverFilter),
+    LoadSocialAnimations: boolTF(s.socialAnimations),
+    CombatMusic: bool10(s.combatMusic),
+    TextureQuality: String(s.textureQuality),
+    StickFigures: bool10(s.stickFigures),
   };
 
   // CPU affinity — always let Linux manage

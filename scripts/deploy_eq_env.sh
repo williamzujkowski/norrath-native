@@ -277,6 +277,58 @@ fix_mouse_capture() {
     nn_log "Mouse capture configured."
 }
 
+tune_wine_registry() {
+    nn_log "Tuning Wine registry..."
+
+    # Prevent focus-steal leakage beyond virtual desktop
+    run env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" reg add \
+        'HKEY_CURRENT_USER\Software\Wine\X11 Driver' \
+        /v GrabFullscreen /d Y /f
+
+    # Hint VRAM size for Intel Iris Xe (prevents DX11 fallback paths)
+    run env WINEPREFIX="${PREFIX}" "${NN_WINE_CMD}" reg add \
+        'HKEY_CURRENT_USER\Software\Wine\Direct3D' \
+        /v VideoMemorySize /d 2048 /f
+
+    nn_log "Wine registry tuned."
+}
+
+generate_dxvk_conf() {
+    local conf_path="${PREFIX}/drive_c/EverQuest/dxvk.conf"
+
+    if [[ -f "${conf_path}" ]]; then
+        nn_log "dxvk.conf already exists at ${conf_path}, skipping."
+        return 0
+    fi
+
+    nn_log "Generating dxvk.conf..."
+
+    if [[ "${DRY_RUN}" -eq 1 ]]; then
+        nn_log "[DRY-RUN] Would write dxvk.conf to ${conf_path}"
+        return 0
+    fi
+
+    mkdir -p "$(dirname "${conf_path}")"
+    cat > "${conf_path}" <<'EOF'
+# norrath-native DXVK configuration
+# Optimized for EverQuest on Linux
+
+# Async shader compilation — eliminates stutter on first load
+dxvk.enableAsync = true
+
+# Reduce input lag (important for tab-targeting)
+dxvk.maxFrameLatency = 1
+
+# Shader cache in persistent location (survives partial prefix rebuilds)
+dxvk.shaderCachePath = "C:\\EverQuest\\shadercache"
+
+# No HUD by default (use make launch-perf for diagnostics overlay)
+dxvk.hud =
+EOF
+
+    nn_log "dxvk.conf written to ${conf_path}"
+}
+
 install_everquest() {
     local eq_dir="${PREFIX}/drive_c/EverQuest"
     local eq_setup_url="https://launch.daybreakgames.com/installer/EQ_setup.exe"
@@ -416,7 +468,9 @@ main() {
     configure_dxvk_overrides
     enable_virtual_desktop
     fix_mouse_capture
+    tune_wine_registry
     install_everquest
+    generate_dxvk_conf
     configure_eq_settings
     write_state_manifest
 
