@@ -18,13 +18,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=config_reader.sh
 source "${SCRIPT_DIR}/config_reader.sh"
 
-PREFIX="${NN_PREFIX}"
+# EQLogParser gets its own Wine prefix to isolate it from EQ's
+# registry settings (GrabFullscreen, Decorated=N, Managed=N) which
+# cause focus-stealing and window management issues for WPF apps.
+PARSER_PREFIX="${HOME}/.wine-eqlogparser"
 LOCAL_FILE=""
 DRY_RUN=0
 DOTNET_ONLY=0
 
 EQLP_REPO="kauffman12/EQLogParser"
-PARSER_DEST="${PREFIX}/drive_c/Program Files/EQLogParser"
+PARSER_DEST="${PARSER_PREFIX}/drive_c/Program Files/EQLogParser"
 PARSER_EXE="${PARSER_DEST}/EQLogParser.exe"
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -74,12 +77,30 @@ while [[ $# -gt 0 ]]; do
         --update) FORCE_UPDATE=1; shift ;;
         --prefix)
             if [[ $# -lt 2 ]]; then err "--prefix requires a value"; exit 1; fi
-            PREFIX="$2"; shift 2 ;;
+            PARSER_PREFIX="$2"; shift 2 ;;
         --dry-run) DRY_RUN=1; shift ;;
         -h|--help) usage ;;
         *) err "Unknown option: $1"; usage ;;
     esac
 done
+
+# ─── Prefix Setup ────────────────────────────────────────────────────────────
+
+setup_parser_prefix() {
+    if [[ -d "${PARSER_PREFIX}" ]]; then
+        return 0
+    fi
+
+    info "Creating parser Wine prefix at ${PARSER_PREFIX}..."
+    WINEPREFIX="${PARSER_PREFIX}" WINEARCH=win64 wineboot --init 2>/dev/null
+
+    # Disable DWM composition (prevents WPF crash on minimize)
+    WINEPREFIX="${PARSER_PREFIX}" wine reg add \
+        'HKEY_CURRENT_USER\Software\Wine\DWM' \
+        /v DisableComposition /d Y /f 2>/dev/null
+
+    info "Parser prefix created."
+}
 
 # ─── .NET 8 Runtime Installation ─────────────────────────────────────────────
 
@@ -87,13 +108,13 @@ install_dotnet() {
     info "Checking for .NET 8 Desktop Runtime..."
 
     # Ensure Wine Mono is installed (prevents interactive dialog)
-    if [[ ! -d "${PREFIX}/drive_c/windows/mono" ]]; then
+    if [[ ! -d "${PARSER_PREFIX}/drive_c/windows/mono" ]]; then
         info "Installing Wine Mono first..."
-        WINEPREFIX="${PREFIX}" DISPLAY="" wineboot --update 2>/dev/null || true
+        WINEPREFIX="${PARSER_PREFIX}" DISPLAY="" wineboot --update 2>/dev/null || true
     fi
 
     # Check if already installed
-    if WINEPREFIX="${PREFIX}" wine dotnet --list-runtimes 2>/dev/null | grep -q 'Microsoft.WindowsDesktop.App 8'; then
+    if WINEPREFIX="${PARSER_PREFIX}" wine dotnet --list-runtimes 2>/dev/null | grep -q 'Microsoft.WindowsDesktop.App 8'; then
         ok ".NET 8 Desktop Runtime already installed"
         return 0
     fi
@@ -113,17 +134,20 @@ install_dotnet() {
         return 0
     fi
 
-    WINEPREFIX="${PREFIX}" wine "${dotnet_file}" /quiet /norestart 2>/dev/null || true
+    WINEPREFIX="${PARSER_PREFIX}" wine "${dotnet_file}" /quiet /norestart 2>/dev/null || true
     ok ".NET 8 Desktop Runtime installed"
 }
 
 if [[ "${DOTNET_ONLY}" -eq 1 ]]; then
+    setup_parser_prefix
     install_dotnet
     exit 0
 fi
 
-# ─── Ensure .NET 8 is installed ──────────────────────────────────────────────
-# Auto-detect and install if missing — parser won't run without it.
+# ─── Setup prefix and ensure .NET 8 is installed ────────────────────────────
+# Parser gets its own prefix to avoid EQ's focus-stealing settings.
+
+setup_parser_prefix
 
 install_dotnet
 
@@ -193,7 +217,7 @@ fi
 info "Installing EQLogParser via Wine..."
 info "  (The installer window may appear — follow its prompts)"
 
-WINEPREFIX="${PREFIX}" wine "${installer_path}" 2>/dev/null || true
+WINEPREFIX="${PARSER_PREFIX}" wine "${installer_path}" 2>/dev/null || true
 
 # Verify installation
 if [[ -f "${PARSER_EXE}" ]]; then
@@ -209,5 +233,5 @@ if [[ -f "${PARSER_EXE}" ]]; then
 else
     warn "EQLogParser.exe not found after installation."
     warn "The installer may have used a different path."
-    warn "Check: ls '${PREFIX}/drive_c/Program Files/'"
+    warn "Check: ls '${PARSER_PREFIX}/drive_c/Program Files/'"
 fi

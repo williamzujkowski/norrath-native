@@ -119,7 +119,14 @@ EOF
 
 create_parser_shortcut() {
     local desktop_file="${APPS_DIR}/eqlogparser.desktop"
-    local exe="${PREFIX}/drive_c/Program Files/EQLogParser/EQLogParser.exe"
+    local parser_prefix="${HOME}/.wine-eqlogparser"
+    local exe="${parser_prefix}/drive_c/Program Files/EQLogParser/EQLogParser.exe"
+
+    # Fallback: check EQ prefix for old installations
+    if [[ ! -f "${exe}" ]]; then
+        exe="${PREFIX}/drive_c/Program Files/EQLogParser/EQLogParser.exe"
+        parser_prefix="${PREFIX}"
+    fi
 
     if [[ ! -f "${exe}" ]]; then
         return 0
@@ -136,7 +143,7 @@ create_parser_shortcut() {
 [Desktop Entry]
 Name=EQLogParser
 Comment=EverQuest DPS meter and trigger system
-Exec=env WINEPREFIX=${PREFIX} MONO_THREADS_SUSPEND=preemptive wine "${exe}"
+Exec=env WINEPREFIX=${parser_prefix} MONO_THREADS_SUSPEND=preemptive wine "${exe}"
 Type=Application
 Categories=Game;Utility;
 Icon=${icon_path}

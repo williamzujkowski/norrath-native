@@ -366,7 +366,7 @@ function eqCoreChecks(eqDir: string): Check[] {
   ];
 }
 
-function eqExtrasChecks(prefix: string, eqDir: string): Check[] {
+function eqExtrasChecks(_prefix: string, eqDir: string): Check[] {
   return [
     createFileCheck(
       "EQ_PATCHED",
@@ -395,7 +395,10 @@ function eqExtrasChecks(prefix: string, eqDir: string): Check[] {
     createFileCheck(
       "EQ_PARSER",
       "EQLogParser installed",
-      join(prefix, "drive_c/Program Files/EQLogParser/EQLogParser.exe"),
+      join(
+        process.env["HOME"] ?? "/tmp",
+        ".wine-eqlogparser/drive_c/Program Files/EQLogParser/EQLogParser.exe",
+      ),
       "run: make parser",
     ),
   ];
