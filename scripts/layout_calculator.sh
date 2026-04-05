@@ -108,10 +108,16 @@ apply_tiling() {
 
         local idx=$((i - 1))
         if [[ "${idx}" -lt "${#real_windows[@]}" ]]; then
-            local wid="${real_windows[${idx}]}"
             if [[ "${DRY_RUN}" -eq 0 ]]; then
-                DISPLAY=:0 xdotool windowmove "${wid}" "${move_x}" "${move_y}" 2>/dev/null || true
-                DISPLAY=:0 xdotool windowsize "${wid}" "${pw}" "${ph}" 2>/dev/null || true
+                local helper="${SCRIPT_DIR}/../helpers/wine_resize.exe"
+                if [[ -f "${helper}" ]]; then
+                    # Use Wine's SetWindowPos API (triggers proper WM_SIZE for re-render)
+                    WINEPREFIX="${PREFIX}" DISPLAY=:0 wine "${helper}" "${idx}" "${px}" "${py}" "${pw}" "${ph}" 2>/dev/null || true
+                else
+                    # Fallback to xdotool (positions but doesn't trigger re-render)
+                    DISPLAY=:0 xdotool windowmove "${real_windows[${idx}]}" "${move_x}" "${move_y}" 2>/dev/null || true
+                    DISPLAY=:0 xdotool windowsize "${real_windows[${idx}]}" "${pw}" "${ph}" 2>/dev/null || true
+                fi
             fi
             nn_log "  Window ${i}: ${px},${py} ${pw}x${ph}"
         else

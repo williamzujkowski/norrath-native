@@ -59,21 +59,32 @@ detect_xwayland_scale() {
     fi
 }
 
-# Move and resize a window using xdotool (works with Wine child windows)
-# Compensates for XWayland coordinate doubling if detected.
+# Move and resize an EQ window using Wine's SetWindowPos API.
+# This is critical: xdotool windowsize changes the X11 frame but does NOT
+# trigger Wine's WM_SIZE message, so EQ won't re-render. SetWindowPos
+# sends the proper Windows resize event that makes EQ adapt its rendering.
 move_window() {
-    local wid="$1" x="$2" y="$3" w="$4" h="$5"
+    local _wid="$1" x="$2" y="$3" w="$4" h="$5"
 
-    # Apply XWayland position scaling compensation
-    if [[ "${XWAYLAND_SCALE:-1}" -eq 2 ]]; then
-        x=$((x / 2))
-        y=$((y / 2))
+    # Use Wine's SetWindowPos API via compiled helper
+    local helper="${SCRIPT_DIR}/../helpers/wine_resize.exe"
+    if [[ -f "${helper}" ]]; then
+        WINEPREFIX="${NN_PREFIX}" DISPLAY=:0 wine "${helper}" "${WINE_RESIZE_INDEX}" "${x}" "${y}" "${w}" "${h}" 2>/dev/null || true
+        WINE_RESIZE_INDEX=$((WINE_RESIZE_INDEX + 1))
+    else
+        # Fallback: xdotool (won't trigger re-render but at least positions)
+        nn_log "  WARNING: helpers/wine_resize.exe not found, using xdotool fallback"
+        nn_log "  Build with: make build-helpers"
+        if [[ "${XWAYLAND_SCALE:-1}" -eq 2 ]]; then
+            x=$((x / 2))
+            y=$((y / 2))
+        fi
+        DISPLAY=:0 xdotool windowmove "${_wid}" "${x}" "${y}" 2>/dev/null || true
+        DISPLAY=:0 xdotool windowsize "${_wid}" "${w}" "${h}" 2>/dev/null || true
     fi
-
-    DISPLAY=:0 xdotool windowmove "${wid}" "${x}" "${y}" 2>/dev/null || true
-    DISPLAY=:0 xdotool windowsize "${wid}" "${w}" "${h}" 2>/dev/null || true
 }
 
+WINE_RESIZE_INDEX=0
 XWAYLAND_SCALE=1
 
 # Find EQ game windows (excludes the Wine virtual desktop container)

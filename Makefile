@@ -3,8 +3,12 @@
 install:            ## Install pnpm dependencies
 	pnpm install
 
-build:              ## Compile TypeScript to dist/
+build:              ## Compile TypeScript to dist/ and Wine helpers
 	pnpm build
+	@if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then \
+		x86_64-w64-mingw32-gcc -o helpers/wine_resize.exe helpers/wine_resize.c -luser32 2>/dev/null && \
+		echo "Built helpers/wine_resize.exe"; \
+	fi
 
 prereqs:            ## Install system prerequisites (Wine, Vulkan, etc.)
 	bash scripts/install_prerequisites.sh
