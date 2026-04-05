@@ -8,12 +8,14 @@ updated: auto-generated
 
 ## User Guides
 
-| Guide                                     | Description                               |
-| ----------------------------------------- | ----------------------------------------- |
-| [Getting Started](getting-started.md)     | Quick start, installation, first launch   |
-| [Multiboxing](multiboxing.md)             | Multiple instances, tiling, focus cycling |
-| [EQLogParser Setup](eqlogparser-setup.md) | DPS meter, triggers, GINA compatibility   |
-| [Troubleshooting](troubleshooting.md)     | Common issues and fixes                   |
+| Guide                                     | Description                                |
+| ----------------------------------------- | ------------------------------------------ |
+| [Getting Started](getting-started.md)     | Quick start, installation, first launch    |
+| [Multiboxing](multiboxing.md)             | Multiple instances, tiling, focus cycling  |
+| [Chat Setup](chat-setup.md)               | 4-window raid chat with filters and colors |
+| [Chat Profiles](chat-profiles.md)         | Role-specific layouts (healer, tank, box)  |
+| [EQLogParser Setup](eqlogparser-setup.md) | DPS meter, triggers, GINA compatibility    |
+| [Troubleshooting](troubleshooting.md)     | Common issues and fixes                    |
 
 ## Reference
 
