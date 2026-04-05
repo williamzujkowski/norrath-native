@@ -53,7 +53,7 @@ Initial pre-release. Full-featured but actively evolving.
 - Wine API helper (list/find/map/resize/tile/focus/save)
 - Session backup/restore
 - EQLogParser installation support
-- Brewall map pack installation
+- Good's map pack auto-installation from GitHub
 
 ### Developer Experience
 
