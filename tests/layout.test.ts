@@ -13,7 +13,7 @@ describe("WINDOW_NAMES", () => {
   });
 
   it("contains the correct window names in order", () => {
-    expect(WINDOW_NAMES).toEqual(["Social", "Combat", "Spam", "Alerts & Loot"]);
+    expect(WINDOW_NAMES).toEqual(["Social", "Combat", "Spam", "Alerts"]);
   });
 });
 
