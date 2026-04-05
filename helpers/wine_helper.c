@@ -103,10 +103,9 @@ void cmd_resize(int index, int x, int y, int w, int h) {
     }
 
     HWND hwnd = eq.windows[index];
-    SetWindowPos(hwnd, HWND_TOP, x, y, w, h, 0);
+    SetWindowPos(hwnd, NULL, x, y, w, h, SWP_NOZORDER);
     InvalidateRect(hwnd, NULL, TRUE);
     UpdateWindow(hwnd);
-    SetForegroundWindow(hwnd);
 
     printf("Resized window #%d to (%d,%d) %dx%d\n", index, x, y, w, h);
 }
@@ -122,16 +121,10 @@ void cmd_tile(int argc, char *argv[]) {
     for (i = 0; i < argc && i < eq.count; i++) {
         int x, y, w, h;
         if (sscanf(argv[i], "%d,%d,%dx%d", &x, &y, &w, &h) == 4) {
-            SetWindowPos(eq.windows[i], HWND_TOP, x, y, w, h, 0);
+            SetWindowPos(eq.windows[i], NULL, x, y, w, h, SWP_NOZORDER);
             InvalidateRect(eq.windows[i], NULL, TRUE);
             printf("Window %d: (%d,%d) %dx%d\n", i, x, y, w, h);
         }
-    }
-
-    /* Focus the first window after tiling */
-    if (eq.count > 0) {
-        SetForegroundWindow(eq.windows[0]);
-        BringWindowToTop(eq.windows[0]);
     }
 }
 
@@ -237,23 +230,15 @@ void cmd_map(void) {
 
 void cmd_tile_hwnd(int argc, char *argv[]) {
     /* Format: HWND X,Y,WxH HWND X,Y,WxH ... */
-    HWND first_hwnd = NULL;
     int i;
     for (i = 0; i + 1 < argc; i += 2) {
         HWND hwnd = (HWND)(LONG_PTR)strtoull(argv[i], NULL, 0);
         int x, y, w, h;
         if (sscanf(argv[i+1], "%d,%d,%dx%d", &x, &y, &w, &h) == 4) {
-            SetWindowPos(hwnd, HWND_TOP, x, y, w, h, 0);
+            SetWindowPos(hwnd, NULL, x, y, w, h, SWP_NOZORDER);
             InvalidateRect(hwnd, NULL, TRUE);
             printf("HWND %p: (%d,%d) %dx%d\n", hwnd, x, y, w, h);
-            if (!first_hwnd) first_hwnd = hwnd;
         }
-    }
-
-    /* Focus the first (main) window after tiling */
-    if (first_hwnd) {
-        SetForegroundWindow(first_hwnd);
-        BringWindowToTop(first_hwnd);
     }
 }
 
