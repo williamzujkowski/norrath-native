@@ -145,37 +145,17 @@ main() {
     bash "${SCRIPT_DIR}/resolution_manager.sh" apply --resolution "${monitor_res}" 2>/dev/null || true
 
     # Step 4: Re-tile running windows if EQ is active
+    # Uses smart_tile.sh for character-aware tiling (main char gets big window)
     if nn_is_eq_running; then
-        nn_log "Step 4: Re-tiling running windows"
-        local helper="${SCRIPT_DIR}/../helpers/wine_helper.exe"
+        nn_log "Step 4: Re-tiling running windows via smart_tile"
         local eq_count
         eq_count="$(nn_find_eq_windows | wc -l)"
 
-        if [[ "${eq_count}" -gt 0 ]] && [[ -f "${helper}" ]]; then
-            # Auto-tile based on window count
-            if [[ "${eq_count}" -eq 1 ]]; then
-                WINEPREFIX="${PREFIX}" DISPLAY=:0 wine "${helper}" tile \
-                    "0,0,${eq_res%%x*}x${eq_res##*x}" 2>/dev/null
-            elif [[ "${eq_count}" -eq 2 ]]; then
-                local hw=$(( ${eq_res%%x*} / 2 ))
-                WINEPREFIX="${PREFIX}" DISPLAY=:0 wine "${helper}" tile \
-                    "0,0,${hw}x${eq_res##*x}" \
-                    "${hw},0,${hw}x${eq_res##*x}" 2>/dev/null
-            elif [[ "${eq_count}" -ge 3 ]]; then
-                # Main window 65%, boxes stacked right 35%
-                local main_w=$(( ${monitor_res%%x*} * 65 / 100 ))
-                local box_w=$(( ${monitor_res%%x*} - main_w ))
-                local box_h=$(( ${monitor_res##*x} / (eq_count - 1) ))
-                local specs=("0,0,${main_w}x${monitor_res##*x}")
-                local i
-                for (( i=1; i<eq_count; i++ )); do
-                    local y=$(( (i - 1) * box_h ))
-                    specs+=("${main_w},${y},${box_w}x${box_h}")
-                done
-                WINEPREFIX="${PREFIX}" DISPLAY=:0 wine "${helper}" tile \
-                    "${specs[@]}" 2>/dev/null
-            fi
-            nn_log "  Re-tiled ${eq_count} window(s)"
+        if [[ "${eq_count}" -gt 0 ]]; then
+            bash "${SCRIPT_DIR}/smart_tile.sh" auto --prefix "${PREFIX}"
+            nn_log "  Re-tiled ${eq_count} window(s) with character identification"
+        else
+            nn_log "  No EQ windows found to re-tile"
         fi
     else
         nn_log "Step 4: EQ not running — tiling will apply on next launch"

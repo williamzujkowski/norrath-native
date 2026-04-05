@@ -61,7 +61,15 @@ main() {
     # EQ windows are constrained to the virtual desktop, not the physical monitor.
     local screen_w screen_h
     read -r screen_w screen_h <<< "$(nn_get_screen_size)"
-    nn_log "Tiling area: ${screen_w}x${screen_h}"
+
+    # Log diagnostic info for troubleshooting dock/undock issues
+    local phys_w phys_h
+    read -r phys_w phys_h <<< "$(DISPLAY=:0 xdotool getdisplaygeometry 2>/dev/null)"
+    nn_log "Monitor: ${phys_w}x${phys_h}"
+    nn_log "Tiling area: ${screen_w}x${screen_h} (Wine virtual desktop)"
+    if [[ "${screen_w}x${screen_h}" != "${phys_w}x${phys_h}" ]]; then
+        nn_log "  ⚠ Wine desktop ≠ monitor. Run 'make adapt' to sync."
+    fi
 
     # Get HWND→X11 WID mapping from Wine
     nn_log "Mapping windows via Wine API..."
