@@ -11,15 +11,15 @@
  * testable without network access.
  */
 
-import type { DxvkRelease, Result } from './types/interfaces.js';
-import { MIN_DXVK_VERSION } from './types/interfaces.js';
+import type { DxvkRelease, Result } from "./types/interfaces.js";
+import { MIN_DXVK_VERSION } from "./types/interfaces.js";
 
 // ---------------------------------------------------------------------------
 // Public constants
 // ---------------------------------------------------------------------------
 
 export const DXVK_RELEASES_URL =
-  'https://api.github.com/repos/doitsujin/dxvk/releases';
+  "https://api.github.com/repos/doitsujin/dxvk/releases";
 
 // ---------------------------------------------------------------------------
 // Internal types for the GitHub Releases API response subset we need
@@ -45,11 +45,7 @@ interface GitHubRelease {
 export function parseVersion(tag: string): [number, number, number] | null {
   const match = /^v?(\d+)\.(\d+)(?:\.(\d+))?$/.exec(tag);
   if (!match) return null;
-  return [
-    Number(match[1]),
-    Number(match[2]),
-    Number(match[3] ?? '0'),
-  ];
+  return [Number(match[1]), Number(match[2]), Number(match[3] ?? "0")];
 }
 
 /** Returns true when `version` >= `minimum` (both as dotted strings). */
@@ -59,8 +55,10 @@ export function meetsMinimumVersion(version: string, minimum: string): boolean {
   if (!v || !m) return false;
 
   for (let i = 0; i < 3; i++) {
-    if (v[i] > m[i]) return true;
-    if (v[i] < m[i]) return false;
+    const vi = v[i] ?? 0;
+    const mi = m[i] ?? 0;
+    if (vi > mi) return true;
+    if (vi < mi) return false;
   }
   return true; // equal
 }
@@ -81,7 +79,7 @@ export type FetchFn = (
 /** Find the tarball asset in a release's asset list. */
 function findTarball(assets: GitHubAsset[]): GitHubAsset | undefined {
   return assets.find(
-    (a) => a.name.endsWith('.tar.gz') && a.name.startsWith('dxvk-'),
+    (a) => a.name.endsWith(".tar.gz") && a.name.startsWith("dxvk-"),
   );
 }
 
@@ -111,46 +109,43 @@ export async function resolveLatestDxvk(
   fetchFn: FetchFn,
 ): Promise<Result<DxvkRelease, Error>> {
   const response = await fetchFn(DXVK_RELEASES_URL, {
-    headers: { Accept: 'application/vnd.github.v3+json' },
+    headers: { Accept: "application/vnd.github.v3+json" },
   });
 
   if (!response.ok) {
     return {
       ok: false,
-      error: new Error(
-        `GitHub API returned HTTP ${String(response.status)}`,
-      ),
+      error: new Error(`GitHub API returned HTTP ${String(response.status)}`),
     };
   }
 
   const body: unknown = await response.json();
   if (!Array.isArray(body)) {
-    return { ok: false, error: new Error('Unexpected API response shape') };
+    return { ok: false, error: new Error("Unexpected API response shape") };
   }
 
   const stable = filterStableReleases(body as GitHubRelease[]);
   if (stable.length === 0) {
     return {
       ok: false,
-      error: new Error(
-        `No stable DXVK release found >= ${MIN_DXVK_VERSION}`,
-      ),
+      error: new Error(`No stable DXVK release found >= ${MIN_DXVK_VERSION}`),
     };
   }
 
   // GitHub returns releases newest-first; take the first stable match.
   const latest = stable[0];
+  if (latest === undefined) {
+    return { ok: false, error: new Error("No stable DXVK release found") };
+  }
   const tarball = findTarball(latest.assets);
   if (!tarball) {
     return {
       ok: false,
-      error: new Error(
-        `Release ${latest.tag_name} has no .tar.gz asset`,
-      ),
+      error: new Error(`Release ${latest.tag_name} has no .tar.gz asset`),
     };
   }
 
-  const version = latest.tag_name.replace(/^v/, '');
+  const version = latest.tag_name.replace(/^v/, "");
   return {
     ok: true,
     value: {

@@ -11,61 +11,58 @@
  * @module cli
  */
 
-import { resolveConfig, generateManagedSettings } from './config.js';
+import { resolveConfig, generateManagedSettings } from "./config.js";
 import {
   isUltrawide,
   clampTo16x9,
   calculateViewport,
   calculateTilePositions,
-} from './resolution.js';
+} from "./resolution.js";
 import {
   buildDefaultChecks,
   runChecks,
   formatJson,
   formatText,
-} from './doctor.js';
+} from "./doctor.js";
 import {
   COLOR_SCHEME,
   generateColorIniEntries,
   validateSchemeContrast,
-} from './colors.js';
+} from "./colors.js";
 import {
   CHANNEL_MAP,
   CHANNEL_NAMES,
   generateChannelMapEntries,
-} from './layout.js';
+} from "./layout.js";
 
 const args = process.argv.slice(2);
 const command = args[0];
 
 function printJson(data: unknown): void {
   process.stdout.write(JSON.stringify(data, null, 2));
-  process.stdout.write('\n');
+  process.stdout.write("\n");
 }
 
-function commands(): Record<
-  string,
-  () => void
-> {
+function commands(): Record<string, () => void> {
   return {
-    'config': cmdConfig,
-    'config:resolve': cmdConfig,
-    'config:settings': cmdConfigSettings,
-    'config:settings:ini': cmdConfigSettingsIni,
-    'resolution:detect': cmdResolutionDetect,
-    'resolution:clamp': cmdResolutionClamp,
-    'resolution:viewport': cmdResolutionViewport,
-    'resolution:tiles': cmdResolutionTiles,
-    'colors:scheme': cmdColorsScheme,
-    'colors:ini': cmdColorsIni,
-    'colors:data': cmdColorsData,
-    'colors:validate': cmdColorsValidate,
-    'layout:channels': cmdLayoutChannels,
-    'layout:ini': cmdLayoutIni,
-    'layout:data': cmdLayoutData,
-    'doctor': cmdDoctor,
-    'doctor:json': cmdDoctorJson,
-    'help': cmdHelp,
+    config: cmdConfig,
+    "config:resolve": cmdConfig,
+    "config:settings": cmdConfigSettings,
+    "config:settings:ini": cmdConfigSettingsIni,
+    "resolution:detect": cmdResolutionDetect,
+    "resolution:clamp": cmdResolutionClamp,
+    "resolution:viewport": cmdResolutionViewport,
+    "resolution:tiles": cmdResolutionTiles,
+    "colors:scheme": cmdColorsScheme,
+    "colors:ini": cmdColorsIni,
+    "colors:data": cmdColorsData,
+    "colors:validate": cmdColorsValidate,
+    "layout:channels": cmdLayoutChannels,
+    "layout:ini": cmdLayoutIni,
+    "layout:data": cmdLayoutData,
+    doctor: cmdDoctor,
+    "doctor:json": cmdDoctorJson,
+    help: cmdHelp,
   };
 }
 
@@ -101,8 +98,8 @@ function cmdConfigSettingsIni(): void {
 }
 
 function cmdResolutionDetect(): void {
-  const width = parseInt(args[1] ?? '1920', 10);
-  const height = parseInt(args[2] ?? '1080', 10);
+  const width = parseInt(args[1] ?? "1920", 10);
+  const height = parseInt(args[2] ?? "1080", 10);
 
   printJson({
     monitor: `${String(width)}x${String(height)}`,
@@ -116,15 +113,15 @@ function cmdResolutionDetect(): void {
 }
 
 function cmdResolutionClamp(): void {
-  const width = parseInt(args[1] ?? '1920', 10);
-  const height = parseInt(args[2] ?? '1080', 10);
+  const width = parseInt(args[1] ?? "1920", 10);
+  const height = parseInt(args[2] ?? "1080", 10);
   const result = clampTo16x9(width, height);
   printJson(result);
 }
 
 function cmdResolutionViewport(): void {
-  const width = parseInt(args[1] ?? '1920', 10);
-  const height = parseInt(args[2] ?? '1080', 10);
+  const width = parseInt(args[1] ?? "1920", 10);
+  const height = parseInt(args[2] ?? "1080", 10);
   const result = calculateViewport(width, height);
   if (!result.ok) {
     process.stderr.write(`Error: ${result.error.message}\n`);
@@ -134,9 +131,9 @@ function cmdResolutionViewport(): void {
 }
 
 function cmdResolutionTiles(): void {
-  const count = parseInt(args[1] ?? '1', 10);
-  const width = parseInt(args[2] ?? '1920', 10);
-  const height = parseInt(args[3] ?? '1080', 10);
+  const count = parseInt(args[1] ?? "1", 10);
+  const width = parseInt(args[2] ?? "1920", 10);
+  const height = parseInt(args[3] ?? "1080", 10);
   printJson(calculateTilePositions(count, width, height));
 }
 
@@ -153,14 +150,16 @@ function cmdColorsIni(): void {
 
 function cmdColorsData(): void {
   for (const [id, color] of Object.entries(COLOR_SCHEME)) {
-    process.stdout.write(`${id} ${String(color.r)} ${String(color.g)} ${String(color.b)}\n`);
+    process.stdout.write(
+      `${id} ${String(color.r)} ${String(color.g)} ${String(color.b)}\n`,
+    );
   }
 }
 
 function cmdColorsValidate(): void {
-  const bgR = parseInt(args[1] ?? '13', 10);
-  const bgG = parseInt(args[2] ?? '13', 10);
-  const bgB = parseInt(args[3] ?? '26', 10);
+  const bgR = parseInt(args[1] ?? "13", 10);
+  const bgG = parseInt(args[2] ?? "13", 10);
+  const bgB = parseInt(args[3] ?? "26", 10);
   const results = validateSchemeContrast({ r: bgR, g: bgG, b: bgB });
   const failing = results.filter((r) => !r.passes);
   if (failing.length > 0) {
@@ -201,15 +200,15 @@ function cmdLayoutData(): void {
 
 function getDoctorPrefix(): string {
   // --prefix flag takes precedence, then config, then default
-  const prefixIdx = args.indexOf('--prefix');
+  const prefixIdx = args.indexOf("--prefix");
   if (prefixIdx !== -1 && args[prefixIdx + 1]) {
-    return args[prefixIdx + 1];
+    return args[prefixIdx + 1] ?? "";
   }
   const result = resolveConfig();
   if (result.ok) {
     return result.value.prefix;
   }
-  const home = process.env['HOME'] ?? '/tmp';
+  const home = process.env["HOME"] ?? "/tmp";
   return `${home}/.wine-eq`;
 }
 
@@ -228,7 +227,7 @@ function cmdDoctorJson(): void {
   const checks = buildDefaultChecks(prefix);
   const report = runChecks(checks);
   process.stdout.write(formatJson(report));
-  process.stdout.write('\n');
+  process.stdout.write("\n");
   if (report.failed > 0) {
     process.exit(1);
   }
@@ -270,11 +269,11 @@ Usage from bash:
 }
 
 // Dispatch
-const handler = commands()[command ?? 'help'];
+const handler = commands()[command ?? "help"];
 if (handler) {
   handler();
 } else {
-  process.stderr.write(`Unknown command: ${command ?? '(none)'}\n`);
+  process.stderr.write(`Unknown command: ${command ?? "(none)"}\n`);
   cmdHelp();
   process.exit(1);
 }
