@@ -260,7 +260,7 @@ norrath-native/
     dxvk-resolver.ts     — GitHub API DXVK release resolver
     metadata.ts          — Programmatic project stats (self-documenting)
     types/interfaces.ts  — Core TypeScript contracts
-  scripts/               — 21 bash scripts (thin system wrappers)
+  scripts/               — 20 bash scripts (thin system wrappers)
   tests/                 — 9 test files
   layouts/               — 4 window layout templates
   helpers/wine_helper.c  — Wine API helper (SetWindowPos, HWND mapping)
