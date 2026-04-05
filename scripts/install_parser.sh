@@ -198,12 +198,14 @@ WINEPREFIX="${PREFIX}" wine "${installer_path}" 2>/dev/null || true
 # Verify installation
 if [[ -f "${PARSER_EXE}" ]]; then
     ok "EQLogParser installed successfully at ${PARSER_DEST}"
+
+    # Create desktop shortcut and pin to taskbar
+    bash "${SCRIPT_DIR}/install_shortcuts.sh" --parser-only 2>/dev/null || true
+
     info ""
-    info "Launch with:"
-    info "  WINEPREFIX=${PREFIX} wine \"${PARSER_EXE}\""
-    info ""
-    info "In EQLogParser → Settings → Triggers, enable 'Use Piper TTS'"
-    info "for trigger audio (Windows TTS is unavailable under Wine)."
+    info "EQLogParser pinned to your taskbar. Tips:"
+    info "  In Settings → Triggers, enable 'Use Piper TTS'"
+    info "  (Windows TTS is unavailable under Wine)"
 else
     warn "EQLogParser.exe not found after installation."
     warn "The installer may have used a different path."

@@ -483,6 +483,10 @@ main() {
     nn_log ""
     bash "${SCRIPT_DIR}/install_maps.sh" --prefix "${PREFIX}" || warn "Map installation failed (non-fatal)"
 
+    # Create desktop shortcuts and taskbar pins
+    nn_log ""
+    bash "${SCRIPT_DIR}/install_shortcuts.sh" || warn "Shortcut creation failed (non-fatal)"
+
     nn_log "=== ${SCRIPT_NAME} completed ==="
     nn_log "Run 'make doctor' to verify installation, 'make launch' to play."
 }
