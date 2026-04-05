@@ -1,4 +1,4 @@
-.PHONY: install build prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates resolution resolution-detect profile-save profile-load profile-list setup-all tile pip focus-next windows doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
+.PHONY: install build prereqs prereqs-dry typecheck lint test test-coverage docs docs-check deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates resolution resolution-detect profile-save profile-load profile-list setup-all tile pip focus-next windows identify doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -113,6 +113,9 @@ focus-next:         ## Cycle keyboard focus to the next EQ window
 
 windows:            ## List all detected EQ windows
 	bash scripts/window_manager.sh list
+
+identify:           ## Screenshot each EQ window to identify characters
+	bash scripts/window_manager.sh identify
 
 backup-session:     ## Back up launcher login session for disaster recovery
 	@mkdir -p ~/.local/share/norrath-native/backup

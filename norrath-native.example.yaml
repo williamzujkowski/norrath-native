@@ -32,6 +32,24 @@ multibox_instances: 3
 # Prevents GPU initialization races and login throttling
 stagger_delay: 5
 
+# Character login order for multiboxing.
+# Log in characters in this order — the tiling script assigns windows
+# to layout positions based on this sequence.
+#
+# The first character gets the 'main' role (large window in bard-pull layout).
+# Remaining characters get the 'box' role (smaller windows).
+#
+# characters:
+#   - name: Grenlan
+#     class: BRD
+#     role: main      # puller — gets the large window
+#   - name: Malware
+#     class: SHD
+#     role: box
+#   - name: Rootkit
+#     class: BER
+#     role: box
+
 # ─── Performance Profile ──────────────────────────────────────────────────────
 #
 # Choose a preset, or customize individual settings below.

@@ -28,6 +28,7 @@ Commands:
   focus      Cycle focus to the next EQ window
   list       Show all detected EQ windows
   pip        Picture-in-picture: main window large, others small
+  identify   Screenshot each window to identify characters
   -h, --help Show this help
 
 Replaces ISBoxer window management on Linux using native X11 tools.
@@ -35,14 +36,45 @@ EOF
     exit 0
 }
 
+# Detect XWayland coordinate scaling factor.
+# On some Wayland compositors, xdotool windowmove doubles the coordinates
+# (positions are 2x, sizes are not). We detect this by moving a window
+# to a known position and checking what xdotool reports back.
+detect_xwayland_scale() {
+    local test_wid="${1:-}"
+    if [[ -z "${test_wid}" ]]; then
+        echo "1"
+        return
+    fi
+
+    # Move to position 100, check reported position
+    DISPLAY=:0 xdotool windowmove "${test_wid}" 100 100 2>/dev/null || true
+    local reported_x
+    reported_x="$(DISPLAY=:0 xdotool getwindowgeometry "${test_wid}" 2>/dev/null | grep 'Position' | grep -oP '\d+' | head -1 || echo '100')"
+
+    if [[ "${reported_x}" -eq 200 ]]; then
+        echo "2"
+    else
+        echo "1"
+    fi
+}
+
 # Move and resize a window using xdotool (works with Wine child windows)
-# wmctrl only handles top-level X11 windows; Wine EQ windows are children
-# of the Wine virtual desktop, so xdotool is required.
+# Compensates for XWayland coordinate doubling if detected.
 move_window() {
     local wid="$1" x="$2" y="$3" w="$4" h="$5"
+
+    # Apply XWayland position scaling compensation
+    if [[ "${XWAYLAND_SCALE:-1}" -eq 2 ]]; then
+        x=$((x / 2))
+        y=$((y / 2))
+    fi
+
     DISPLAY=:0 xdotool windowmove "${wid}" "${x}" "${y}" 2>/dev/null || true
     DISPLAY=:0 xdotool windowsize "${wid}" "${w}" "${h}" 2>/dev/null || true
 }
+
+XWAYLAND_SCALE=1
 
 # Find EQ game windows (excludes the Wine virtual desktop container)
 find_eq_windows() {
@@ -83,6 +115,12 @@ cmd_tile() {
     local screen_w screen_h
     screen_w="$(DISPLAY=:0 xdotool getdisplaygeometry 2>/dev/null | cut -d' ' -f1)"
     screen_h="$(DISPLAY=:0 xdotool getdisplaygeometry 2>/dev/null | cut -d' ' -f2)"
+
+    # Detect XWayland coordinate scaling
+    XWAYLAND_SCALE="$(detect_xwayland_scale "${windows[0]}")"
+    if [[ "${XWAYLAND_SCALE}" -eq 2 ]]; then
+        nn_log "XWayland coordinate doubling detected (compensating)."
+    fi
 
     nn_log "Tiling ${count} window(s) on ${screen_w}x${screen_h} display..."
 
@@ -139,6 +177,8 @@ cmd_pip() {
     screen_w="$(DISPLAY=:0 xdotool getdisplaygeometry 2>/dev/null | cut -d' ' -f1)"
     screen_h="$(DISPLAY=:0 xdotool getdisplaygeometry 2>/dev/null | cut -d' ' -f2)"
 
+    XWAYLAND_SCALE="$(detect_xwayland_scale "${windows[0]}")"
+
     # Main window: 75% of screen
     local main_w=$((screen_w * 3 / 4))
     move_window "${windows[0]}" 0 0 "${main_w}" "${screen_h}"
@@ -189,12 +229,44 @@ cmd_focus() {
     nn_log "Focus → ${name} (window $((next_idx + 1))/${count})"
 }
 
+cmd_identify() {
+    local -a windows=()
+    while IFS= read -r wid; do
+        windows+=("${wid}")
+    done < <(find_eq_windows)
+
+    local count=${#windows[@]}
+    if [[ "${count}" -eq 0 ]]; then
+        nn_log "No EQ windows found."
+        exit 1
+    fi
+
+    nn_log "Taking screenshots of ${count} EQ window(s)..."
+    local i
+    for (( i=0; i<count; i++ )); do
+        local wid="${windows[${i}]}"
+        local outfile="/tmp/eq-identify-$((i+1)).png"
+        DISPLAY=:0 import -window "${wid}" "${outfile}" 2>/dev/null || true
+        nn_log "  Window $((i+1)) (WID ${wid}): ${outfile}"
+    done
+
+    nn_log ""
+    nn_log "Check the screenshots to identify which character is in each window."
+    nn_log "Then assign them in your config (norrath-native.yaml) under 'characters:'."
+    nn_log ""
+    nn_log "Login order determines window assignment:"
+    nn_log "  Window 1 = first character you log in (main/puller)"
+    nn_log "  Window 2 = second character (box)"
+    nn_log "  Window 3 = third character (box)"
+}
+
 # Parse command
 case "${COMMAND}" in
     tile)     cmd_tile ;;
     focus)    cmd_focus ;;
     list)     cmd_list ;;
     pip)      cmd_pip ;;
+    identify) cmd_identify ;;
     -h|--help) usage ;;
     *)
         nn_log "Unknown command: ${COMMAND}"
