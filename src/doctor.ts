@@ -382,9 +382,9 @@ function eqExtrasChecks(prefix: string, eqDir: string): Check[] {
     ),
     createFileCheck(
       "EQ_MAPS",
-      "Brewall maps directory exists",
-      join(eqDir, "maps/Brewall"),
-      "make maps FILE=<path>",
+      "Good's maps installed",
+      join(eqDir, "maps"),
+      "make maps",
     ),
     createFileCheck(
       "EQ_PARSER",

@@ -71,8 +71,8 @@ layout-templates:   ## List available layout templates
 	bash scripts/layout_calculator.sh list
 
 FILE ?=
-maps:               ## Install Brewall's map pack (FILE=path/to/downloaded.zip)
-	@if [ -z "$(FILE)" ]; then bash scripts/install_maps.sh --help; else bash scripts/install_maps.sh --file "$(FILE)"; fi
+maps:               ## Install Good's maps (auto-download, or FILE=path/to/custom.zip)
+	@if [ -z "$(FILE)" ]; then bash scripts/install_maps.sh; else bash scripts/install_maps.sh --file "$(FILE)"; fi
 
 PARSER_FILE ?=
 parser:             ## Install EQLogParser (PARSER_FILE=path/to/downloaded.zip)

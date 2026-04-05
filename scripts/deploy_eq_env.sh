@@ -464,6 +464,10 @@ main() {
     configure_eq_settings
     write_state_manifest
 
+    # Install Good's maps (auto-download from GitHub, idempotent)
+    nn_log ""
+    bash "${SCRIPT_DIR}/install_maps.sh" --prefix "${PREFIX}" || warn "Map installation failed (non-fatal)"
+
     nn_log "=== ${SCRIPT_NAME} completed ==="
     nn_log "Run 'make doctor' to verify installation, 'make launch' to play."
 }
