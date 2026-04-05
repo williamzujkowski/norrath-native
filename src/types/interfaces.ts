@@ -77,7 +77,7 @@ export interface DxvkRelease {
 // ---------------------------------------------------------------------------
 
 /** Minimum Wine version required (major.minor) */
-export const MIN_WINE_VERSION = "9.0";
+export const MIN_WINE_VERSION = "11.0";
 
 /** Minimum DXVK version required (major.minor) */
 export const MIN_DXVK_VERSION = "2.4";

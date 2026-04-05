@@ -8,13 +8,11 @@ set -euo pipefail
 SCRIPT_NAME="$(basename "$0")"
 readonly SCRIPT_NAME
 readonly LOG_DIR="${HOME}/.local/share/norrath-native"
-readonly MIN_WINE_VERSION="9.0"
+readonly MIN_WINE_VERSION="11.0"
 
-# Required packages for 64-bit Wine + Vulkan on Ubuntu 24.04
+# Required packages for Wine + Vulkan on Ubuntu 24.04
+# Wine is installed from WineHQ repo (see install_wine_from_winehq)
 readonly -a REQUIRED_PACKAGES=(
-    # Wine (stable)
-    wine64
-    wine32
     # Vulkan drivers and tools
     mesa-vulkan-drivers
     "mesa-vulkan-drivers:i386"
@@ -114,6 +112,37 @@ enable_i386() {
     fi
 }
 
+install_wine_from_winehq() {
+    nn_log "Setting up WineHQ repository for Wine 11..."
+
+    # Check if Wine 11+ is already installed
+    if command -v wine &>/dev/null; then
+        local current_version
+        current_version="$(wine --version 2>/dev/null | sed 's/wine-//' | cut -d'.' -f1)"
+        if [[ "${current_version}" -ge 11 ]] 2>/dev/null; then
+            nn_log "  Wine ${current_version}.x already installed, skipping"
+            return 0
+        fi
+    fi
+
+    # Add WineHQ signing key
+    if [[ ! -f /etc/apt/keyrings/winehq-archive.key ]]; then
+        nn_log "  Adding WineHQ signing key..."
+        run sudo mkdir -pm755 /etc/apt/keyrings
+        run sudo wget -qO /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key
+    fi
+
+    # Add WineHQ repository for Ubuntu 24.04 (Noble)
+    if [[ ! -f /etc/apt/sources.list.d/winehq-noble.sources ]]; then
+        nn_log "  Adding WineHQ Noble repository..."
+        run sudo wget -qNP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/noble/winehq-noble.sources
+        run sudo apt-get update -qq
+    fi
+
+    nn_log "  Installing winehq-stable..."
+    run sudo apt-get install -y --install-recommends winehq-stable
+}
+
 install_packages() {
     local -a packages=("$@")
     local -a to_install=()
@@ -138,13 +167,13 @@ install_packages() {
 verify_wine() {
     nn_log "Verifying Wine installation..."
 
-    if ! command -v wine64 &>/dev/null; then
-        nn_log "ERROR: wine64 not found after installation"
+    if ! command -v wine &>/dev/null; then
+        nn_log "ERROR: wine not found after installation"
         return 1
     fi
 
     local wine_version
-    wine_version=$(wine64 --version 2>/dev/null | sed 's/wine-//')
+    wine_version=$(wine --version 2>/dev/null | sed 's/wine-//')
     nn_log "  Wine version: ${wine_version}"
 
     # Simple version floor check (compare major.minor)
@@ -208,25 +237,29 @@ main() {
     enable_i386
 
     nn_log ""
-    nn_log "Step 2/5: Update package lists"
+    nn_log "Step 2/6: Install Wine 11 from WineHQ"
+    install_wine_from_winehq
+
+    nn_log ""
+    nn_log "Step 3/6: Update package lists"
     run sudo apt-get update -qq
 
     nn_log ""
-    nn_log "Step 3/5: Install required packages"
+    nn_log "Step 4/6: Install required packages"
     install_packages "${REQUIRED_PACKAGES[@]}"
 
     if [[ "${SKIP_OPTIONAL}" -eq 0 ]]; then
         nn_log ""
-        nn_log "Step 4/5: Install optional packages"
+        nn_log "Step 5/6: Install optional packages"
         install_packages "${OPTIONAL_PACKAGES[@]}"
     else
         nn_log ""
-        nn_log "Step 4/5: Skipping optional packages (--skip-optional)"
+        nn_log "Step 5/6: Skipping optional packages (--skip-optional)"
     fi
 
     if [[ "${DRY_RUN}" -eq 0 ]]; then
         nn_log ""
-        nn_log "Step 5/5: Verify installation"
+        nn_log "Step 6/6: Verify installation"
         verify_wine
         verify_vulkan
     else

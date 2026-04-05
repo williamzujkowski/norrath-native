@@ -15,13 +15,13 @@ _Three EQ instances tiled on an ultrawide monitor — Grenlan (main, 16:9) with 
 
 ## Prerequisites
 
-| Requirement    | Minimum Version     | Notes                                              |
-| -------------- | ------------------- | -------------------------------------------------- |
-| Ubuntu         | 24.04 LTS           | Target platform (Mint, Pop!\_OS also work)         |
-| Wine           | 9.0 (stable)        | 64-bit prefix, auto-detected as `wine` or `wine64` |
-| Vulkan drivers | mesa-vulkan-drivers | GPU must support Vulkan (Intel, AMD, NVIDIA)       |
-| Node.js        | 22.x LTS            | TypeScript config tooling                          |
-| pnpm           | 10.x                | Package manager                                    |
+| Requirement    | Minimum Version      | Notes                                             |
+| -------------- | -------------------- | ------------------------------------------------- |
+| Ubuntu         | 24.04 LTS            | Target platform (Mint, Pop!\_OS also work)        |
+| Wine           | 11.0 (WineHQ stable) | Auto-installed from WineHQ repo by `make prereqs` |
+| Vulkan drivers | mesa-vulkan-drivers  | GPU must support Vulkan (Intel, AMD, NVIDIA)      |
+| Node.js        | 22.x LTS             | TypeScript config tooling                         |
+| pnpm           | 10.x                 | Package manager                                   |
 
 Don't worry about installing these manually — `make prereqs` handles everything.
 
