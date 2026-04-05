@@ -31,6 +31,22 @@ nn_detect_wine() {
 # Initialize Wine command on source
 nn_detect_wine
 
+# ─── EQ Window Detection ─────────────────────────────────────────────────────
+# Find EQ windows by exact title match. xdotool --name is a substring match,
+# so "EverQuest" also matches Discord channels like "#everquest-news".
+# This filters to windows whose title is exactly "EverQuest".
+
+nn_find_eq_windows() {
+    local wid
+    while IFS= read -r wid; do
+        local title
+        title="$(DISPLAY=:0 xdotool getwindowname "${wid}" 2>/dev/null || echo '')"
+        if [[ "${title}" == "EverQuest" ]]; then
+            echo "${wid}"
+        fi
+    done < <(DISPLAY=:0 xdotool search --name "EverQuest" 2>/dev/null || true)
+}
+
 # ─── EQ Running Guard ─────────────────────────────────────────────────────────
 # Call this before modifying UI_*.ini or eqclient.ini files.
 # EQ holds these in memory and overwrites on camp/zone, so changes made

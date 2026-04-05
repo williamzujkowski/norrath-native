@@ -87,9 +87,9 @@ move_window() {
 WINE_RESIZE_INDEX=0
 XWAYLAND_SCALE=1
 
-# Find EQ game windows (excludes the Wine virtual desktop container)
+# Find EQ game windows (exact title match, excludes Discord etc.)
 find_eq_windows() {
-    DISPLAY=:0 xdotool search --name "EverQuest" 2>/dev/null || true
+    nn_find_eq_windows
 }
 
 cmd_list() {

@@ -72,11 +72,11 @@ apply_tiling() {
 
     nn_log "Wine desktop: ${desktop_w}x${desktop_h}"
 
-    # Find EQ game windows (excludes Wine desktop container)
+    # Find EQ game windows (exact title match, excludes Discord etc.)
     local -a real_windows=()
     while IFS= read -r wid; do
         real_windows+=("${wid}")
-    done < <(DISPLAY=:0 xdotool search --name "EverQuest" 2>/dev/null | head -6 || true)
+    done < <(nn_find_eq_windows | head -6)
 
     # Detect XWayland coordinate scaling (positions doubled on some compositors)
     local xw_scale=1
