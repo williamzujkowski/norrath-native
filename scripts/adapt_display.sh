@@ -149,7 +149,7 @@ main() {
         nn_log "Step 4: Re-tiling running windows"
         local helper="${SCRIPT_DIR}/../helpers/wine_helper.exe"
         local eq_count
-        eq_count="$(DISPLAY=:0 xdotool search --name 'EverQuest' 2>/dev/null | wc -l)"
+        eq_count="$(nn_find_eq_windows | wc -l)"
 
         if [[ "${eq_count}" -gt 0 ]] && [[ -f "${helper}" ]]; then
             # Auto-tile based on window count
