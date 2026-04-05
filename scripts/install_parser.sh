@@ -99,6 +99,12 @@ setup_parser_prefix() {
         'HKEY_CURRENT_USER\Software\Wine\DWM' \
         /v DisableComposition /d Y /f 2>/dev/null
 
+    # Install Microsoft core fonts (WPF crashes without fonts to render text)
+    if command -v winetricks &>/dev/null; then
+        info "Installing core fonts..."
+        WINEPREFIX="${PARSER_PREFIX}" winetricks -q corefonts 2>/dev/null || true
+    fi
+
     info "Parser prefix created."
 }
 
