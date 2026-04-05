@@ -1,4 +1,4 @@
-.PHONY: install build prereqs launch-perf launch-safe logs prereqs-dry typecheck lint test test-coverage docs docs-check stats stats-check stats-fix deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates resolution resolution-detect adapt adapt-dry profile-save profile-load profile-list setup-all tile tile-grid pip focus-next windows identify doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
+.PHONY: install build prereqs launch-perf launch-safe logs prereqs-dry typecheck lint test test-coverage docs docs-check stats stats-check stats-fix deploy deploy-dry configure configure-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates resolution resolution-detect adapt adapt-dry profile-save profile-load profile-list setup-all tile tile-grid pip focus-next windows identify status status-json doctor support-bundle launch launch-multi backup-session restore-session maps parser clean purge help
 
 install:            ## Install pnpm dependencies
 	pnpm install
@@ -93,6 +93,12 @@ profile-load:       ## Load a saved UI layout profile (PROFILE=name)
 
 profile-list:       ## List available UI layout profiles
 	bash scripts/layout_profiles.sh list
+
+status:             ## Show diagnostic dashboard (monitor, Wine desktop, EQ windows)
+	bash scripts/status.sh
+
+status-json:        ## Show diagnostic dashboard as JSON
+	bash scripts/status.sh --json
 
 doctor:             ## Health check — validate entire installation
 	bash scripts/doctor.sh
