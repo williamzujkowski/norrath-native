@@ -6,7 +6,7 @@
 ## Architecture
 
 TypeScript is the source of truth for all logic. Bash scripts are thin wrappers
-for system interaction only (wine, apt, wmctrl, xdotool).
+for system interaction only (wine, apt, xrandr, xprop).
 
 ```
 src/cli.ts             — Unified CLI entry point (node dist/cli.js <cmd>)
@@ -44,7 +44,7 @@ make setup-all        # Apply all customizations to all characters
 4. **Idempotent scripts** — safe to run multiple times
 5. **EQ max aspect ratio is 16:9** — ultrawide must be clamped
 6. **EQ overwrites UI INIs on camp** — changes require camping first
-7. **Wine CEF ignores synthetic input** — no automated login via xdotool
+7. **Wine CEF ignores synthetic input** — no automated login possible
 
 ## Canonical Paths
 

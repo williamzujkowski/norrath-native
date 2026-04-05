@@ -4,7 +4,7 @@
  *
  * Bash scripts call this for all calculation, configuration,
  * and data manipulation. Bash handles only system interaction
- * (wine, apt, wmctrl, xdotool).
+ * (wine, apt, xrandr, xprop).
  *
  * Usage: node dist/cli.js <command> [args]
  *

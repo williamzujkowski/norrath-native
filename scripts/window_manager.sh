@@ -3,8 +3,9 @@ set -euo pipefail
 
 # window_manager.sh — Arrange and cycle EverQuest windows for multiboxing
 #
-# Replaces ISBoxer's window layout and focus-switching on Linux using
-# native X11 tools (wmctrl, xdotool). No paid software needed.
+# All window operations use Wine's native Windows API (via wine_helper.exe)
+# for reliable positioning, resizing, and focus management. xdotool is NOT
+# used — it disrupts Wine's internal input routing.
 #
 # Commands:
 #   tile   — Arrange EQ windows in a grid layout
@@ -16,6 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/config_reader.sh"
 
 COMMAND="${1:-help}"
+HELPER="${SCRIPT_DIR}/../helpers/wine_helper.exe"
 
 usage() {
     cat <<EOF
@@ -28,80 +30,29 @@ Commands:
   focus      Cycle focus to the next EQ window
   list       Show all detected EQ windows
   pip        Picture-in-picture: main window large, others small
-  identify   Screenshot each window to identify characters
+  identify   Identify which character is in which window
   -h, --help Show this help
 
-Replaces ISBoxer window management on Linux using native X11 tools.
+All operations use Wine's native API for reliable focus/input handling.
 EOF
     exit 0
 }
 
-# Detect XWayland coordinate scaling factor.
-# On some Wayland compositors, xdotool windowmove doubles the coordinates
-# (positions are 2x, sizes are not). We detect this by moving a window
-# to a known position and checking what xdotool reports back.
-detect_xwayland_scale() {
-    local test_wid="${1:-}"
-    if [[ -z "${test_wid}" ]]; then
-        echo "1"
-        return
+require_helper() {
+    if [[ ! -f "${HELPER}" ]]; then
+        nn_log "ERROR: helpers/wine_helper.exe not found. Run: make build"
+        exit 1
     fi
-
-    # Move to position 100, check reported position
-    DISPLAY=:0 xdotool windowmove "${test_wid}" 100 100 2>/dev/null || true
-    local reported_x
-    reported_x="$(DISPLAY=:0 xdotool getwindowgeometry "${test_wid}" 2>/dev/null | grep 'Position' | grep -oP '\d+' | head -1 || echo '100')"
-
-    if [[ "${reported_x}" -eq 200 ]]; then
-        echo "2"
-    else
-        echo "1"
-    fi
-}
-
-# Move and resize an EQ window using Wine's SetWindowPos API.
-# This is critical: xdotool windowsize changes the X11 frame but does NOT
-# trigger Wine's WM_SIZE message, so EQ won't re-render. SetWindowPos
-# sends the proper Windows resize event that makes EQ adapt its rendering.
-move_window() {
-    local _wid="$1" x="$2" y="$3" w="$4" h="$5"
-
-    # Use Wine's SetWindowPos API via compiled helper
-    local helper="${SCRIPT_DIR}/../helpers/wine_resize.exe"
-    if [[ -f "${helper}" ]]; then
-        WINEPREFIX="${NN_PREFIX}" DISPLAY=:0 wine "${helper}" "${WINE_RESIZE_INDEX}" "${x}" "${y}" "${w}" "${h}" 2>/dev/null || true
-        WINE_RESIZE_INDEX=$((WINE_RESIZE_INDEX + 1))
-    else
-        # Fallback: xdotool (won't trigger re-render but at least positions)
-        nn_log "  WARNING: helpers/wine_resize.exe not found, using xdotool fallback"
-        nn_log "  Build with: make build-helpers"
-        if [[ "${XWAYLAND_SCALE:-1}" -eq 2 ]]; then
-            x=$((x / 2))
-            y=$((y / 2))
-        fi
-        DISPLAY=:0 xdotool windowmove "${_wid}" "${x}" "${y}" 2>/dev/null || true
-        DISPLAY=:0 xdotool windowsize "${_wid}" "${w}" "${h}" 2>/dev/null || true
-    fi
-}
-
-WINE_RESIZE_INDEX=0
-XWAYLAND_SCALE=1
-
-# Find EQ game windows (exact title match, excludes Discord etc.)
-find_eq_windows() {
-    nn_find_eq_windows
 }
 
 cmd_list() {
+    require_helper
     nn_log "Detecting EverQuest windows..."
     local count=0
-    while IFS= read -r wid; do
-        local name geom
-        name="$(DISPLAY=:0 xdotool getwindowname "${wid}" 2>/dev/null || echo 'unknown')"
-        geom="$(DISPLAY=:0 xdotool getwindowgeometry "${wid}" 2>/dev/null | grep 'Geometry' | sed 's/.*Geometry: //' || echo '?')"
-        printf '  Window %s: %s (%s)\n' "${wid}" "${name}" "${geom}"
+    while IFS='|' read -r idx hwnd pos size pid; do
+        printf '  Window %s: HWND %s at %s size %s (Wine PID %s)\n' "${idx}" "${hwnd}" "${pos}" "${size}" "${pid}"
         count=$((count + 1))
-    done < <(find_eq_windows)
+    done < <(WINEPREFIX="${NN_PREFIX}" DISPLAY=:0 wine "${HELPER}" find 2>/dev/null)
 
     if [[ "${count}" -eq 0 ]]; then
         nn_log "No EverQuest windows found. Launch first: make launch-multi"
@@ -111,12 +62,10 @@ cmd_list() {
 }
 
 cmd_tile() {
-    local -a windows=()
-    while IFS= read -r wid; do
-        windows+=("${wid}")
-    done < <(find_eq_windows)
+    require_helper
 
-    local count=${#windows[@]}
+    local count
+    count="$(WINEPREFIX="${NN_PREFIX}" DISPLAY=:0 wine "${HELPER}" find 2>/dev/null | wc -l)"
     if [[ "${count}" -eq 0 ]]; then
         nn_log "No EverQuest windows found."
         exit 1
@@ -126,25 +75,20 @@ cmd_tile() {
     local screen_w screen_h
     read -r screen_w screen_h <<< "$(nn_get_screen_size)"
 
-    # Detect XWayland coordinate scaling
-    XWAYLAND_SCALE="$(detect_xwayland_scale "${windows[0]}")"
-    if [[ "${XWAYLAND_SCALE}" -eq 2 ]]; then
-        nn_log "XWayland coordinate doubling detected (compensating)."
-    fi
-
     nn_log "Tiling ${count} window(s) on ${screen_w}x${screen_h} display..."
 
-    # Build tile specs for Wine API
+    # Build tile specs — offset from origin to avoid Wine desktop click interception
+    local ox=1 oy=1
     local -a specs=()
     if [[ "${count}" -eq 1 ]]; then
-        specs=("0,0,${screen_w}x${screen_h}")
+        specs=("${ox},${oy},$((screen_w - ox))x$((screen_h - oy))")
     elif [[ "${count}" -eq 2 ]]; then
         local hw=$((screen_w / 2))
-        specs=("0,0,${hw}x${screen_h}" "${hw},0,${hw}x${screen_h}")
+        specs=("${ox},${oy},$((hw - ox))x$((screen_h - oy))" "${hw},0,${hw}x${screen_h}")
     elif [[ "${count}" -le 4 ]]; then
         local hw=$((screen_w / 2))
         local hh=$((screen_h / 2))
-        specs=("0,0,${hw}x${hh}" "${hw},0,${hw}x${hh}" "0,${hh},${hw}x${hh}" "${hw},${hh},${hw}x${hh}")
+        specs=("${ox},${oy},$((hw - ox))x$((hh - oy))" "${hw},${oy},$((hw))x$((hh - oy))" "${ox},${hh},$((hw - ox))x${hh}" "${hw},${hh},${hw}x${hh}")
     else
         local tw=$((screen_w / 3))
         local hh=$((screen_h / 2))
@@ -152,29 +96,26 @@ cmd_tile() {
         for (( i=0; i<count && i<6; i++ )); do
             local col=$((i % 3))
             local row=$((i / 3))
-            specs+=("$((col * tw)),$((row * hh)),${tw}x${hh}")
+            local x=$((col * tw))
+            local y=$((row * hh))
+            if [[ "${x}" -eq 0 ]] && [[ "${y}" -eq 0 ]]; then
+                specs+=("${ox},${oy},$((tw - ox))x$((hh - oy))")
+            else
+                specs+=("${x},${y},${tw}x${hh}")
+            fi
         done
     fi
 
-    # Use Wine API for proper resize + re-render
-    local helper="${SCRIPT_DIR}/../helpers/wine_helper.exe"
-    if [[ -f "${helper}" ]]; then
-        WINEPREFIX="${NN_PREFIX}" DISPLAY=:0 wine "${helper}" tile "${specs[@]:0:${count}}" 2>/dev/null
-        nn_log "  ${count} windows tiled via Wine API."
-    else
-        nn_log "  ERROR: helpers/wine_helper.exe not found. Run: make build"
-    fi
-
+    WINEPREFIX="${NN_PREFIX}" DISPLAY=:0 wine "${HELPER}" tile "${specs[@]:0:${count}}" 2>/dev/null
+    nn_log "  ${count} windows tiled via Wine API."
     nn_log "Done. Use 'make focus-next' to cycle between windows."
 }
 
 cmd_pip() {
-    local -a windows=()
-    while IFS= read -r wid; do
-        windows+=("${wid}")
-    done < <(find_eq_windows)
+    require_helper
 
-    local count=${#windows[@]}
+    local count
+    count="$(WINEPREFIX="${NN_PREFIX}" DISPLAY=:0 wine "${HELPER}" find 2>/dev/null | wc -l)"
     if [[ "${count}" -lt 2 ]]; then
         nn_log "PiP mode needs 2+ windows."
         exit 1
@@ -187,128 +128,92 @@ cmd_pip() {
     local pip_w=$((screen_w - main_w))
     local pip_h=$((screen_h / (count - 1)))
 
-    local -a specs=("0,0,${main_w}x${screen_h}")
+    # Offset main window from origin
+    local -a specs=("1,1,$((main_w - 1))x$((screen_h - 1))")
     local i
     for (( i=1; i<count; i++ )); do
         local y=$(( (i - 1) * pip_h ))
         specs+=("${main_w},${y},${pip_w}x${pip_h}")
     done
 
-    local helper="${SCRIPT_DIR}/../helpers/wine_helper.exe"
-    if [[ -f "${helper}" ]]; then
-        WINEPREFIX="${NN_PREFIX}" DISPLAY=:0 wine "${helper}" tile "${specs[@]}" 2>/dev/null
-    fi
-
+    WINEPREFIX="${NN_PREFIX}" DISPLAY=:0 wine "${HELPER}" tile "${specs[@]}" 2>/dev/null
     nn_log "PiP: main window + $((count - 1)) side panels."
 }
 
 cmd_focus() {
-    # Use Wine API for reliable focus switching (SetForegroundWindow)
-    local helper="${SCRIPT_DIR}/../helpers/wine_helper.exe"
-    if [[ -f "${helper}" ]]; then
-        local output
-        output="$(WINEPREFIX="${NN_PREFIX}" DISPLAY=:0 wine "${helper}" focus-next 2>/dev/null)"
-        nn_log "Focus → ${output}"
-        return 0
-    fi
-
-    # Fallback: xdotool (less reliable with Wine windows)
-    local -a windows=()
-    while IFS= read -r wid; do
-        windows+=("${wid}")
-    done < <(find_eq_windows)
-
-    local count=${#windows[@]}
-    if [[ "${count}" -eq 0 ]]; then
-        nn_log "No EQ windows found."
-        exit 1
-    fi
-
-    local active
-    active="$(DISPLAY=:0 xdotool getactivewindow 2>/dev/null || echo '0')"
-
-    local next_idx=0
-    local i
-    for (( i=0; i<count; i++ )); do
-        if [[ "${windows[${i}]}" == "${active}" ]]; then
-            next_idx=$(( (i + 1) % count ))
-            break
-        fi
-    done
-
-    local next_wid="${windows[${next_idx}]}"
-    DISPLAY=:0 xdotool windowactivate --sync "${next_wid}" 2>/dev/null
-
-    local name
-    name="$(DISPLAY=:0 xdotool getwindowname "${next_wid}" 2>/dev/null || echo 'EQ')"
-    nn_log "Focus → ${name} (window $((next_idx + 1))/${count})"
+    require_helper
+    local output
+    output="$(WINEPREFIX="${NN_PREFIX}" DISPLAY=:0 wine "${HELPER}" focus-next 2>/dev/null)"
+    nn_log "Focus → ${output}"
 }
 
 cmd_identify() {
-    local -a windows=()
-    while IFS= read -r wid; do
-        windows+=("${wid}")
-    done < <(find_eq_windows)
+    require_helper
+    nn_log "Identifying EQ windows via Wine API + log correlation..."
 
-    local count=${#windows[@]}
+    local eq_dir="${NN_PREFIX}/drive_c/EverQuest"
+
+    # Get Wine map data: idx|hwnd|pos|size|wine_pid|x11wid
+    local -a hwnd_list=()
+    local -a x11wid_list=()
+    while IFS='|' read -r _idx hwnd _pos _size _wpid x11wid; do
+        hwnd_list+=("${hwnd}")
+        x11wid_list+=("${x11wid}")
+    done < <(WINEPREFIX="${NN_PREFIX}" DISPLAY=:0 wine "${HELPER}" map 2>/dev/null)
+
+    local count=${#hwnd_list[@]}
     if [[ "${count}" -eq 0 ]]; then
         nn_log "No EQ windows found."
         exit 1
     fi
 
-    nn_log "Identifying ${count} EQ window(s) via log file correlation..."
-
-    local eq_dir="${NN_PREFIX}/drive_c/EverQuest"
-    local logs_dir="${eq_dir}/Logs"
-
-    # Build PID→WID mapping sorted by process start time
-    local -a sorted_pids=()
-    for wid in "${windows[@]}"; do
+    # Get Linux PIDs via xprop, sort by process start time
+    local -a proc_entries=()
+    local i
+    for (( i=0; i<count; i++ )); do
         local pid
-        pid="$(DISPLAY=:0 xdotool getwindowpid "${wid}" 2>/dev/null || echo '0')"
+        pid="$(DISPLAY=:0 xprop -id "${x11wid_list[i]}" _NET_WM_PID 2>/dev/null | grep -oP '\d+$' || echo '0')"
         local start
         start="$(stat -c '%Z' "/proc/${pid}" 2>/dev/null || echo '0')"
-        sorted_pids+=("${start}:${pid}:${wid}")
+        proc_entries+=("${start}:${pid}:${i}")
     done
-    mapfile -t sorted_pids < <(printf '%s\n' "${sorted_pids[@]}" | sort)
+    mapfile -t proc_entries < <(printf '%s\n' "${proc_entries[@]}" | sort -n)
 
-    # Build character login time map from log files
-    local -A char_login_time=()
-    for logfile in "${logs_dir}"/eqlog_*_*.txt; do
+    # Sort characters by login time from eqlog files
+    local now
+    now="$(date '+%s')"
+    local -a char_entries=()
+    for logfile in "${eq_dir}"/Logs/eqlog_*_*.txt; do
         [[ -f "${logfile}" ]] || continue
-        local charname
-        charname="$(basename "${logfile}" | sed 's/eqlog_//;s/_[^_]*\.txt//')"
+        local cname
+        cname="$(basename "${logfile}" | sed 's/eqlog_//;s/_[^_]*\.txt//')"
         local login_epoch
-        login_epoch="$(grep 'Welcome to EverQuest' "${logfile}" 2>/dev/null | tail -1 | grep -oP '\[.*?\]' | sed 's/[][]//g' | xargs -I{} date -d "{}" '+%s' 2>/dev/null || echo '0')"
-        char_login_time["${charname}"]="${login_epoch}"
+        login_epoch="$(grep 'Welcome to EverQuest' "${logfile}" 2>/dev/null | tail -1 | grep -oP '\[.*?\]' | sed 's/[][]//g' | xargs -I{} date -d '{}' '+%s' 2>/dev/null || echo '0')"
+        if [[ "${login_epoch}" -gt 0 ]] && [[ $((now - login_epoch)) -lt 43200 ]]; then
+            char_entries+=("${login_epoch}:${cname}")
+        fi
     done
+    mapfile -t char_entries < <(printf '%s\n' "${char_entries[@]}" | sort -n)
 
-    # Sort characters by login time
-    local -a sorted_chars=()
-    for charname in "${!char_login_time[@]}"; do
-        sorted_chars+=("${char_login_time[${charname}]}:${charname}")
-    done
-    mapfile -t sorted_chars < <(printf '%s\n' "${sorted_chars[@]}" | sort)
+    # Match by sorted position
+    nn_log ""
+    nn_log "Window → Character mapping:"
+    nn_log ""
+    local match_count=${#proc_entries[@]}
+    if [[ ${#char_entries[@]} -lt ${match_count} ]]; then
+        match_count=${#char_entries[@]}
+    fi
 
-    # Correlate: process N (by start time) → character N (by login time)
-    nn_log ""
-    nn_log "Window → Character mapping (by login order):"
-    nn_log ""
-    local i
-    for (( i=0; i<count && i<${#sorted_chars[@]}; i++ )); do
-        local proc_info="${sorted_pids[${i}]}"
-        local char_info="${sorted_chars[${i}]}"
+    for (( i=0; i<match_count; i++ )); do
+        local proc_info="${proc_entries[i]}"
+        local idx="${proc_info##*:}"
         local pid="${proc_info#*:}" && pid="${pid%%:*}"
-        local wid="${proc_info##*:}"
-        local charname="${char_info#*:}"
-        local geom
-        geom="$(DISPLAY=:0 xdotool getwindowgeometry "${wid}" 2>/dev/null | grep 'Geometry' | sed 's/.*Geometry: //' || echo '?')"
-        nn_log "  Window $((i+1)): ${charname} (WID ${wid}, PID ${pid}, ${geom})"
+        local cname="${char_entries[i]##*:}"
+        nn_log "  Window $((i+1)): ${cname} (HWND ${hwnd_list[idx]}, PID ${pid})"
     done
 
     nn_log ""
-    nn_log "This mapping is based on process start time → login timestamp"
-    nn_log "correlation from eqlog_*_*.txt files."
+    nn_log "Main character: ${NN_MAIN_CHARACTER:-not set}"
 }
 
 # Parse command

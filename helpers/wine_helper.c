@@ -230,6 +230,7 @@ void cmd_map(void) {
 
 void cmd_tile_hwnd(int argc, char *argv[]) {
     /* Format: HWND X,Y,WxH HWND X,Y,WxH ... */
+    HWND first_hwnd = NULL;
     int i;
     for (i = 0; i + 1 < argc; i += 2) {
         HWND hwnd = (HWND)(LONG_PTR)strtoull(argv[i], NULL, 0);
@@ -238,7 +239,18 @@ void cmd_tile_hwnd(int argc, char *argv[]) {
             SetWindowPos(hwnd, NULL, x, y, w, h, SWP_NOZORDER);
             InvalidateRect(hwnd, NULL, TRUE);
             printf("HWND %p: (%d,%d) %dx%d\n", hwnd, x, y, w, h);
+            if (!first_hwnd) first_hwnd = hwnd;
         }
+    }
+
+    /* Focus the first (main) window after all windows are positioned.
+     * Without this, Wine's internal focus stays on the last-positioned
+     * window, and the main window at (1,1) won't receive clicks because
+     * the desktop frame intercepts them for unfocused children near the
+     * origin. SetForegroundWindow is a Wine-internal call (not xdotool)
+     * so it correctly updates Windows focus without disrupting X11. */
+    if (first_hwnd) {
+        SetForegroundWindow(first_hwnd);
     }
 }
 
