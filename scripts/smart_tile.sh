@@ -36,6 +36,7 @@ EOF
 
 main() {
     local main_char="${NN_MAIN_CHARACTER}"
+    local main_index=""
     shift || true
 
     while [[ $# -gt 0 ]]; do
@@ -43,6 +44,9 @@ main() {
             --main)
                 if [[ $# -lt 2 ]]; then nn_log "ERROR: --main requires a name"; exit 1; fi
                 main_char="$2"; shift 2 ;;
+            --main-index)
+                if [[ $# -lt 2 ]]; then nn_log "ERROR: --main-index requires a number"; exit 1; fi
+                main_index="$2"; shift 2 ;;
             --prefix)
                 if [[ $# -lt 2 ]]; then nn_log "ERROR: --prefix requires a value"; exit 1; fi
                 PREFIX="$2"; shift 2 ;;
@@ -77,86 +81,70 @@ main() {
         exit 1
     fi
 
-    # Map X11 WID→PID→character via process start time ↔ login time correlation
+    # Character identification is not reliable — timestamp correlation
+    # breaks when characters log in within seconds of each other, and
+    # EQ doesn't expose character names via window titles or open files.
     #
-    # Strategy: EQ doesn't keep eqlog files open, so we can't use /proc/PID/fd.
-    # Instead, sort processes by creation time and characters by their "Welcome
-    # to EverQuest" log timestamp. The Nth process launched = Nth character to
-    # log in. This works because start_eq.sh launches instances with a stagger
-    # delay, so creation order matches login order.
-    nn_log "Identifying characters..."
+    # Instead: tile all windows first, then if --main-index N is given
+    # (or auto-detected on subsequent runs), swap that window to main.
+    # On first run, window 0 gets main. User can re-run with:
+    #   make tile   (then visually check which is which)
+    #   smart_tile.sh --main-index 2  (swap window 2 to main)
+    nn_log "Windows found: ${count}"
 
-    local eq_dir="${PREFIX}/drive_c/EverQuest"
-
-    # Build (process_start, hwnd_index) sorted by start time
-    local -a proc_entries=()
+    local -a char_names=()
     local i
     for (( i=0; i<count; i++ )); do
-        local x11wid="${x11wid_list[i]}"
-        local pid
-        pid="$(DISPLAY=:0 xprop -id "${x11wid}" _NET_WM_PID 2>/dev/null | grep -oP '\d+$' || echo '0')"
-        local proc_start
-        proc_start="$(stat -c '%Z' "/proc/${pid}" 2>/dev/null || echo '0')"
-        proc_entries+=("${proc_start}:${i}")
-    done
-    mapfile -t proc_entries < <(printf '%s\n' "${proc_entries[@]}" | sort -n)
-
-    # Build (login_time, char_name) sorted by login time
-    # Use "Welcome to EverQuest" from eqlog files — only consider recent sessions
-    local -a char_entries=()
-    local now
-    now="$(date '+%s')"
-    for logfile in "${eq_dir}"/Logs/eqlog_*_*.txt; do
-        [[ -f "${logfile}" ]] || continue
-        local cname
-        cname="$(basename "${logfile}" | sed 's/eqlog_//;s/_[^_]*\.txt//')"
-        local login_epoch
-        login_epoch="$(grep 'Welcome to EverQuest' "${logfile}" 2>/dev/null | tail -1 | grep -oP '\[.*?\]' | sed 's/[][]//g' | xargs -I{} date -d '{}' '+%s' 2>/dev/null || echo '0')"
-        # Only match characters who logged in within the last 12 hours
-        if [[ "${login_epoch}" -gt 0 ]] && [[ $((now - login_epoch)) -lt 43200 ]]; then
-            char_entries+=("${login_epoch}:${cname}")
-        fi
-    done
-    mapfile -t char_entries < <(printf '%s\n' "${char_entries[@]}" | sort -n)
-
-    # Match 1:1 by sorted position (1st process = 1st login, etc.)
-    local -a char_names=()
-    for (( i=0; i<count; i++ )); do
-        char_names+=("unknown")
+        char_names+=("window-${i}")
     done
 
-    local match_count=${#proc_entries[@]}
-    if [[ ${#char_entries[@]} -lt ${match_count} ]]; then
-        match_count=${#char_entries[@]}
-    fi
-
-    for (( i=0; i<match_count; i++ )); do
-        local hwnd_idx="${proc_entries[i]##*:}"
-        local cname="${char_entries[i]##*:}"
-        char_names[hwnd_idx]="${cname}"
-        nn_log "  ${cname} → HWND ${hwnd_list[hwnd_idx]}"
-    done
-
-    # Find main character index
+    # Determine which window gets the main (big) position.
+    # Priority: --main-index flag > saved mapping > default (0)
     local main_idx=0
-    if [[ -n "${main_char}" ]]; then
+    local state_dir="${HOME}/.local/share/norrath-native"
+    local hwnd_map="${state_dir}/hwnd-character-map"
+
+    if [[ -n "${main_index}" ]]; then
+        # User explicitly specified which window index is main
+        main_idx="${main_index}"
+        nn_log "Main: window ${main_idx} (--main-index)"
+    elif [[ -n "${main_char}" ]] && [[ -f "${hwnd_map}" ]]; then
+        # Check saved HWND→character mapping from previous identification
         for (( i=0; i<count; i++ )); do
-            if [[ "${char_names[i]}" == "${main_char}" ]]; then
+            local saved_char
+            saved_char="$(grep "^${hwnd_list[i]}=" "${hwnd_map}" 2>/dev/null | cut -d= -f2 || echo '')"
+            if [[ "${saved_char}" == "${main_char}" ]]; then
                 main_idx=${i}
+                char_names[i]="${saved_char}"
+                nn_log "Main: ${saved_char} → window ${i} (saved mapping)"
                 break
             fi
         done
+    else
+        nn_log "Main: window ${main_idx} (default)"
     fi
-    nn_log ""
-    nn_log "Main: ${char_names[main_idx]}"
 
-    # Build tile specs: main gets 65% left, boxes stack right
-    #
-    # Build tile specs: main gets 65% left, boxes stack right
+    nn_log "  Use 'make tile-set-main' after visually identifying your main character."
+
+    # Build tile specs.
+    # For ultrawide monitors, clamp the main window to 16:9 aspect ratio
+    # (EQ's max). Remaining space goes to box windows.
+    local main_w
+    local aspect_ratio
+    aspect_ratio="$(echo "${screen_w} ${screen_h}" | awk '{printf "%.2f", $1/$2}')"
+    if awk "BEGIN {exit !(${aspect_ratio} > 1.78)}" 2>/dev/null; then
+        # Ultrawide: main gets 16:9 clamped width
+        main_w=$((screen_h * 16 / 9))
+        nn_log "Ultrawide detected — main window clamped to ${main_w}x${screen_h} (16:9)"
+    else
+        # Standard: main gets 65%
+        main_w=$((screen_w * 65 / 100))
+    fi
+
     local -a tile_args=()
 
     if [[ "${count}" -eq 1 ]] || [[ "${TEMPLATE}" == "solo" ]]; then
-        tile_args+=("0x${hwnd_list[0]}" "0,0,${screen_w}x${screen_h}")
+        tile_args+=("0x${hwnd_list[0]}" "0,0,${main_w}x${screen_h}")
     elif [[ "${TEMPLATE}" == "equal" ]]; then
         local hw=$((screen_w / 2))
         local hh=$((screen_h / 2))
@@ -166,7 +154,6 @@ main() {
         done
     else
         # Main-left layout
-        local main_w=$((screen_w * 65 / 100))
         local box_w=$((screen_w - main_w))
         local box_count=$((count - 1))
         if [[ "${box_count}" -lt 1 ]]; then box_count=1; fi

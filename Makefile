@@ -145,8 +145,11 @@ logs:               ## Tail all EQ instance logs (color-coded)
 launch-multi:       ## Launch multibox instances (default: 3, set multibox_instances in config)
 	bash scripts/start_eq.sh --multi
 
-tile:               ## Smart tile — identifies characters, main gets large window
+tile:               ## Smart tile — main character gets large window
 	bash scripts/smart_tile.sh auto
+
+tile-set-main:      ## Identify which window is your main character (flashes each window)
+	bash scripts/tile_set_main.sh
 
 tile-grid:          ## Equal grid tile (all windows same size)
 	bash scripts/smart_tile.sh equal
