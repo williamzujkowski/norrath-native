@@ -88,6 +88,28 @@ else
     nn_log "Step 1: Wine desktop OK (${wine_desktop})"
 fi
 
+# ─── Step 1b: Ensure WM decorations are disabled ─────────────────────────────
+# Wine's virtual desktop inherits window manager decorations (resize grips,
+# borders) which absorb clicks near edges — especially at the origin.
+# Disabling decorations and WM control prevents this.
+
+if ! grep -q '"Decorated"="N"' "${PREFIX}/user.reg" 2>/dev/null; then
+    nn_log "Step 1b: Disabling Wine WM decorations (prevents edge click issues)"
+    if [[ "${DRY_RUN}" -eq 0 ]]; then
+        "${NN_WINE_CMD}" reg add \
+            'HKEY_CURRENT_USER\Software\Wine\X11 Driver' \
+            /v Decorated /d N /f >/dev/null 2>&1
+        "${NN_WINE_CMD}" reg add \
+            'HKEY_CURRENT_USER\Software\Wine\X11 Driver' \
+            /v Managed /d N /f >/dev/null 2>&1
+    else
+        nn_log "  [DRY-RUN] Would disable WM decorations"
+    fi
+    changes=1
+else
+    nn_log "Step 1b: WM decorations OK (disabled)"
+fi
+
 # ─── Step 2: EQ-specific fixes ───────────────────────────────────────────────
 
 if [[ "${eq_running}" == "true" ]]; then

@@ -164,11 +164,12 @@ main() {
 
     # Build tile specs: main gets 65% left, boxes stack right
     #
-    # IMPORTANT: Wine virtual desktop frame sits at (0,0). A child window
-    # also at (0,0) won't receive mouse clicks because the desktop frame
-    # intercepts them. Offset by 1px to avoid this.
-    local origin_x=1
-    local origin_y=1
+    # IMPORTANT: Wine virtual desktop + XWayland compositor edge detection.
+    # Windows near (0,0) lose click-to-focus because the compositor's
+    # invisible resize grip (~10-20px) absorbs clicks before they reach
+    # Wine's child window hit-testing. A 20px offset clears this zone.
+    local origin_x=20
+    local origin_y=20
     local -a tile_args=()
 
     if [[ "${count}" -eq 1 ]] || [[ "${TEMPLATE}" == "solo" ]]; then
