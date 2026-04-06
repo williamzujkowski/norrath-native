@@ -113,11 +113,16 @@ export function createCommandCheck(
       try {
         execSync(command, { stdio: "pipe", timeout: 10_000 });
         return { id, status: "pass", message: description };
-      } catch {
+      } catch (e: unknown) {
+        const stderr =
+          e instanceof Error && "stderr" in e
+            ? String((e as { stderr: unknown }).stderr).trim()
+            : "";
+        const detail = stderr ? `: ${stderr}` : ": command failed";
         return {
           id,
           status: "fail",
-          message: `${description}: command failed`,
+          message: `${description}${detail}`,
           fix,
         };
       }

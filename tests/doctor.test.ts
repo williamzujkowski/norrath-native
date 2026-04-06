@@ -5,8 +5,11 @@ import { tmpdir } from "node:os";
 import {
   createFileCheck,
   createGrepCheck,
+  createCommandCheck,
+  buildDefaultChecks,
   runChecks,
   formatJson,
+  formatText,
   type Check,
   type DoctorReport,
 } from "../src/doctor.js";
@@ -263,5 +266,87 @@ describe("formatJson", () => {
     expect(parsed.passed).toBe(3);
     expect(parsed.warnings).toBe(2);
     expect(parsed.failed).toBe(1);
+  });
+});
+
+describe("createCommandCheck", () => {
+  it("passes when command succeeds", () => {
+    const check = createCommandCheck("CMD_OK", "True runs", "true", "n/a");
+    const result = check.run();
+    expect(result.status).toBe("pass");
+  });
+
+  it("fails when command fails", () => {
+    const check = createCommandCheck(
+      "CMD_FAIL",
+      "False fails",
+      "false",
+      "fix it",
+    );
+    const result = check.run();
+    expect(result.status).toBe("fail");
+    expect(result.fix).toBe("fix it");
+  });
+
+  it("fails on nonexistent command", () => {
+    const check = createCommandCheck(
+      "CMD_NOEXIST",
+      "Bad cmd",
+      "nonexistent_cmd_xyz",
+      "fix",
+    );
+    const result = check.run();
+    expect(result.status).toBe("fail");
+  });
+
+  it("captures stderr in failure message", () => {
+    const check = createCommandCheck(
+      "CMD_ERR",
+      "Error output",
+      "echo error_detail >&2 && false",
+      "fix",
+    );
+    const result = check.run();
+    expect(result.status).toBe("fail");
+    expect(result.message).toContain("error_detail");
+  });
+});
+
+describe("buildDefaultChecks", () => {
+  it("returns an array of checks", () => {
+    const checks = buildDefaultChecks("/tmp/fake-prefix");
+    expect(Array.isArray(checks)).toBe(true);
+    expect(checks.length).toBe(29);
+  });
+
+  it("all checks have id and name", () => {
+    const checks = buildDefaultChecks("/tmp/fake-prefix");
+    for (const check of checks) {
+      expect(check.id).toBeTruthy();
+      expect(check.name).toBeTruthy();
+    }
+  });
+
+  it("all checks are runnable", () => {
+    const checks = buildDefaultChecks("/tmp/fake-prefix");
+    for (const check of checks) {
+      const result = check.run();
+      expect(result.id).toBe(check.id);
+      expect(["pass", "warn", "fail"]).toContain(result.status);
+    }
+  });
+});
+
+describe("formatText", () => {
+  it("produces ANSI text output", () => {
+    const report: DoctorReport = {
+      passed: 1,
+      warnings: 0,
+      failed: 0,
+      checks: [{ id: "T", status: "pass", message: "ok" }],
+    };
+    const text = formatText(report);
+    expect(text).toContain("pass");
+    expect(text).toContain("ok");
   });
 });
