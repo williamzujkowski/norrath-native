@@ -36,6 +36,9 @@ import {
 } from "./layout.js";
 import { gatherMetadata } from "./metadata.js";
 import { injectSettings } from "./config-injector.js";
+import { computeLayout, generateOptimalINI } from "./ui-layout.js";
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -64,6 +67,8 @@ function commands(): Record<string, () => void> {
     "layout:ini": cmdLayoutIni,
     "layout:data": cmdLayoutData,
     "layout:apply": cmdLayoutApply,
+    "ui:layout": cmdUILayout,
+    "ui:apply": cmdUIApply,
     doctor: cmdDoctor,
     "doctor:json": cmdDoctorJson,
     metadata: cmdMetadata,
@@ -266,6 +271,49 @@ function cmdDoctorJson(): void {
   if (report.failed > 0) {
     process.exit(1);
   }
+}
+
+function cmdUILayout(): void {
+  const width = parseInt(args[1] ?? "1920", 10);
+  const height = parseInt(args[2] ?? "1080", 10);
+  printJson(computeLayout(width, height));
+}
+
+function cmdUIApply(): void {
+  const filePath = args[1];
+  const width = parseInt(args[2] ?? "1920", 10);
+  const height = parseInt(args[3] ?? "1080", 10);
+  if (!filePath) {
+    process.stderr.write(
+      "Usage: ui:apply <UI_charname.ini> [width] [height]\n",
+    );
+    process.exit(1);
+  }
+
+  const scriptDir = import.meta.dirname ?? ".";
+  const baselinePath = join(
+    scriptDir,
+    "..",
+    "templates",
+    "ui",
+    "clean-baseline.ini",
+  );
+  let baseline: string;
+  try {
+    baseline = readFileSync(baselinePath, "utf-8");
+  } catch {
+    // Fall back to the target file itself
+    baseline = readFileSync(filePath, "utf-8");
+  }
+
+  const result = generateOptimalINI(baseline, width, height);
+  writeFileSync(filePath, result);
+  process.stdout.write(
+    JSON.stringify({
+      applied: true,
+      resolution: `${String(width)}x${String(height)}`,
+    }) + "\n",
+  );
 }
 
 function cmdMetadata(): void {
