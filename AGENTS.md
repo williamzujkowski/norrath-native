@@ -32,8 +32,8 @@ pnpm run test:run     # Run test suite
 make deploy           # Deploy Wine/DXVK/EQ environment
 make launch           # Launch EQ (single instance)
 make launch-multi     # Launch multibox instances
-make doctor           # 29-point health check
-make setup-all        # Apply all customizations to all characters
+make doctor           # Health check
+make fix              # Fix everything (display, tiling, config)
 ```
 
 ## Key Constraints
