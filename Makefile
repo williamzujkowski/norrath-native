@@ -88,7 +88,18 @@ status:             ## Show diagnostic dashboard (monitor, windows, config)
 
 support-bundle:     ## Generate a support bundle for troubleshooting
 	@mkdir -p /tmp/norrath-native-support
+	@echo "Collecting system info..."
 	@bash scripts/doctor.sh --json > /tmp/norrath-native-support/doctor.json 2>&1
+	@{ echo "--- System Info ---"; \
+	   echo "date: $$(date -Iseconds)"; \
+	   echo "kernel: $$(uname -r)"; \
+	   echo "distro: $$(. /etc/os-release 2>/dev/null && echo "$$PRETTY_NAME" || echo unknown)"; \
+	   echo "wine: $$(wine64 --version 2>/dev/null || wine --version 2>/dev/null || echo not-found)"; \
+	   echo "node: $$(node --version 2>/dev/null || echo not-found)"; \
+	   echo "vulkan: $$(vulkaninfo --summary 2>/dev/null | head -5 || echo not-found)"; \
+	   echo "--- Display ---"; \
+	   xrandr --current 2>/dev/null | head -20 || echo "xrandr not available"; \
+	 } > /tmp/norrath-native-support/system-info.txt 2>&1
 	@cp ~/.local/share/norrath-native/*.log /tmp/norrath-native-support/ 2>/dev/null || true
 	@cp ~/.local/share/norrath-native/state.json /tmp/norrath-native-support/ 2>/dev/null || true
 	@tar -czf norrath-native-support.tar.gz -C /tmp norrath-native-support
