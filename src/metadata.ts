@@ -49,6 +49,7 @@ const CLI_COMMANDS: string[] = [
   "layout:apply",
   "doctor",
   "doctor:json",
+  "status:versions",
   "metadata",
   "help",
 ];

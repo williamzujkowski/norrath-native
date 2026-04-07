@@ -36,6 +36,8 @@ import {
 } from "./layout.js";
 import { gatherMetadata } from "./metadata.js";
 import { injectSettings } from "./config-injector.js";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -66,6 +68,7 @@ function commands(): Record<string, () => void> {
     "layout:apply": cmdLayoutApply,
     doctor: cmdDoctor,
     "doctor:json": cmdDoctorJson,
+    "status:versions": cmdStatusVersions,
     metadata: cmdMetadata,
     help: cmdHelp,
   };
@@ -275,6 +278,34 @@ function cmdDoctorJson(): void {
   }
 }
 
+function cmdStatusVersions(): void {
+  const home = process.env["HOME"] ?? "/tmp";
+  const stateFile = join(home, ".local/share/norrath-native/state.json");
+  const versions: Record<string, string> = {
+    deployed_at: "unknown",
+    wine_version: "unknown",
+    dxvk_version: "unknown",
+    config_profile: "unknown",
+  };
+  if (existsSync(stateFile)) {
+    try {
+      const state = JSON.parse(readFileSync(stateFile, "utf-8")) as Record<
+        string,
+        unknown
+      >;
+      for (const key of Object.keys(versions)) {
+        const val = state[key];
+        if (typeof val === "string") {
+          versions[key] = val;
+        }
+      }
+    } catch {
+      /* state unreadable — return defaults */
+    }
+  }
+  printJson(versions);
+}
+
 function cmdMetadata(): void {
   printJson(gatherMetadata());
 }
@@ -302,6 +333,8 @@ Commands:
   doctor                   Run health checks (ANSI text output)
   doctor:json              Run health checks (JSON output)
   doctor --prefix PATH     Override WINEPREFIX to check
+  doctor --verbose          Show file paths and commands for each check
+  status:versions          Output deployed versions from state.json
   metadata                 Output project metadata (counts from source of truth)
 
 Usage from bash:
