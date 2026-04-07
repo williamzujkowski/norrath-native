@@ -70,7 +70,7 @@ make doctor                   # Check DXVK DLL status
 
 ### EQLogParser crashes
 
-See [EQLogParser Setup](eqlogparser-setup.md#troubleshooting).
+See [EQLogParser Setup](/norrath-native/guides/eqlogparser-setup/#troubleshooting).
 
 ## Support Bundle
 
