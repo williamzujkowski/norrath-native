@@ -86,7 +86,7 @@ apply_ts_settings() {
             fi
             updated=$((updated + 1))
         fi
-    done < <(cli_cmd config:settings:ini)
+    done < <(cli_cmd_strict config:settings:ini)
 
     return ${updated}
 }
