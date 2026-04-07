@@ -1,4 +1,4 @@
-.PHONY: install build prereqs prereqs-dry typecheck lint test test-coverage docs docs-check stats stats-check stats-fix deploy deploy-dry configure configure-dry fix fix-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates profile-save profile-load profile-list tile tile-set-main tile-grid pip focus-next windows identify status status-json doctor support-bundle launch launch-multi launch-perf launch-safe logs backup-session restore-session maps parser clean purge help
+.PHONY: install build prereqs prereqs-dry typecheck lint format format-check test test-coverage docs docs-check stats stats-check stats-fix deploy deploy-dry configure configure-dry fix fix-dry colors colors-preview layout layout-preview layout-apply layout-show layout-templates profile-save profile-load profile-list tile tile-set-main tile-grid pip focus-next windows identify status status-json doctor support-bundle launch launch-multi launch-perf launch-safe logs backup-session restore-session maps parser clean purge help
 
 # ─── Setup ────────────────────────────────────────────────────────────────────
 

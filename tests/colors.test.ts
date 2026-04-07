@@ -180,4 +180,20 @@ describe("validateSchemeContrast", () => {
     expect(white!.ratio).toBeGreaterThan(15);
     expect(white!.passes).toBe(true);
   });
+
+  it("some colors fail against white background", () => {
+    const whiteBg = { r: 255, g: 255, b: 255 };
+    const results = validateSchemeContrast(whiteBg);
+    const failing = results.filter((r) => !r.passes);
+    // Colors designed for dark bg should fail on white
+    expect(failing.length).toBeGreaterThan(0);
+  });
+
+  it("contrast ratio of 1 for identical colors", () => {
+    const ratio = getContrastRatio(
+      { r: 100, g: 100, b: 100 },
+      { r: 100, g: 100, b: 100 },
+    );
+    expect(ratio).toBeCloseTo(1, 1);
+  });
 });
