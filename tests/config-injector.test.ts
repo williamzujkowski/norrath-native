@@ -363,4 +363,44 @@ describe("injectSettings", () => {
     expect(key1Matches).toHaveLength(1);
     expect(key2Matches).toHaveLength(1);
   });
+
+  it("handles file with only comments and whitespace", () => {
+    const iniPath = path.join(tmpDir, "test.ini");
+    fs.writeFileSync(iniPath, "; comment line\n\n# another\n  \n");
+
+    const result = injectSettings(iniPath, { A: "1" }, "Test");
+    expect(result.ok).toBe(true);
+
+    const content = fs.readFileSync(iniPath, "utf-8");
+    expect(content).toContain("[Test]");
+    expect(content).toContain("A=1");
+    expect(content).toContain("; comment line");
+  });
+
+  it("handles values containing equals signs", () => {
+    const iniPath = path.join(tmpDir, "test.ini");
+    fs.writeFileSync(iniPath, "[Section]\nPath=C:\\EQ=dir\n");
+
+    const result = injectSettings(
+      iniPath,
+      { Path: "C:\\NewPath=test" },
+      "Section",
+    );
+    expect(result.ok).toBe(true);
+
+    const content = fs.readFileSync(iniPath, "utf-8");
+    expect(content).toContain("Path=C:\\NewPath=test");
+  });
+
+  it("handles very long values without truncation", () => {
+    const iniPath = path.join(tmpDir, "test.ini");
+    fs.writeFileSync(iniPath, "[Section]\n");
+
+    const longVal = "x".repeat(1000);
+    const result = injectSettings(iniPath, { LongKey: longVal }, "Section");
+    expect(result.ok).toBe(true);
+
+    const content = fs.readFileSync(iniPath, "utf-8");
+    expect(content).toContain(`LongKey=${longVal}`);
+  });
 });
