@@ -71,6 +71,12 @@ function commands(): Record<string, () => void> {
   };
 }
 
+/** Parse an integer CLI arg, falling back to a default on NaN. */
+function parseIntOrDefault(raw: string | undefined, fallback: number): number {
+  const n = parseInt(raw ?? String(fallback), 10);
+  return Number.isNaN(n) ? fallback : n;
+}
+
 function cmdConfig(): void {
   const result = resolveConfig();
   if (!result.ok) {
@@ -103,8 +109,8 @@ function cmdConfigSettingsIni(): void {
 }
 
 function cmdResolutionDetect(): void {
-  const width = parseInt(args[1] ?? "1920", 10);
-  const height = parseInt(args[2] ?? "1080", 10);
+  const width = parseIntOrDefault(args[1], 1920);
+  const height = parseIntOrDefault(args[2], 1080);
 
   printJson({
     monitor: `${String(width)}x${String(height)}`,
@@ -118,15 +124,15 @@ function cmdResolutionDetect(): void {
 }
 
 function cmdResolutionClamp(): void {
-  const width = parseInt(args[1] ?? "1920", 10);
-  const height = parseInt(args[2] ?? "1080", 10);
+  const width = parseIntOrDefault(args[1], 1920);
+  const height = parseIntOrDefault(args[2], 1080);
   const result = clampTo16x9(width, height);
   printJson(result);
 }
 
 function cmdResolutionViewport(): void {
-  const width = parseInt(args[1] ?? "1920", 10);
-  const height = parseInt(args[2] ?? "1080", 10);
+  const width = parseIntOrDefault(args[1], 1920);
+  const height = parseIntOrDefault(args[2], 1080);
   const result = calculateViewport(width, height);
   if (!result.ok) {
     process.stderr.write(`Error: ${result.error.message}\n`);
@@ -136,9 +142,9 @@ function cmdResolutionViewport(): void {
 }
 
 function cmdResolutionTiles(): void {
-  const count = parseInt(args[1] ?? "1", 10);
-  const width = parseInt(args[2] ?? "1920", 10);
-  const height = parseInt(args[3] ?? "1080", 10);
+  const count = parseIntOrDefault(args[1], 1);
+  const width = parseIntOrDefault(args[2], 1920);
+  const height = parseIntOrDefault(args[3], 1080);
   printJson(calculateTilePositions(count, width, height));
 }
 
@@ -162,9 +168,9 @@ function cmdColorsData(): void {
 }
 
 function cmdColorsValidate(): void {
-  const bgR = parseInt(args[1] ?? "13", 10);
-  const bgG = parseInt(args[2] ?? "13", 10);
-  const bgB = parseInt(args[3] ?? "26", 10);
+  const bgR = parseIntOrDefault(args[1], 13);
+  const bgG = parseIntOrDefault(args[2], 13);
+  const bgB = parseIntOrDefault(args[3], 26);
   const results = validateSchemeContrast({ r: bgR, g: bgG, b: bgB });
   const failing = results.filter((r) => !r.passes);
   if (failing.length > 0) {
