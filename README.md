@@ -261,7 +261,7 @@ norrath-native/
     metadata.ts          — Programmatic project stats (self-documenting)
     types/interfaces.ts  — Core TypeScript contracts
   scripts/               — 20 bash scripts (thin system wrappers)
-  tests/                 — 10 test files
+  tests/                 — 11 test files
   layouts/               — 4 window layout templates
   helpers/wine_helper.c  — Wine API helper (SetWindowPos, HWND mapping)
   Makefile               — 29 targets (make help)
