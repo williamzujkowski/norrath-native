@@ -3,6 +3,8 @@
  *
  * Enforces managed settings while preserving user-defined keys.
  * No third-party INI libraries — hand-rolled parser for EQ's format.
+ *
+ * @module config-injector
  */
 
 import * as fs from "node:fs";

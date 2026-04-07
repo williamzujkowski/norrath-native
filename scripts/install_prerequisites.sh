@@ -136,10 +136,12 @@ install_wine_from_winehq() {
         run sudo wget -qO /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key
     fi
 
-    # Add WineHQ repository for Ubuntu 24.04 (Noble)
-    if [[ ! -f /etc/apt/sources.list.d/winehq-noble.sources ]]; then
-        nn_log "  Adding WineHQ Noble repository..."
-        run sudo wget -qNP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/noble/winehq-noble.sources
+    # Add WineHQ repository (detect Ubuntu codename dynamically)
+    local codename
+    codename="$(. /etc/os-release && echo "${UBUNTU_CODENAME:-noble}")"
+    if [[ ! -f "/etc/apt/sources.list.d/winehq-${codename}.sources" ]]; then
+        nn_log "  Adding WineHQ ${codename} repository..."
+        run sudo wget -qNP /etc/apt/sources.list.d/ "https://dl.winehq.org/wine-builds/ubuntu/dists/${codename}/winehq-${codename}.sources"
         run sudo apt-get update -qq
     fi
 
