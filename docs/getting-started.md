@@ -53,7 +53,7 @@ First launch:
 | `make fix`            | Fix everything (display, tiling, config) |
 | `make tile`           | Re-tile windows                          |
 | `make focus-next`     | Cycle focus between EQ windows           |
-| `make doctor`         | Health check (29 checks)                 |
+| `make doctor`         | Health check (30 checks)                 |
 | `make status`         | Diagnostic dashboard                     |
 | `make windows`        | List EQ windows                          |
 | `make configure`      | Apply/update eqclient.ini                |

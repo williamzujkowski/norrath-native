@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- cohesive module: all health checks belong together (governance: 400-600 OK) */
 /**
  * Doctor module — health check system for norrath-native.
  *
@@ -8,7 +9,7 @@
  * @module doctor
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { join } from "node:path";
 
@@ -371,6 +372,57 @@ function eqCoreChecks(eqDir: string): Check[] {
   ];
 }
 
+/** Check if saved EQ exe size matches current. */
+function checkPatchState(eqExe: string): CheckResult {
+  const id = "EQ_PATCH_STATE";
+  if (!existsSync(eqExe)) {
+    return {
+      id,
+      status: "warn",
+      message: "eqgame.exe not found",
+      fix: "let patcher finish",
+    };
+  }
+  const size = statSync(eqExe).size;
+  const stateFile = join(
+    process.env["HOME"] ?? "/tmp",
+    ".local/share/norrath-native/state.json",
+  );
+  if (existsSync(stateFile)) {
+    try {
+      const state = JSON.parse(readFileSync(stateFile, "utf-8")) as Record<
+        string,
+        unknown
+      >;
+      const saved = state["eq_exe_size"] as number | undefined;
+      if (saved !== undefined && saved !== size) {
+        return {
+          id,
+          status: "warn",
+          message: "EQ may have been patched (eqgame.exe changed)",
+          fix: "run: make fix",
+        };
+      }
+    } catch {
+      /* state unreadable */
+    }
+  }
+  return {
+    id,
+    status: "pass",
+    message: `eqgame.exe: ${String(Math.round(size / 1024 / 1024))}MB`,
+  };
+}
+
+/** Detect if EQ has been patched since last deploy. */
+function createPatchCheck(eqDir: string): Check {
+  return {
+    id: "EQ_PATCH_STATE",
+    name: "EQ patch state tracked",
+    run: () => checkPatchState(join(eqDir, "eqgame.exe")),
+  };
+}
+
 function eqExtrasChecks(_prefix: string, eqDir: string): Check[] {
   return [
     createFileCheck(
@@ -397,6 +449,7 @@ function eqExtrasChecks(_prefix: string, eqDir: string): Check[] {
       join(eqDir, "dxvk.conf"),
       "run: make deploy",
     ),
+    createPatchCheck(eqDir),
     createFileCheck(
       "EQ_PARSER",
       "EQLogParser installed",
