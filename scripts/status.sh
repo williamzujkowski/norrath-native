@@ -58,6 +58,13 @@ fi
 # Main character config
 main_char="${NN_MAIN_CHARACTER:-not set}"
 
+# Deploy state (versions)
+deploy_info="$(cli_cmd status:versions 2>/dev/null || echo '{}')"
+wine_ver="$(echo "${deploy_info}" | grep -o '"wine_version"[^,}]*' | cut -d'"' -f4 || echo 'unknown')"
+dxvk_ver="$(echo "${deploy_info}" | grep -o '"dxvk_version"[^,}]*' | cut -d'"' -f4 || echo 'unknown')"
+deployed_at="$(echo "${deploy_info}" | grep -o '"deployed_at"[^,}]*' | cut -d'"' -f4 || echo 'unknown')"
+profile="$(echo "${deploy_info}" | grep -o '"config_profile"[^,}]*' | cut -d'"' -f4 || echo 'unknown')"
+
 # EQ running
 eq_running="false"
 if nn_is_eq_running 2>/dev/null; then
@@ -71,6 +78,10 @@ if [[ "${JSON_MODE}" -eq 1 ]]; then
 {
   "monitor": { "name": "${monitor_name}", "resolution": "${monitor_res}" },
   "tiling_size": "${tile_size}",
+  "wine_version": "${wine_ver}",
+  "dxvk_version": "${dxvk_ver}",
+  "config_profile": "${profile}",
+  "deployed_at": "${deployed_at}",
   "eq_running": ${eq_running},
   "eq_windows": ${eq_windows},
   "main_character": "${main_char}"
@@ -87,6 +98,12 @@ printf '  %s\n' "─────────────────────
 # Monitor
 printf '  %-22s %s (%s)\n' "Monitor:" "${monitor_res}" "${monitor_name}"
 printf '  %-22s %s\n' "Tiling uses:" "${tile_size}"
+
+printf '\n'
+printf '  %-22s %s\n' "Wine version:" "${wine_ver}"
+printf '  %-22s %s\n' "DXVK version:" "${dxvk_ver}"
+printf '  %-22s %s\n' "Profile:" "${profile}"
+printf '  %-22s %s\n' "Last deploy:" "${deployed_at}"
 
 printf '\n'
 printf '  %-22s %s\n' "EQ running:" "${eq_running}"
