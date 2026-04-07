@@ -32,4 +32,4 @@ Each EQ instance runs as a native XWayland window. Window management
 uses `wine_helper.exe` (MinGW-compiled Win32 API calls via Wine).
 EQLogParser runs in its own isolated Wine prefix.
 
-For more details, see [AGENTS.md](../AGENTS.md) and the source code.
+For more details, see [AGENTS.md](https://github.com/williamzujkowski/norrath-native/blob/main/AGENTS.md) and the source code.
