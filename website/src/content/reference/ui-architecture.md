@@ -1,8 +1,6 @@
 ---
-title: EverQuest UI Control Surface
-description: What can and cannot be automated in EQ's UI
-source: Official EQ docs, community research, empirical testing
-updated: 2026-04-05
+title: "EverQuest UI Control Surface"
+description: "What can and cannot be automated in EQ's UI"
 ---
 
 # EverQuest UI Control Surface

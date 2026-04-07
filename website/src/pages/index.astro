@@ -1,0 +1,50 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout title="Home" description="Deterministic EverQuest deployment toolkit for Ubuntu 24.04 LTS via Wine and DXVK">
+  <h1>norrath-native</h1>
+  <p>
+    Deterministic, idempotent deployment toolkit to run
+    <strong>EverQuest</strong> natively on Ubuntu 24.04 LTS via Wine and DXVK.
+  </p>
+
+  <div class="not-prose grid gap-4 sm:grid-cols-2 my-8">
+    <a href={`${base}guides/getting-started/`} class="block rounded-lg p-5 transition-colors hover:brightness-110" style={`background-color: var(--color-bg-card); border: 1px solid var(--color-border);`}>
+      <h3 class="text-base font-semibold mb-1" style="color: var(--color-text-heading);">Getting Started</h3>
+      <p class="text-sm" style="color: var(--color-text-muted);">Install prerequisites, deploy, and launch EQ in minutes.</p>
+    </a>
+    <a href={`${base}guides/multiboxing/`} class="block rounded-lg p-5 transition-colors hover:brightness-110" style={`background-color: var(--color-bg-card); border: 1px solid var(--color-border);`}>
+      <h3 class="text-base font-semibold mb-1" style="color: var(--color-text-heading);">Multiboxing</h3>
+      <p class="text-sm" style="color: var(--color-text-muted);">Run multiple EQ instances with smart window tiling.</p>
+    </a>
+    <a href={`${base}guides/chat-setup/`} class="block rounded-lg p-5 transition-colors hover:brightness-110" style={`background-color: var(--color-bg-card); border: 1px solid var(--color-border);`}>
+      <h3 class="text-base font-semibold mb-1" style="color: var(--color-text-heading);">Chat Setup</h3>
+      <p class="text-sm" style="color: var(--color-text-muted);">4-window raid chat with WCAG-compliant colors.</p>
+    </a>
+    <a href={`${base}reference/commands/`} class="block rounded-lg p-5 transition-colors hover:brightness-110" style={`background-color: var(--color-bg-card); border: 1px solid var(--color-border);`}>
+      <h3 class="text-base font-semibold mb-1" style="color: var(--color-text-heading);">Command Reference</h3>
+      <p class="text-sm" style="color: var(--color-text-muted);">All make targets and CLI commands.</p>
+    </a>
+  </div>
+
+  <h2>Features</h2>
+  <ul>
+    <li><strong>One-command deploy</strong> &mdash; Wine prefix, DXVK, EQ install, and config in a single <code>make deploy</code></li>
+    <li><strong>30 health checks</strong> &mdash; <code>make doctor</code> validates your entire installation</li>
+    <li><strong>Smart multiboxing</strong> &mdash; staggered launch, automatic window tiling, focus cycling</li>
+    <li><strong>91 WCAG-compliant chat colors</strong> &mdash; designed for dark backgrounds and raid readability</li>
+    <li><strong>107-channel chat routing</strong> &mdash; 4-window layout (Social, Combat, Spam, Alerts)</li>
+    <li><strong>5 performance profiles</strong> &mdash; from high quality to minimal stick figures</li>
+    <li><strong>47 managed INI settings</strong> &mdash; optimized for each profile, never touch your keybinds</li>
+    <li><strong>EQLogParser integration</strong> &mdash; auto-install with separate Wine prefix</li>
+  </ul>
+
+  <h2>Requirements</h2>
+  <ul>
+    <li>Ubuntu 24.04 LTS (or compatible)</li>
+    <li>Vulkan-capable GPU (AMD or NVIDIA)</li>
+    <li>EverQuest account</li>
+  </ul>
+</BaseLayout>
