@@ -159,4 +159,42 @@ describe("calculateTilePositions", () => {
     expect(tiles[0]).toEqual({ x: 0, y: 0, width: 640, height: 540 });
     expect(tiles[5]).toEqual({ x: 1280, y: 540, width: 640, height: 540 });
   });
+
+  it("tiles 5 windows (incomplete 3-col grid)", () => {
+    const tiles = calculateTilePositions(5, 1920, 1080);
+    expect(tiles).toHaveLength(5);
+    // First row: 3 columns
+    expect(tiles[0]?.width).toBe(640);
+    // Second row: 2 of 3 filled
+    expect(tiles[3]?.y).toBe(540);
+  });
+
+  it("tiles 7 windows (incomplete third row)", () => {
+    const tiles = calculateTilePositions(7, 1920, 1080);
+    expect(tiles).toHaveLength(7);
+  });
+});
+
+describe("percentToPixel edge cases", () => {
+  it("handles negative percent", () => {
+    const result = percentToPixel(-10, 1920);
+    expect(result).toBeLessThan(0);
+  });
+
+  it("handles percent above 100", () => {
+    const result = percentToPixel(150, 1920);
+    expect(result).toBeGreaterThan(1920);
+  });
+});
+
+describe("calculateViewport edge cases", () => {
+  it("rejects zero height with non-zero width", () => {
+    const result = calculateViewport(1920, 0);
+    expect(result.ok).toBe(false);
+  });
+
+  it("rejects zero width with non-zero height", () => {
+    const result = calculateViewport(0, 1080);
+    expect(result.ok).toBe(false);
+  });
 });

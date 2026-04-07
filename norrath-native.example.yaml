@@ -6,8 +6,7 @@
 # All settings have sensible defaults — you only need to change what you want.
 #
 # To apply changes:  make configure
-# To preview:        make configure-dry
-# To apply everything at once: make setup-all
+# To fix everything: make fix
 #
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -22,8 +21,8 @@ prefix: ~/.wine-eq
 # On ultrawide (21:9), Wine desktop uses full monitor for tiling space,
 # but EQ game rendering is clamped to 16:9 to prevent distortion.
 # Common values: 1920x1080, 2560x1440, 3440x1440
-# Run 'make resolution-detect' to see your monitor vs current setting.
-# Run 'make adapt' after plugging/unplugging a monitor.
+# Run 'make status' to see your monitor and current settings.
+# Run 'make fix' after plugging/unplugging a monitor.
 # resolution: 1920x1080
 
 # Display backend
