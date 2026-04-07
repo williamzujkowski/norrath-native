@@ -116,6 +116,31 @@ describe("resolveConfig", () => {
       expect(result.value.prefix).toContain(".wine-test");
     }
   });
+
+  it("ignores non-numeric instances value", () => {
+    const configPath = join(tempDir, "config.yaml");
+    writeFileSync(configPath, "instances: abc\n");
+    const result = resolveConfig(configPath);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.instances).toBe(1); // default
+    }
+  });
+
+  it("returns error for unreadable config file", () => {
+    const configPath = join(tempDir, "config.yaml");
+    writeFileSync(configPath, "instances: 2\n");
+    // Remove read permission
+    const { chmodSync } = require("node:fs") as typeof import("node:fs");
+    chmodSync(configPath, 0o000);
+    const result = resolveConfig(configPath);
+    // Restore permission for cleanup
+    chmodSync(configPath, 0o644);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.message).toContain("Failed to read");
+    }
+  });
 });
 
 describe("generateManagedSettings", () => {
