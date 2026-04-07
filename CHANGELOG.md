@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-04-07
+
+Hardening release. Security fixes, documentation website, comprehensive audits.
+
+### Added
+
+- Astro + Tailwind docs website deployed to GitHub Pages
+- `doctor --verbose` flag shows file paths and commands for each check
+- `status:versions` CLI command shows deployed Wine/DXVK versions
+- `EQ_PATCH_STATE` doctor check detects if eqgame.exe changed since deploy
+- DXVK/Wine update checker module (`checkDxvkUpdate`, `checkWineUpdate`)
+- `make status` now shows Wine/DXVK versions, profile, and deploy time
+- Enhanced support bundle with system info (kernel, Vulkan, xrandr)
+- `cli_cmd_strict` wrapper for critical bash-TypeScript interop
+- CODEOWNERS file for review governance
+- TruffleHog secret scanning in CI
+- Dynamic Ubuntu codename detection in install script
+- 235 tests (was 211), 93% statement coverage, 100% function coverage
+
+### Fixed
+
+- eval injection in config_reader.sh YAML parser (replaced with printf -v)
+- parseInt NaN propagation in CLI (parseIntOrDefault helper)
+- readFileSync TOCTOU race in resolveConfig
+- readFileSync permission error in createGrepCheck
+- Stale make target references in example config
+- Missing .PHONY entries for format/format-check
+- 47 managed settings count in docs (was 43)
+
+### Security
+
+- eval command injection via crafted YAML config values (fixed)
+- TruffleHog CI for secret scanning (gitleaks required paid license)
+
 ## [0.2.0] - 2026-04-06
 
 Major stability release. Native XWayland windows, Wine 11, comprehensive testing.
