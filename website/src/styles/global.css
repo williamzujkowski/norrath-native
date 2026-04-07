@@ -115,3 +115,17 @@ html {
 }
 
 .prose strong { color: var(--color-text-heading); }
+
+/* Card hover animation */
+.card-link {
+  transition: border-color 0.2s, transform 0.2s;
+}
+.card-link:hover {
+  border-color: var(--color-accent) !important;
+  transform: translateY(-2px);
+}
+
+/* Smooth scroll target offset for sticky nav */
+:target {
+  scroll-margin-top: 5rem;
+}
