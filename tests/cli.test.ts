@@ -158,3 +158,85 @@ describe("layout:data", () => {
     expect(death).toBe("16 3");
   });
 });
+
+describe("config (JSON output)", () => {
+  it("returns valid JSON with prefix field", () => {
+    const output = runCli("config");
+    const data = JSON.parse(output) as Record<string, unknown>;
+    expect(data).toHaveProperty("prefix");
+    expect(data).toHaveProperty("profile");
+  });
+});
+
+describe("config:settings (JSON output)", () => {
+  it("returns JSON object with managed settings", () => {
+    const output = runCli("config:settings");
+    const data = JSON.parse(output) as Record<string, string>;
+    expect(data).toHaveProperty("WindowedMode");
+    expect(data["WindowedMode"]).toBe("TRUE");
+  });
+});
+
+describe("resolution:detect", () => {
+  it("returns ultrawide info for 3440x1440", () => {
+    const output = runCli("resolution:detect", ["3440", "1440"]);
+    const data = JSON.parse(output) as Record<string, unknown>;
+    expect(data["isUltrawide"]).toBe(true);
+  });
+
+  it("returns non-ultrawide for 1920x1080", () => {
+    const output = runCli("resolution:detect", ["1920", "1080"]);
+    const data = JSON.parse(output) as Record<string, unknown>;
+    expect(data["isUltrawide"]).toBe(false);
+  });
+});
+
+describe("colors:scheme", () => {
+  it("returns 91 color entries", () => {
+    const output = runCli("colors:scheme");
+    const data = JSON.parse(output) as Record<string, unknown>;
+    expect(Object.keys(data).length).toBe(91);
+  });
+});
+
+describe("layout:channels", () => {
+  it("returns JSON with channel routing", () => {
+    const output = runCli("layout:channels");
+    const data = JSON.parse(output) as Record<string, unknown>;
+    expect(Object.keys(data).length).toBe(107);
+  });
+});
+
+describe("doctor:json", () => {
+  it("returns structured report", () => {
+    const output = runCli("doctor:json");
+    const data = JSON.parse(output) as Record<string, unknown>;
+    expect(data).toHaveProperty("passed");
+    expect(data).toHaveProperty("checks");
+  });
+});
+
+describe("metadata", () => {
+  it("returns project stats", () => {
+    const output = runCli("metadata");
+    const data = JSON.parse(output) as Record<string, unknown>;
+    expect(data).toHaveProperty("colors");
+    expect(data).toHaveProperty("channels");
+    expect(data).toHaveProperty("cliCommands");
+  });
+});
+
+describe("help", () => {
+  it("outputs usage text", () => {
+    const output = runCli("help");
+    expect(output).toContain("norrath-native CLI");
+    expect(output).toContain("config");
+    expect(output).toContain("doctor");
+  });
+});
+
+describe("unknown command", () => {
+  it("exits with error for unknown command", () => {
+    expect(() => runCli("nonexistent_command")).toThrow();
+  });
+});
