@@ -14,7 +14,7 @@ src/config.ts          — YAML config parsing, profiles, managed settings
 src/colors.ts          — 91-color WCAG-compliant chat color scheme
 src/layout.ts          — 107-channel chat window routing (4-window layout)
 src/resolution.ts      — Ultrawide detection, 16:9 clamping, viewport, tiling
-src/doctor.ts          — 29 structured health checks with JSON output
+src/doctor.ts          — 30 structured health checks with JSON output
 src/config-injector.ts — Idempotent INI file manipulation
 src/dxvk-resolver.ts   — GitHub API DXVK release resolver
 scripts/*.sh           — Thin bash wrappers (call cli_cmd for TS logic)

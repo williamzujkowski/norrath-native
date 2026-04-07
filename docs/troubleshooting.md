@@ -10,7 +10,7 @@ updated: auto-generated
 Run diagnostics first:
 
 ```bash
-make doctor        # 29-point health check
+make doctor        # 30-point health check
 make status        # Display/window dashboard
 make support-bundle # Generate debug bundle for sharing
 ```

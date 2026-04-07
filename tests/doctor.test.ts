@@ -316,7 +316,7 @@ describe("buildDefaultChecks", () => {
   it("returns an array of checks", () => {
     const checks = buildDefaultChecks("/tmp/fake-prefix");
     expect(Array.isArray(checks)).toBe(true);
-    expect(checks.length).toBe(29);
+    expect(checks.length).toBe(30);
   });
 
   it("all checks have id and name", () => {

@@ -51,6 +51,7 @@ _Run `make doctor` to see current status. Run `make doctor --json` for machine-r
 | `EQ_REMEMBER_ME` | Remember Me cookie database      |
 | `EQ_MAPS`        | Good's maps installed            |
 | `EQ_DXVK_CONF`   | DXVK config (async shaders)      |
+| `EQ_PATCH_STATE` | EQ patch state tracked           |
 | `EQ_PARSER`      | EQLogParser installed            |
 
 ## Deploy State
