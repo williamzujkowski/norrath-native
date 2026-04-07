@@ -13,7 +13,7 @@ Initial pre-release. Full-featured but actively evolving.
 
 - Deterministic Wine prefix + DXVK deployment (idempotent, --dry-run)
 - EverQuest silent installer integration
-- 43 managed eqclient.ini settings across 5 profiles (high/balanced/raid/low/minimal)
+- 47 managed eqclient.ini settings across 5 profiles (high/balanced/raid/low/minimal)
 - dxvk.conf with async shaders and frame latency tuning
 - Wine registry tuning (GrabFullscreen, VideoMemorySize, MouseWarpOverride)
 - Microsoft corefonts via winetricks

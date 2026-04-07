@@ -76,7 +76,7 @@ stagger_delay: 5
 
 # ─── Performance Profile ──────────────────────────────────────────────────────
 #
-# Choose a preset. Each profile is opinionated about 43 EQ settings
+# Choose a preset. Each profile is opinionated about 47 EQ settings
 # covering FPS, graphics quality, particles, sound, network, and CPU usage.
 #
 # Profiles are ordered from highest quality to lowest resource usage:
