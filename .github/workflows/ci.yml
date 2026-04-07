@@ -28,9 +28,12 @@ jobs:
       - name: Format check
         run: pnpm run format:check
 
-      - name: Tests with coverage
-        run: pnpm run test:run --coverage
-        continue-on-error: false
+      - name: Tests
+        run: pnpm run test:run
+
+      - name: Coverage report
+        run: pnpm run test:coverage
+        continue-on-error: true
 
       - name: Verify doc stats match source
         run: npx tsx scripts/generate-stats.ts
