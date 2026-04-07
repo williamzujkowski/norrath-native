@@ -101,7 +101,10 @@ nn_get_screen_size() {
 #        nn_require_eq_stopped --warn  (warns but continues)
 
 nn_is_eq_running() {
-    # Check if any Wine processes are running in this prefix
+    # Check if wineserver is running for this prefix by checking its
+    # exit status with a ping. Signal 0 is safe (existence check only).
+    # Note: wineserver -k0 uses signal 0 which does NOT kill — it only
+    # checks whether the wineserver process exists and can be signaled.
     WINEPREFIX="${NN_PREFIX:-${HOME}/.wine-eq}" wineserver -k0 2>/dev/null
 }
 
