@@ -22,6 +22,8 @@ export interface CheckResult {
   status: "pass" | "warn" | "fail";
   message: string;
   fix?: string;
+  /** Verbose detail: file path, command, or pattern checked. */
+  detail?: string;
 }
 
 export interface DoctorReport {
@@ -55,9 +57,15 @@ export function createFileCheck(
     name: description,
     run(): CheckResult {
       if (existsSync(filePath)) {
-        return { id, status: "pass", message: description };
+        return { id, status: "pass", message: description, detail: filePath };
       }
-      return { id, status: "fail", message: `${description}: not found`, fix };
+      return {
+        id,
+        status: "fail",
+        message: `${description}: not found`,
+        fix,
+        detail: filePath,
+      };
     },
   };
 }
@@ -76,12 +84,14 @@ export function createGrepCheck(
     id,
     name: description,
     run(): CheckResult {
+      const grepDetail = `${filePath} grep '${pattern}'`;
       if (!existsSync(filePath)) {
         return {
           id,
           status: "fail",
           message: `${description}: file not found`,
           fix,
+          detail: grepDetail,
         };
       }
       let content: string;
@@ -93,10 +103,11 @@ export function createGrepCheck(
           status: "fail",
           message: `${description}: file unreadable`,
           fix,
+          detail: grepDetail,
         };
       }
       if (content.includes(pattern)) {
-        return { id, status: "pass", message: description };
+        return { id, status: "pass", message: description, detail: grepDetail };
       }
       return {
         id,
@@ -123,18 +134,24 @@ export function createCommandCheck(
     run(): CheckResult {
       try {
         execSync(command, { stdio: "pipe", timeout: 10_000 });
-        return { id, status: "pass", message: description };
+        return {
+          id,
+          status: "pass",
+          message: description,
+          detail: command,
+        };
       } catch (e: unknown) {
         const stderr =
           e instanceof Error && "stderr" in e
             ? String((e as { stderr: unknown }).stderr).trim()
             : "";
-        const detail = stderr ? `: ${stderr}` : ": command failed";
+        const errDetail = stderr ? `: ${stderr}` : ": command failed";
         return {
           id,
           status: "fail",
-          message: `${description}${detail}`,
+          message: `${description}${errDetail}`,
           fix,
+          detail: command,
         };
       }
     },
@@ -184,10 +201,34 @@ export function formatJson(report: DoctorReport): string {
   return JSON.stringify(report, null, 2);
 }
 
+/** Format a single check result as ANSI-colored lines. */
+function formatCheckLine(check: CheckResult, verbose: boolean): string[] {
+  const out: string[] = [];
+  const icons = {
+    pass: "\x1b[32m\u2713",
+    warn: "\x1b[33m\u26a0",
+    fail: "\x1b[31m\u2717",
+  };
+  const icon = icons[check.status];
+  out.push(`  ${icon}\x1b[0m ${check.message}`);
+  if (check.fix && check.status !== "pass") {
+    const color = check.status === "warn" ? "\x1b[33m" : "\x1b[31m";
+    out.push(`    ${color}fix: ${check.fix}\x1b[0m`);
+  }
+  if (verbose && check.detail) {
+    out.push(`    \x1b[90m${check.detail}\x1b[0m`);
+  }
+  return out;
+}
+
 /**
  * Format a report with ANSI colors for terminal output.
+ * @param verbose - When true, show detail (file paths, commands) for each check.
  */
-export function formatText(report: DoctorReport): string {
+export function formatText(
+  report: DoctorReport,
+  verbose: boolean = false,
+): string {
   const lines: string[] = [];
 
   lines.push("");
@@ -195,23 +236,7 @@ export function formatText(report: DoctorReport): string {
   lines.push("");
 
   for (const check of report.checks) {
-    switch (check.status) {
-      case "pass":
-        lines.push(`  \x1b[32m\u2713\x1b[0m ${check.message}`);
-        break;
-      case "warn":
-        lines.push(`  \x1b[33m\u26a0\x1b[0m ${check.message}`);
-        if (check.fix) {
-          lines.push(`    \x1b[33mfix: ${check.fix}\x1b[0m`);
-        }
-        break;
-      case "fail":
-        lines.push(`  \x1b[31m\u2717\x1b[0m ${check.message}`);
-        if (check.fix) {
-          lines.push(`    \x1b[31mfix: ${check.fix}\x1b[0m`);
-        }
-        break;
-    }
+    lines.push(...formatCheckLine(check, verbose));
   }
 
   lines.push("");

@@ -349,4 +349,30 @@ describe("formatText", () => {
     expect(text).toContain("pass");
     expect(text).toContain("ok");
   });
+
+  it("shows detail in verbose mode", () => {
+    const report: DoctorReport = {
+      passed: 1,
+      warnings: 0,
+      failed: 0,
+      checks: [
+        { id: "T", status: "pass", message: "ok", detail: "/path/to/file" },
+      ],
+    };
+    const text = formatText(report, true);
+    expect(text).toContain("/path/to/file");
+  });
+
+  it("hides detail in non-verbose mode", () => {
+    const report: DoctorReport = {
+      passed: 1,
+      warnings: 0,
+      failed: 0,
+      checks: [
+        { id: "T", status: "pass", message: "ok", detail: "/path/to/file" },
+      ],
+    };
+    const text = formatText(report, false);
+    expect(text).not.toContain("/path/to/file");
+  });
 });

@@ -255,9 +255,10 @@ function getDoctorPrefix(): string {
 
 function cmdDoctor(): void {
   const prefix = getDoctorPrefix();
+  const verbose = args.includes("--verbose");
   const checks = buildDefaultChecks(prefix);
   const report = runChecks(checks);
-  process.stdout.write(formatText(report));
+  process.stdout.write(formatText(report, verbose));
   if (report.failed > 0) {
     process.exit(1);
   }
