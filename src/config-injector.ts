@@ -161,8 +161,25 @@ function ensureSectionAndAppend(
   return appendMapEntries(lines, remaining);
 }
 
+/** Remove duplicate keys from parsed lines (keep last occurrence). */
+function deduplicateKeys(lines: IniLine[]): void {
+  const seen = new Map<string, number>();
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line !== undefined && line.kind === "kv") {
+      const prev = seen.get(line.key);
+      if (prev !== undefined) {
+        // Mark previous occurrence for removal
+        lines[prev] = { kind: "verbatim", raw: "" };
+      }
+      seen.set(line.key, i);
+    }
+  }
+}
+
 /**
  * Inject arbitrary key-value settings into an INI file section.
+ * Deduplicates keys after injection to prevent buildup.
  * Returns count of changes made.
  */
 export function injectSettings(
@@ -175,6 +192,9 @@ export function injectSettings(
 
   let changed = updateExistingKeys(lines, section, pending);
   changed += ensureSectionAndAppend(lines, section, pending);
+
+  // Deduplicate keys that may exist across sections
+  deduplicateKeys(lines);
 
   const writeResult = writeFile(filePath, serializeIni(lines));
   if (!writeResult.ok) return writeResult;

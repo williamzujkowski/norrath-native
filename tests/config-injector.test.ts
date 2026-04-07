@@ -331,4 +331,36 @@ describe("injectSettings", () => {
     expect(content).toContain("A=99");
     expect(content).toContain("B=2");
   });
+
+  it("deduplicates keys when same key exists in multiple sections", () => {
+    const iniPath = path.join(tmpDir, "test.ini");
+    fs.writeFileSync(
+      iniPath,
+      "[Section1]\nShared=old\n[Section2]\nShared=also_old\n",
+    );
+
+    const result = injectSettings(iniPath, { Shared: "new" }, "Section1");
+    expect(result.ok).toBe(true);
+
+    const content = fs.readFileSync(iniPath, "utf-8");
+    const matches = content.match(/Shared=/g);
+    // Should only have ONE occurrence after dedup
+    expect(matches).toHaveLength(1);
+    expect(content).toContain("Shared=new");
+  });
+
+  it("does not create duplicates on repeated application", () => {
+    const iniPath = path.join(tmpDir, "test.ini");
+    fs.writeFileSync(iniPath, "[MySection]\nKey1=a\n");
+
+    // Apply twice
+    injectSettings(iniPath, { Key1: "b", Key2: "c" }, "MySection");
+    injectSettings(iniPath, { Key1: "b", Key2: "c" }, "MySection");
+
+    const content = fs.readFileSync(iniPath, "utf-8");
+    const key1Matches = content.match(/Key1=/g);
+    const key2Matches = content.match(/Key2=/g);
+    expect(key1Matches).toHaveLength(1);
+    expect(key2Matches).toHaveLength(1);
+  });
 });

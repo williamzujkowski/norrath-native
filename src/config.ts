@@ -282,6 +282,11 @@ export function generateManagedSettings(
   config: NorrathConfig,
 ): Record<string, string> {
   const s = config.eqSettings;
+  // Parse resolution for Width/Height
+  const resParts = config.resolution.split("x");
+  const resW = resParts[0] ?? "1920";
+  const resH = resParts[1] ?? "1080";
+
   const settings: Record<string, string> = {
     WindowedMode: "TRUE",
     UpdateInBackground: "1",
@@ -291,6 +296,10 @@ export function generateManagedSettings(
     AllowResize: "1",
     Maximized: "1",
     AlwaysOnTop: "0",
+    Width: resW,
+    Height: resH,
+    WindowedWidth: resW,
+    WindowedHeight: resH,
     MaxBGFPS: String(s.maxBgFps),
     PostEffects: boolTF(s.postEffects),
     MultiPassLighting: boolTF(s.multiPassLighting),

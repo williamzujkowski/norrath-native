@@ -251,7 +251,7 @@ make deploy  # Rebuild from scratch
 norrath-native/
   src/
     cli.ts               — Unified CLI entry point (21 commands)
-    config.ts            — YAML config, 5 profiles, 43 managed settings
+    config.ts            — YAML config, 5 profiles, 47 managed settings
     colors.ts            — 91-color WCAG AA-compliant chat scheme
     layout.ts            — 107-channel → 4-window chat routing
     resolution.ts        — Ultrawide detection, 16:9 clamping, tiling
