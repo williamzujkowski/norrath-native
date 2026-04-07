@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+@theme {
+  /* Color palette — dark theme inspired by EQ's UI */
+  --color-bg: #0c0e14;
+  --color-bg-card: #141722;
+  --color-bg-nav: #10131a;
+  --color-border: #1e2333;
+  --color-text: #d4d8e8;
+  --color-text-muted: #8890a8;
+  --color-text-heading: #eef0f6;
+  --color-accent: #5b8def;
+  --color-accent-hover: #7aa3f5;
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+
+  /* Typography scale */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* Base styles */
+html {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  scroll-behavior: smooth;
+}
+
+/* Prose styles for markdown content */
+.prose {
+  max-width: 72ch;
+  line-height: 1.75;
+  color: var(--color-text);
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4 {
+  color: var(--color-text-heading);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.prose h1 { font-size: 2rem; margin-top: 0; margin-bottom: 1rem; }
+.prose h2 { font-size: 1.5rem; margin-top: 2.5rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.5rem; }
+.prose h3 { font-size: 1.25rem; margin-top: 2rem; margin-bottom: 0.5rem; }
+
+.prose p { margin-bottom: 1.25rem; }
+
+.prose a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: text-decoration-color 0.15s;
+}
+.prose a:hover {
+  text-decoration-color: var(--color-accent);
+}
+
+.prose code {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 0.15em 0.35em;
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+.prose pre {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+.prose pre code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+.prose th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-text-heading);
+  padding: 0.5rem 0.75rem;
+  border-bottom: 2px solid var(--color-border);
+}
+.prose td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.prose ul, .prose ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+.prose li { margin-bottom: 0.375rem; }
+
+.prose blockquote {
+  border-left: 3px solid var(--color-accent);
+  padding-left: 1rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin-bottom: 1.25rem;
+}
+
+.prose strong { color: var(--color-text-heading); }

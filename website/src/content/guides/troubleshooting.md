@@ -1,8 +1,6 @@
 ---
-title: Troubleshooting
-description: Common issues and fixes for norrath-native
-source: scripts/doctor.sh, src/doctor.ts
-updated: auto-generated
+title: "Troubleshooting"
+description: "Common issues and fixes for norrath-native"
 ---
 
 # Troubleshooting

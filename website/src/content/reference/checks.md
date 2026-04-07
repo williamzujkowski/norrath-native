@@ -1,8 +1,6 @@
 ---
-title: Doctor Checks Reference
-description: Health check descriptions and categories
-source: src/doctor.ts, scripts/doctor.sh
-updated: auto-generated
+title: "Doctor Checks Reference"
+description: "Health check descriptions and categories"
 ---
 
 # Doctor Checks Reference

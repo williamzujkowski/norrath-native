@@ -1,0 +1,72 @@
+---
+const base = import.meta.env.BASE_URL;
+
+const guides = [
+  { title: 'Getting Started', href: `${base}guides/getting-started/` },
+  { title: 'Multiboxing', href: `${base}guides/multiboxing/` },
+  { title: 'Chat Setup', href: `${base}guides/chat-setup/` },
+  { title: 'Chat Profiles', href: `${base}guides/chat-profiles/` },
+  { title: 'EQLogParser', href: `${base}guides/eqlogparser-setup/` },
+  { title: 'Troubleshooting', href: `${base}guides/troubleshooting/` },
+];
+
+const reference = [
+  { title: 'Commands', href: `${base}reference/commands/` },
+  { title: 'Doctor Checks', href: `${base}reference/checks/` },
+  { title: 'Chat Layout', href: `${base}reference/chat-layout/` },
+  { title: 'UI Architecture', href: `${base}reference/ui-architecture/` },
+];
+
+const currentPath = Astro.url.pathname;
+---
+
+<aside class="hidden lg:block w-56 shrink-0">
+  <div class="sticky top-22 space-y-6">
+    <div>
+      <h3 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-text-muted);">Guides</h3>
+      <ul class="space-y-1">
+        {guides.map(({ title, href }) => (
+          <li>
+            <a
+              href={href}
+              class:list={[
+                'block rounded-md px-3 py-1.5 text-sm transition-colors',
+                currentPath === href
+                  ? 'font-medium'
+                  : 'hover:text-white',
+              ]}
+              style={currentPath === href
+                ? `background-color: var(--color-bg-card); color: var(--color-accent);`
+                : `color: var(--color-text-muted);`}
+            >
+              {title}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+    <div>
+      <h3 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-text-muted);">Reference</h3>
+      <ul class="space-y-1">
+        {reference.map(({ title, href }) => (
+          <li>
+            <a
+              href={href}
+              class:list={[
+                'block rounded-md px-3 py-1.5 text-sm transition-colors',
+                currentPath === href
+                  ? 'font-medium'
+                  : 'hover:text-white',
+              ]}
+              style={currentPath === href
+                ? `background-color: var(--color-bg-card); color: var(--color-accent);`
+                : `color: var(--color-text-muted);`}
+            >
+              {title}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</aside>
