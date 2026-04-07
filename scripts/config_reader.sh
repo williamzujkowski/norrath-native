@@ -247,7 +247,7 @@ _nn_read_config() {
         local val
         val="$(_nn_yaml_get "${config_file}" "${key}")"
         if [[ -n "${val}" ]]; then
-            eval "${varname}='${val}'"
+            printf -v "${varname}" '%s' "${val}"
         fi
     }
 
