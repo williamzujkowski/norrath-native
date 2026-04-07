@@ -15,15 +15,32 @@ jobs:
           node-version: "22"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm build
-      - run: pnpm lint
-      - run: pnpm run format:check
-      - run: pnpm run test:run
+
+      - name: TypeScript type check
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm run format:check
+
+      - name: Tests
+        run: pnpm run test:run
+
+      - name: Coverage report
+        run: pnpm run test:coverage
+        continue-on-error: true
+
       - name: Verify doc stats match source
         run: npx tsx scripts/generate-stats.ts
+
       - name: TypeDoc build check
         run: npx typedoc --logLevel Warn
+
       - name: ShellCheck bash scripts
         uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38 # v2.0.0
         env:
