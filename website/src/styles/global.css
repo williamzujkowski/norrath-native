@@ -26,6 +26,11 @@ html {
   color: var(--color-text);
   font-family: var(--font-sans);
   scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
 }
 
 /* Prose styles for markdown content */
