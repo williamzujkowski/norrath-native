@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- cohesive module: all health checks belong together (governance: 400-600 OK) */
 /**
  * Doctor module — health check system for norrath-native.
  *
@@ -83,7 +84,17 @@ export function createGrepCheck(
           fix,
         };
       }
-      const content = readFileSync(filePath, "utf-8");
+      let content: string;
+      try {
+        content = readFileSync(filePath, "utf-8");
+      } catch {
+        return {
+          id,
+          status: "fail",
+          message: `${description}: file unreadable`,
+          fix,
+        };
+      }
       if (content.includes(pattern)) {
         return { id, status: "pass", message: description };
       }

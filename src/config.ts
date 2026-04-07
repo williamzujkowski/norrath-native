@@ -10,7 +10,7 @@
 
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { type Result, ok } from "./types/interfaces.js";
+import { type Result, ok, err } from "./types/interfaces.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -179,6 +179,13 @@ function yamlGet(content: string, key: string): string | undefined {
     .trim();
 }
 
+/** Parse an integer, returning undefined for non-numeric values. */
+function safeParseInt(value: string | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  const n = parseInt(value, 10);
+  return Number.isNaN(n) ? undefined : n;
+}
+
 // ---------------------------------------------------------------------------
 // Config resolution
 // ---------------------------------------------------------------------------
@@ -222,14 +229,14 @@ function applyYamlOverrides(config: NorrathConfig, content: string): void {
     config.display = display;
   }
 
-  const inst = yamlGet(content, "instances");
-  if (inst) config.instances = parseInt(inst, 10);
+  const inst = safeParseInt(yamlGet(content, "instances"));
+  if (inst !== undefined) config.instances = inst;
 
-  const multi = yamlGet(content, "multibox_instances");
-  if (multi) config.multiboxInstances = parseInt(multi, 10);
+  const multi = safeParseInt(yamlGet(content, "multibox_instances"));
+  if (multi !== undefined) config.multiboxInstances = multi;
 
-  const stagger = yamlGet(content, "stagger_delay");
-  if (stagger) config.staggerDelay = parseInt(stagger, 10);
+  const stagger = safeParseInt(yamlGet(content, "stagger_delay"));
+  if (stagger !== undefined) config.staggerDelay = stagger;
 
   const profile = yamlGet(content, "profile");
   if (isProfile(profile)) config.profile = profile;
@@ -252,8 +259,12 @@ export function resolveConfig(
 
   const path = findConfigFile(configPath);
   if (path) {
-    const content = readFileSync(path, "utf-8");
-    applyYamlOverrides(config, content);
+    try {
+      const content = readFileSync(path, "utf-8");
+      applyYamlOverrides(config, content);
+    } catch {
+      return err(new Error(`Failed to read config file: ${path}`));
+    }
   }
 
   // Always apply profile (default is 'raid')
