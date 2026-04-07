@@ -313,3 +313,18 @@ cli_cmd() {
 
     node "${cli}" "$@"
 }
+
+# cli_cmd_strict — run CLI command, abort on failure with error message.
+# Use for critical operations where empty output would cause data loss.
+cli_cmd_strict() {
+    local output
+    if ! output="$(cli_cmd "$@")"; then
+        nn_log "ERROR: cli_cmd $* failed"
+        return 1
+    fi
+    if [[ -z "${output}" ]]; then
+        nn_log "ERROR: cli_cmd $* returned empty output"
+        return 1
+    fi
+    printf '%s' "${output}"
+}
