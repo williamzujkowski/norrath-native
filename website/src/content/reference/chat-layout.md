@@ -1,6 +1,6 @@
 ---
-title: ""
-description: ""
+title: "Chat Window Layout"
+description: "4-window raid chat routing with 107 channels"
 ---
 
 # Recommended Chat Window Layout
