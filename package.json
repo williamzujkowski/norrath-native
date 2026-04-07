@@ -1,6 +1,6 @@
 {
   "name": "norrath-native",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Deterministic, idempotent deployment toolkit to run EverQuest natively on Ubuntu 24.04 LTS via Wine and DXVK",
   "type": "module",
   "engines": {
