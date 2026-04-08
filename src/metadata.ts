@@ -31,7 +31,6 @@ export interface ProjectMetadata {
 /** CLI command names — kept in sync with cli.ts commands() */
 const CLI_COMMANDS: string[] = [
   "config",
-  "config:resolve",
   "config:settings",
   "config:settings:ini",
   "resolution:detect",
