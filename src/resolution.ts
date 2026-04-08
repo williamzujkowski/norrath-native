@@ -10,9 +10,12 @@
 
 import { type Result, ok, err } from "./types/interfaces.js";
 
+/** Float comparison tolerance for aspect ratio detection. */
+const ASPECT_RATIO_EPSILON = 0.01;
+
 /** Check if a resolution is ultrawide (wider than 16:9) */
 export function isUltrawide(width: number, height: number): boolean {
-  return width / height > 16 / 9 + 0.01; // small epsilon for float comparison
+  return width / height > 16 / 9 + ASPECT_RATIO_EPSILON;
 }
 
 /** Clamp a resolution to 16:9 aspect ratio (EQ's max supported) */

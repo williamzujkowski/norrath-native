@@ -50,7 +50,6 @@ function printJson(data: unknown): void {
 function commands(): Record<string, () => void> {
   return {
     config: cmdConfig,
-    "config:resolve": cmdConfig,
     "config:settings": cmdConfigSettings,
     "config:settings:ini": cmdConfigSettingsIni,
     "resolution:detect": cmdResolutionDetect,
@@ -170,10 +169,13 @@ function cmdColorsData(): void {
   }
 }
 
+/** EQ default dark background — used for WCAG contrast validation. */
+const EQ_DEFAULT_BG = { r: 13, g: 13, b: 26 } as const;
+
 function cmdColorsValidate(): void {
-  const bgR = parseIntOrDefault(args[1], 13);
-  const bgG = parseIntOrDefault(args[2], 13);
-  const bgB = parseIntOrDefault(args[3], 26);
+  const bgR = parseIntOrDefault(args[1], EQ_DEFAULT_BG.r);
+  const bgG = parseIntOrDefault(args[2], EQ_DEFAULT_BG.g);
+  const bgB = parseIntOrDefault(args[3], EQ_DEFAULT_BG.b);
   const results = validateSchemeContrast({ r: bgR, g: bgG, b: bgB });
   const failing = results.filter((r) => !r.passes);
   if (failing.length > 0) {
