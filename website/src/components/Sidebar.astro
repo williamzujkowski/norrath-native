@@ -23,21 +23,21 @@ const currentPath = Astro.url.pathname;
 <aside class="hidden lg:block w-56 shrink-0">
   <div class="sticky space-y-6 overflow-y-auto" style="top: 4.5rem; max-height: calc(100vh - 5rem);">
     <div>
-      <h3 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-text-muted);">Guides</h3>
-      <ul class="space-y-1">
+      <h3 class="text-xs font-semibold uppercase tracking-wider mb-2" style="font-family: var(--font-heading); color: var(--color-gold-dim); letter-spacing: 0.1em;">Guides</h3>
+      <ul class="space-y-0.5">
         {guides.map(({ title, href }) => (
           <li>
             <a
               href={href}
               class:list={[
-                'block rounded-md px-3 py-1.5 text-sm transition-colors',
+                'block rounded px-3 py-1.5 text-sm transition-colors',
                 currentPath === href
                   ? 'font-medium'
-                  : 'hover:text-white',
+                  : '',
               ]}
               style={currentPath === href
-                ? `background-color: var(--color-bg-card); color: var(--color-accent);`
-                : `color: var(--color-text-muted);`}
+                ? `background-color: var(--color-bg-card); color: var(--color-gold); border-left: 2px solid var(--color-gold);`
+                : `color: var(--color-text-muted); border-left: 2px solid transparent;`}
             >
               {title}
             </a>
@@ -46,21 +46,21 @@ const currentPath = Astro.url.pathname;
       </ul>
     </div>
     <div>
-      <h3 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-text-muted);">Reference</h3>
-      <ul class="space-y-1">
+      <h3 class="text-xs font-semibold uppercase tracking-wider mb-2" style="font-family: var(--font-heading); color: var(--color-gold-dim); letter-spacing: 0.1em;">Reference</h3>
+      <ul class="space-y-0.5">
         {reference.map(({ title, href }) => (
           <li>
             <a
               href={href}
               class:list={[
-                'block rounded-md px-3 py-1.5 text-sm transition-colors',
+                'block rounded px-3 py-1.5 text-sm transition-colors',
                 currentPath === href
                   ? 'font-medium'
-                  : 'hover:text-white',
+                  : '',
               ]}
               style={currentPath === href
-                ? `background-color: var(--color-bg-card); color: var(--color-accent);`
-                : `color: var(--color-text-muted);`}
+                ? `background-color: var(--color-bg-card); color: var(--color-gold); border-left: 2px solid var(--color-gold);`
+                : `color: var(--color-text-muted); border-left: 2px solid transparent;`}
             >
               {title}
             </a>
