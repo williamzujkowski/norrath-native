@@ -8,12 +8,12 @@
   --color-bg-nav: #0c0f18;
   --color-border: #1c2236;
   --color-border-gold: #3d3221;
-  --color-text: #c8cdd8;
-  --color-text-muted: #7a8299;
-  --color-text-heading: #e8dcc8;
-  --color-gold: #c9a84c;
-  --color-gold-dim: #8a7234;
-  --color-gold-bright: #e4c565;
+  --color-text: #d0d4de;
+  --color-text-muted: #949bb3;
+  --color-text-heading: #ede2d0;
+  --color-gold: #d4b45c;
+  --color-gold-dim: #9a7f3e;
+  --color-gold-bright: #e8cc6e;
   --color-accent: #5b8def;
   --color-accent-hover: #7aa3f5;
   --color-success: #4ade80;
@@ -193,6 +193,32 @@ body {
   border: none;
   border-top: 1px solid var(--color-border-gold);
   margin: 2rem 0;
+}
+
+/* ─── Navigation ────────────────────────────────────────────────────────── */
+
+.nav-brand {
+  color: var(--color-gold);
+  transition: color 0.15s;
+}
+.nav-brand:hover {
+  color: var(--color-gold-bright);
+}
+
+.nav-link {
+  color: var(--color-text-muted);
+  transition: color 0.15s;
+}
+.nav-link:hover {
+  color: var(--color-gold);
+}
+
+.footer-link {
+  color: var(--color-text-muted);
+  transition: color 0.15s;
+}
+.footer-link:hover {
+  color: var(--color-gold);
 }
 
 /* ─── Cards ─────────────────────────────────────────────────────────────── */
