@@ -30,6 +30,37 @@ function runCliRaw(command: string): string {
   });
 }
 
+/**
+ * Run a CLI command and capture stdout/stderr/exit-code without throwing
+ * on a non-zero exit. Use for commands whose exit code is a status signal
+ * (e.g. `doctor`, which exits 1 on a degraded environment) where the test
+ * needs to assert on output regardless of exit code.
+ */
+function runCliResult(command: string): {
+  stdout: string;
+  stderr: string;
+  code: number;
+} {
+  try {
+    const stdout = execSync(`node ${CLI} ${command}`, {
+      encoding: "utf-8",
+      timeout: 10_000,
+    });
+    return { stdout, stderr: "", code: 0 };
+  } catch (error) {
+    const err = error as {
+      status?: number;
+      stdout?: string;
+      stderr?: string;
+    };
+    return {
+      stdout: err.stdout ?? "",
+      stderr: err.stderr ?? "",
+      code: err.status ?? 1,
+    };
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Config commands
 // ---------------------------------------------------------------------------
@@ -160,12 +191,20 @@ describe("cli interop: layout", () => {
 
 describe("cli interop: doctor", () => {
   it("doctor:json returns valid JSON with check results", () => {
-    const result = runCli("doctor:json") as Record<string, unknown>;
+    // `doctor` exits 1 when the environment is degraded (e.g. on a CI
+    // runner with no Wine/Vulkan/DXVK installed). The exit code is a
+    // status signal, not a failure to produce output — so assert on the
+    // emitted JSON, tolerating code 0 (healthy) or 1 (degraded).
+    const { stdout, code } = runCliResult("doctor:json");
+    expect([0, 1]).toContain(code);
+
+    const result = JSON.parse(stdout) as Record<string, unknown>;
     expect(result).toHaveProperty("passed");
     expect(result).toHaveProperty("warnings");
     expect(result).toHaveProperty("failed");
     expect(result).toHaveProperty("checks");
     expect(Array.isArray(result["checks"])).toBe(true);
+    expect((result["checks"] as unknown[]).length).toBeGreaterThan(0);
   });
 });
 
