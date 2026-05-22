@@ -32,7 +32,7 @@
     "@types/node": "25.6.0",
     "@typescript-eslint/eslint-plugin": "8.59.4",
     "@typescript-eslint/parser": "8.59.4",
-    "@vitest/coverage-v8": "4.1.4",
+    "@vitest/coverage-v8": "4.1.7",
     "eslint": "10.2.0",
     "husky": "9.1.7",
     "lint-staged": "16.4.0",
@@ -41,7 +41,7 @@
     "typedoc": "0.28.18",
     "typescript": "6.0.2",
     "vite": "8.0.14",
-    "vitest": "4.1.4"
+    "vitest": "4.1.7"
   },
   "repository": {
     "type": "git",
