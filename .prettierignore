@@ -1,0 +1,3 @@
+# pnpm owns the lockfile format; Prettier reformatting it produces a
+# non-canonical file that breaks `pnpm install --frozen-lockfile`.
+pnpm-lock.yaml
