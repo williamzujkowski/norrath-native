@@ -29,7 +29,7 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@types/node": "25.9.1",
+    "@types/node": "26.1.0",
     "@typescript-eslint/eslint-plugin": "8.59.4",
     "@typescript-eslint/parser": "8.59.4",
     "@vitest/coverage-v8": "4.1.7",
